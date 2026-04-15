@@ -1,0 +1,36 @@
+# ===== OS / Editor =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Environment =====
+.env
+.env.*
+!.env.example
+
+# ===== Node / Vite =====
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+*.tsbuildinfo
+
+# ===== Rust / Cargo / Tauri =====
+target/
+src-tauri/target/
+**/*.rs.bk
+
+# ===== Tauri generated bundles =====
+src-tauri/gen/
+src-tauri/bundle/
+
