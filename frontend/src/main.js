@@ -105,58 +105,59 @@ function renderWaveform() {
   requestAnimationFrame(renderWaveform);
 }
 
-await listen("waveform-frame", (event) => {
-  const payload = event.payload;
-  if (Array.isArray(payload.points)) {
-    latestPoints = payload.points;
-    statusEl.textContent = `实时采集中 · peak=${payload.peak.toFixed(3)} · rms=${payload.rms.toFixed(3)}`;
-  }
-});
+async function init() {
+  await listen("waveform-frame", (event) => {
+    const payload = event.payload;
+    if (Array.isArray(payload.points)) {
+      latestPoints = payload.points;
+      statusEl.textContent = `实时采集中 · peak=${payload.peak.toFixed(3)} · rms=${payload.rms.toFixed(3)}`;
+    }
+  });
 
-await listen("waveform-error", (event) => {
-  statusEl.textContent = `错误：${event.payload}`;
-});
+  await listen("waveform-error", (event) => {
+    statusEl.textContent = `错误：${event.payload}`;
+  });
 
-await listen("waveform-status", (event) => {
-  statusEl.textContent = event.payload;
-});
+  await listen("waveform-status", (event) => {
+    statusEl.textContent = event.payload;
+  });
 
-startBtn.addEventListener("click", async () => {
-  await invoke("start_waveform_stream");
-});
+  startBtn.addEventListener("click", async () => {
+    await invoke("start_waveform_stream");
+  });
 
-stopBtn.addEventListener("click", async () => {
-  await invoke("stop_waveform_stream");
-});
+  stopBtn.addEventListener("click", async () => {
+    await invoke("stop_waveform_stream");
+  });
 
-bucketRange.addEventListener("input", async (event) => {
-  const count = Number(event.target.value);
-  bucketValue.textContent = String(count);
-  try {
-    await invoke("update_bucket_count", { bucketCount: count });
-  } catch (err) {
-    statusEl.textContent = `更新分桶失败：${String(err)}`;
-  }
-});
+  bucketRange.addEventListener("input", async (event) => {
+    const count = Number(event.target.value);
+    bucketValue.textContent = String(count);
+    try {
+      await invoke("update_bucket_count", { bucketCount: count });
+    } catch (err) {
+      statusEl.textContent = `更新分桶失败：${String(err)}`;
+    }
+  });
 
-bucketMode.addEventListener("change", async (event) => {
-  const mode = event.target.value;
-  try {
-    await invoke("update_bucket_mode", { mode });
-  } catch (err) {
-    statusEl.textContent = `更新分桶模式失败：${String(err)}`;
-  }
-});
+  bucketMode.addEventListener("change", async (event) => {
+    const mode = event.target.value;
+    try {
+      await invoke("update_bucket_mode", { mode });
+    } catch (err) {
+      statusEl.textContent = `更新分桶模式失败：${String(err)}`;
+    }
+  });
 
-tiltRange.addEventListener("input", async (event) => {
-  const percent = Number(event.target.value);
-  tiltValue.textContent = String(percent);
-  try {
-    await invoke("update_high_tilt_percent", { percent });
-  } catch (err) {
-    statusEl.textContent = `更新高频补偿失败：${String(err)}`;
-  }
-});
+  tiltRange.addEventListener("input", async (event) => {
+    const percent = Number(event.target.value);
+    tiltValue.textContent = String(percent);
+    try {
+      await invoke("update_high_tilt_percent", { percent });
+    } catch (err) {
+      statusEl.textContent = `更新高频补偿失败：${String(err)}`;
+    }
+  });
 
 async function syncFrequencyRange(minHz, maxHz) {
   try {
@@ -166,50 +167,55 @@ async function syncFrequencyRange(minHz, maxHz) {
   }
 }
 
-freqMinRange.addEventListener("input", async (event) => {
-  let minHz = Number(event.target.value);
-  let maxHz = Number(freqMaxRange.value);
-  if (minHz >= maxHz - 20) {
-    minHz = maxHz - 20;
+  freqMinRange.addEventListener("input", async (event) => {
+    let minHz = Number(event.target.value);
+    let maxHz = Number(freqMaxRange.value);
+    if (minHz >= maxHz - 20) {
+      minHz = maxHz - 20;
+      freqMinRange.value = String(minHz);
+    }
+    freqMinValue.textContent = String(minHz);
+    await syncFrequencyRange(minHz, maxHz);
+  });
+
+  freqMaxRange.addEventListener("input", async (event) => {
+    let maxHz = Number(event.target.value);
+    let minHz = Number(freqMinRange.value);
+    if (maxHz <= minHz + 20) {
+      maxHz = minHz + 20;
+      freqMaxRange.value = String(maxHz);
+    }
+    freqMaxValue.textContent = String(maxHz);
+    await syncFrequencyRange(minHz, maxHz);
+  });
+
+  try {
+    const [currentBucket, currentMode, currentTilt, frequencyRange] = await Promise.all([
+      invoke("get_bucket_count"),
+      invoke("get_bucket_mode"),
+      invoke("get_high_tilt_percent"),
+      invoke("get_frequency_range"),
+    ]);
+    bucketRange.value = String(currentBucket);
+    bucketValue.textContent = String(currentBucket);
+    bucketMode.value = currentMode;
+    tiltRange.value = String(currentTilt);
+    tiltValue.textContent = String(currentTilt);
+    const [minHz, maxHz] = frequencyRange;
     freqMinRange.value = String(minHz);
-  }
-  freqMinValue.textContent = String(minHz);
-  await syncFrequencyRange(minHz, maxHz);
-});
-
-freqMaxRange.addEventListener("input", async (event) => {
-  let maxHz = Number(event.target.value);
-  let minHz = Number(freqMinRange.value);
-  if (maxHz <= minHz + 20) {
-    maxHz = minHz + 20;
     freqMaxRange.value = String(maxHz);
+    freqMinValue.textContent = String(minHz);
+    freqMaxValue.textContent = String(maxHz);
+  } catch {
+    bucketValue.textContent = bucketRange.value;
+    tiltValue.textContent = tiltRange.value;
+    freqMinValue.textContent = freqMinRange.value;
+    freqMaxValue.textContent = freqMaxRange.value;
   }
-  freqMaxValue.textContent = String(maxHz);
-  await syncFrequencyRange(minHz, maxHz);
-});
 
-try {
-  const [currentBucket, currentMode, currentTilt, frequencyRange] = await Promise.all([
-    invoke("get_bucket_count"),
-    invoke("get_bucket_mode"),
-    invoke("get_high_tilt_percent"),
-    invoke("get_frequency_range"),
-  ]);
-  bucketRange.value = String(currentBucket);
-  bucketValue.textContent = String(currentBucket);
-  bucketMode.value = currentMode;
-  tiltRange.value = String(currentTilt);
-  tiltValue.textContent = String(currentTilt);
-  const [minHz, maxHz] = frequencyRange;
-  freqMinRange.value = String(minHz);
-  freqMaxRange.value = String(maxHz);
-  freqMinValue.textContent = String(minHz);
-  freqMaxValue.textContent = String(maxHz);
-} catch {
-  bucketValue.textContent = bucketRange.value;
-  tiltValue.textContent = tiltRange.value;
-  freqMinValue.textContent = freqMinRange.value;
-  freqMaxValue.textContent = freqMaxRange.value;
+  renderWaveform();
 }
 
-renderWaveform();
+init().catch((error) => {
+  statusEl.textContent = `初始化失败：${String(error)}`;
+});

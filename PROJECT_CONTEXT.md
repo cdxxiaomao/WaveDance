@@ -242,3 +242,10 @@
 - 新增频率下限/上限动态配置（前端滑条 + 后端命令）。
 - 后端分桶仅针对用户选定频率区间执行（支持 log/linear 两种模式）。
 - 调整区间后下一帧即时生效，便于聚焦低频或高频做观察。
+
+进度更新（macOS 安装包构建）：
+- 已补齐 Tauri 打包配置：`frontendDist`、`dmg/app` 目标、应用图标配置。
+- 已修正 bundle identifier 为 `com.wavedance.desktop`，避免 macOS `.app` 后缀冲突警告。
+- 已加入 `NSMicrophoneUsageDescription`，确保安装版可触发音频输入权限授权。
+- 新增一键打包脚本：`scripts/build-macos.sh`。
+- 新增打包说明文档：`BUILD_MACOS.md`，包含前置条件、分步命令和常见问题。
