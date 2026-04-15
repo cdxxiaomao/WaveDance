@@ -1,26 +1,145 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
     Arc,
 };
 use std::thread;
 use std::time::Duration;
 
+use rustfft::{num_complex::Complex, FftPlanner};
 use tauri::{Emitter, State};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
-use wavedance::audio_processing::{DefaultWaveformExtractor, WaveformExtractor};
+use wavedance::audio_processing::WaveformFrame;
 
 struct StreamState {
     running: Arc<AtomicBool>,
+    bucket_count: Arc<AtomicUsize>,
+    bucket_mode: Arc<AtomicU8>,
+    high_tilt_percent: Arc<AtomicUsize>,
+    freq_min_hz: Arc<AtomicUsize>,
+    freq_max_hz: Arc<AtomicUsize>,
 }
 
 impl Default for StreamState {
     fn default() -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
+            bucket_count: Arc::new(AtomicUsize::new(64)),
+            bucket_mode: Arc::new(AtomicU8::new(0)),
+            high_tilt_percent: Arc::new(AtomicUsize::new(35)),
+            freq_min_hz: Arc::new(AtomicUsize::new(20)),
+            freq_max_hz: Arc::new(AtomicUsize::new(12_000)),
         }
     }
+}
+
+fn rebucket_points(points: &[f32], bucket_count: usize) -> Vec<f32> {
+    if points.is_empty() {
+        return Vec::new();
+    }
+    let target = bucket_count.clamp(8, 256);
+    if points.len() <= target {
+        return points.to_vec();
+    }
+
+    let mut out = Vec::with_capacity(target);
+    for i in 0..target {
+        let start = i * points.len() / target;
+        let end = ((i + 1) * points.len() / target).max(start + 1);
+        let slice = &points[start..end];
+        let avg = slice.iter().sum::<f32>() / slice.len() as f32;
+        out.push(avg);
+    }
+    out
+}
+
+fn mono_from_interleaved(samples: &[f32], channels: usize) -> Vec<f32> {
+    if channels <= 1 {
+        return samples.to_vec();
+    }
+    samples
+        .chunks(channels)
+        .map(|chunk| chunk.iter().sum::<f32>() / channels as f32)
+        .collect()
+}
+
+fn compute_peak_rms(samples: &[f32]) -> (f32, f32) {
+    if samples.is_empty() {
+        return (0.0, 0.0);
+    }
+    let peak = samples.iter().fold(0.0_f32, |acc, v| acc.max(v.abs()));
+    let rms = (samples.iter().map(|v| v * v).sum::<f32>() / samples.len() as f32).sqrt();
+    (peak, rms)
+}
+
+fn spectrum_bands_from_frame(
+    mono_samples: &[f32],
+    sample_rate: u32,
+    bucket_count: usize,
+    fft_size: usize,
+    log_mode: bool,
+    high_tilt_percent: usize,
+    freq_min_hz: usize,
+    freq_max_hz: usize,
+) -> Vec<f32> {
+    if mono_samples.is_empty() {
+        return Vec::new();
+    }
+
+    let mut planner = FftPlanner::<f32>::new();
+    let fft = planner.plan_fft_forward(fft_size);
+
+    let mut buffer: Vec<Complex<f32>> = (0..fft_size)
+        .map(|i| {
+            let sample = *mono_samples.get(i).unwrap_or(&0.0);
+            let w =
+                0.5 - 0.5 * (2.0 * std::f32::consts::PI * i as f32 / (fft_size as f32 - 1.0)).cos();
+            Complex::new(sample * w, 0.0)
+        })
+        .collect();
+
+    fft.process(&mut buffer);
+
+    let half = fft_size / 2;
+    let magnitudes: Vec<f32> = buffer[..half].iter().map(|c| c.norm()).collect();
+    let nyquist = sample_rate as f32 / 2.0;
+    let target = bucket_count.clamp(8, 256);
+    let min_freq = (freq_min_hz as f32).max(20.0).min(nyquist - 1.0);
+    let max_freq = (freq_max_hz as f32).max(min_freq + 1.0).min(nyquist);
+
+    // 可切换 log/linear 分桶；并支持高频补偿。
+    let mut bands = Vec::with_capacity(target);
+    for i in 0..target {
+        let start_ratio = i as f32 / target as f32;
+        let end_ratio = (i + 1) as f32 / target as f32;
+        let (start_freq, end_freq) = if log_mode {
+            (
+                min_freq * (max_freq / min_freq).powf(start_ratio),
+                min_freq * (max_freq / min_freq).powf(end_ratio),
+            )
+        } else {
+            (
+                min_freq + start_ratio * (max_freq - min_freq),
+                min_freq + end_ratio * (max_freq - min_freq),
+            )
+        };
+        let start_bin = ((start_freq / nyquist) * half as f32).floor() as usize;
+        let end_bin = ((end_freq / nyquist) * half as f32).ceil() as usize;
+        let s = start_bin.min(half.saturating_sub(1));
+        let e = end_bin.max(s + 1).min(half);
+        let slice = &magnitudes[s..e];
+        let mut avg = slice.iter().sum::<f32>() / slice.len() as f32;
+        let tilt = 1.0 + (high_tilt_percent as f32 / 100.0) * start_ratio;
+        avg *= tilt;
+        bands.push(avg.max(0.0));
+    }
+
+    let max_band = bands.iter().fold(0.0_f32, |acc, v| acc.max(*v));
+    if max_band > 0.0 {
+        bands.iter_mut().for_each(|v| *v /= max_band);
+    }
+    bands
 }
 
 #[tauri::command]
@@ -30,9 +149,14 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     }
 
     let running = Arc::clone(&state.running);
+    let bucket_count = Arc::clone(&state.bucket_count);
+    let bucket_mode = Arc::clone(&state.bucket_mode);
+    let high_tilt_percent = Arc::clone(&state.high_tilt_percent);
+    let freq_min_hz = Arc::clone(&state.freq_min_hz);
+    let freq_max_hz = Arc::clone(&state.freq_max_hz);
     thread::spawn(move || {
+        const FFT_SIZE: usize = 2048;
         let mut source = MacSystemAudioSource::new(Some("BlackHole".to_string()));
-        let extractor = DefaultWaveformExtractor::new(512, 0.95);
 
         if let Err(err) = source.start() {
             let _ = app.emit("waveform-error", format!("启动系统音频采集失败: {err}"));
@@ -42,9 +166,31 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
 
         let _ = app.emit("waveform-status", "系统音频采集已启动");
         while running.load(Ordering::SeqCst) {
-            match source.read_frame(1024) {
+            match source.read_frame(FFT_SIZE) {
                 Ok(frame) => {
-                    let waveform = extractor.extract(&frame);
+                    let mono = mono_from_interleaved(&frame.samples, frame.channels as usize);
+                    let (peak, rms) = compute_peak_rms(&mono);
+                    let bucket = bucket_count.load(Ordering::Relaxed);
+                    let log_mode = bucket_mode.load(Ordering::Relaxed) == 0;
+                    let tilt_percent = high_tilt_percent.load(Ordering::Relaxed);
+                    let min_hz = freq_min_hz.load(Ordering::Relaxed);
+                    let max_hz = freq_max_hz.load(Ordering::Relaxed);
+                    let spectrum = spectrum_bands_from_frame(
+                        &mono,
+                        frame.sample_rate,
+                        bucket,
+                        FFT_SIZE,
+                        log_mode,
+                        tilt_percent,
+                        min_hz,
+                        max_hz,
+                    );
+                    let mut waveform = WaveformFrame {
+                        peak,
+                        rms,
+                        points: spectrum,
+                    };
+                    waveform.points = rebucket_points(&waveform.points, bucket);
                     let _ = app.emit("waveform-frame", waveform);
                 }
                 Err(err) => {
@@ -66,12 +212,90 @@ fn stop_waveform_stream(state: State<'_, StreamState>) {
     state.running.store(false, Ordering::SeqCst);
 }
 
+#[tauri::command]
+fn update_bucket_count(state: State<'_, StreamState>, bucket_count: usize) -> Result<(), String> {
+    if !(8..=256).contains(&bucket_count) {
+        return Err("桶数量必须在 8 到 256 之间".to_string());
+    }
+    state.bucket_count.store(bucket_count, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_bucket_count(state: State<'_, StreamState>) -> usize {
+    state.bucket_count.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn update_bucket_mode(state: State<'_, StreamState>, mode: String) -> Result<(), String> {
+    let normalized = mode.trim().to_lowercase();
+    match normalized.as_str() {
+        "log" => state.bucket_mode.store(0, Ordering::SeqCst),
+        "linear" => state.bucket_mode.store(1, Ordering::SeqCst),
+        _ => return Err("分桶模式必须是 log 或 linear".to_string()),
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn get_bucket_mode(state: State<'_, StreamState>) -> String {
+    if state.bucket_mode.load(Ordering::SeqCst) == 0 {
+        "log".to_string()
+    } else {
+        "linear".to_string()
+    }
+}
+
+#[tauri::command]
+fn update_high_tilt_percent(state: State<'_, StreamState>, percent: usize) -> Result<(), String> {
+    if percent > 200 {
+        return Err("高频补偿强度必须在 0 到 200 之间".to_string());
+    }
+    state.high_tilt_percent.store(percent, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_high_tilt_percent(state: State<'_, StreamState>) -> usize {
+    state.high_tilt_percent.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn update_frequency_range(
+    state: State<'_, StreamState>,
+    min_hz: usize,
+    max_hz: usize,
+) -> Result<(), String> {
+    if min_hz < 20 || max_hz > 24_000 || min_hz + 20 >= max_hz {
+        return Err("频率范围不合法，需满足 20<=min<max<=24000 且最小间距 20Hz".to_string());
+    }
+    state.freq_min_hz.store(min_hz, Ordering::SeqCst);
+    state.freq_max_hz.store(max_hz, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_frequency_range(state: State<'_, StreamState>) -> (usize, usize) {
+    (
+        state.freq_min_hz.load(Ordering::SeqCst),
+        state.freq_max_hz.load(Ordering::SeqCst),
+    )
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(StreamState::default())
         .invoke_handler(tauri::generate_handler![
             start_waveform_stream,
-            stop_waveform_stream
+            stop_waveform_stream,
+            update_bucket_count,
+            get_bucket_count,
+            update_bucket_mode,
+            get_bucket_mode,
+            update_high_tilt_percent,
+            get_high_tilt_percent,
+            update_frequency_range,
+            get_frequency_range
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

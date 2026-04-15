@@ -102,6 +102,9 @@ pub struct MacSystemAudioSource {
 }
 
 impl MacSystemAudioSource {
+    const MAX_BUFFER_MS: usize = 240;
+    const MAX_BACKLOG_FRAMES: usize = 2;
+
     pub fn new(preferred_device_keyword: Option<String>) -> Self {
         Self {
             preferred_device_keyword,
@@ -147,6 +150,7 @@ impl AudioSource for MacSystemAudioSource {
 
         self.sample_rate = config.sample_rate().0;
         self.channels = config.channels();
+        let max_keep_samples = (self.sample_rate as usize * self.channels as usize * Self::MAX_BUFFER_MS) / 1000;
 
         let buffer = Arc::clone(&self.sample_buffer);
         let err_fn = |err| eprintln!("音频输入流异常: {err}");
@@ -158,8 +162,7 @@ impl AudioSource for MacSystemAudioSource {
                     move |data: &[f32], _| {
                         if let Ok(mut q) = buffer.lock() {
                             q.extend(data.iter().copied());
-                            let keep = (48_000usize * 8).saturating_mul(2);
-                            while q.len() > keep {
+                            while q.len() > max_keep_samples {
                                 q.pop_front();
                             }
                         }
@@ -176,8 +179,7 @@ impl AudioSource for MacSystemAudioSource {
                         move |data: &[i16], _| {
                             if let Ok(mut q) = buffer.lock() {
                                 q.extend(data.iter().map(|v| *v as f32 / i16::MAX as f32));
-                                let keep = (48_000usize * 8).saturating_mul(2);
-                                while q.len() > keep {
+                                while q.len() > max_keep_samples {
                                     q.pop_front();
                                 }
                             }
@@ -198,8 +200,7 @@ impl AudioSource for MacSystemAudioSource {
                                     data.iter()
                                         .map(|v| (*v as f32 / u16::MAX as f32) * 2.0 - 1.0),
                                 );
-                                let keep = (48_000usize * 8).saturating_mul(2);
-                                while q.len() > keep {
+                                while q.len() > max_keep_samples {
                                     q.pop_front();
                                 }
                             }
@@ -236,6 +237,11 @@ impl AudioSource for MacSystemAudioSource {
         loop {
             if let Ok(mut q) = self.sample_buffer.lock() {
                 if q.len() >= needed {
+                    // 低延迟优先：如果积压过多，主动丢弃旧数据，仅保留最近少量帧。
+                    let max_backlog_samples = needed * Self::MAX_BACKLOG_FRAMES;
+                    while q.len() > max_backlog_samples {
+                        q.pop_front();
+                    }
                     let mut out = Vec::with_capacity(needed);
                     for _ in 0..needed {
                         if let Some(v) = q.pop_front() {

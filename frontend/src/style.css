@@ -43,6 +43,39 @@ header h1 {
   margin-top: 14px;
 }
 
+.panel {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #2a3558;
+  border-radius: 10px;
+  background: #0e1630;
+}
+
+.panel label {
+  display: block;
+  margin-bottom: 8px;
+  color: #b4c2e8;
+}
+
+.panel input[type="range"] {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.row select {
+  background: #182448;
+  color: #dce5ff;
+  border: 1px solid #3c4a7b;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
 button {
   border: 1px solid #3c4a7b;
   border-radius: 10px;

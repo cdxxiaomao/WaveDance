@@ -17,6 +17,23 @@
         <button id="startBtn">开始采集</button>
         <button id="stopBtn">停止采集</button>
       </div>
+      <div class="panel">
+        <label for="bucketRange">分桶数量：<span id="bucketValue">64</span></label>
+        <input id="bucketRange" type="range" min="8" max="256" step="1" value="64" />
+        <div class="row">
+          <label for="bucketMode">分桶模式：</label>
+          <select id="bucketMode">
+            <option value="log">log（低频更细）</option>
+            <option value="linear">linear（频段等宽）</option>
+          </select>
+        </div>
+        <label for="tiltRange">高频补偿：<span id="tiltValue">35</span>%</label>
+        <input id="tiltRange" type="range" min="0" max="200" step="1" value="35" />
+        <label for="freqMinRange">频率下限：<span id="freqMinValue">20</span> Hz</label>
+        <input id="freqMinRange" type="range" min="20" max="20000" step="10" value="20" />
+        <label for="freqMaxRange">频率上限：<span id="freqMaxValue">12000</span> Hz</label>
+        <input id="freqMaxRange" type="range" min="100" max="24000" step="10" value="12000" />
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
