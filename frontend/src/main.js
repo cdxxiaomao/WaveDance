@@ -16,6 +16,11 @@ const freqMinRange = document.querySelector("#freqMinRange");
 const freqMinValue = document.querySelector("#freqMinValue");
 const freqMaxRange = document.querySelector("#freqMaxRange");
 const freqMaxValue = document.querySelector("#freqMaxValue");
+const bodyBgColor = document.querySelector("#bodyBgColor");
+const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
+const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
+const bodyBlur = document.querySelector("#bodyBlur");
+const bodyBlurValue = document.querySelector("#bodyBlurValue");
 
 const gl = canvas.getContext("webgl");
 if (!gl) {
@@ -67,6 +72,27 @@ const buffer = gl.createBuffer();
 const WAVEFORM_GAIN = 0.5;
 
 let latestPoints = [];
+
+function hexToRgb(hex) {
+  const safeHex = hex.replace("#", "");
+  if (safeHex.length !== 6) return { r: 11, g: 16, b: 32 };
+  return {
+    r: Number.parseInt(safeHex.slice(0, 2), 16),
+    g: Number.parseInt(safeHex.slice(2, 4), 16),
+    b: Number.parseInt(safeHex.slice(4, 6), 16),
+  };
+}
+
+function applyBodyVisualStyle() {
+  const { r, g, b } = hexToRgb(bodyBgColor.value);
+  const alpha = Number(bodyBgAlpha.value) / 100;
+  const blurPx = Number(bodyBlur.value);
+  document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+  document.body.style.backdropFilter = `blur(${blurPx}px)`;
+  document.body.style.webkitBackdropFilter = `blur(${blurPx}px)`;
+  bodyBgAlphaValue.textContent = String(bodyBgAlpha.value);
+  bodyBlurValue.textContent = String(bodyBlur.value);
+}
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -175,6 +201,10 @@ async function init() {
     }
   });
 
+  bodyBgColor.addEventListener("input", applyBodyVisualStyle);
+  bodyBgAlpha.addEventListener("input", applyBodyVisualStyle);
+  bodyBlur.addEventListener("input", applyBodyVisualStyle);
+
   tiltRange.addEventListener("input", async (event) => {
     const percent = Number(event.target.value);
     tiltValue.textContent = String(percent);
@@ -242,6 +272,7 @@ async function syncFrequencyRange(minHz, maxHz) {
     pinToggle.checked = true;
   }
 
+  applyBodyVisualStyle();
   renderWaveform();
 }
 
