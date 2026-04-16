@@ -1,5 +1,9 @@
 # WaveDance macOS 打包说明
 
+> 文档类型：发布与打包操作文档  
+> 维护目标：只保留打包、产物位置、常见故障排查。  
+> 关联文档：`docs/QUICK_CONTEXT.md` | `PROJECT_CONTEXT.md` | `docs/CHANGELOG_AGENT.md`
+
 ## 前置条件
 
 - 已安装 Rust 工具链（含 `cargo`）
