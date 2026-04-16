@@ -7,13 +7,19 @@ use std::sync::{
 use std::thread;
 use std::time::Duration;
 
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{
+    NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior,
+};
 use rustfft::{num_complex::Complex, FftPlanner};
-use tauri::{Emitter, State};
+use tauri::{ActivationPolicy, Emitter, Manager, State};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::WaveformFrame;
 
 struct StreamState {
     running: Arc<AtomicBool>,
+    overlay_pinned: Arc<AtomicBool>,
     bucket_count: Arc<AtomicUsize>,
     bucket_mode: Arc<AtomicU8>,
     high_tilt_percent: Arc<AtomicUsize>,
@@ -25,6 +31,7 @@ impl Default for StreamState {
     fn default() -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
+            overlay_pinned: Arc::new(AtomicBool::new(true)),
             bucket_count: Arc::new(AtomicUsize::new(64)),
             bucket_mode: Arc::new(AtomicU8::new(0)),
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
@@ -282,9 +289,133 @@ fn get_frequency_range(state: State<'_, StreamState>) -> (usize, usize) {
     )
 }
 
+#[cfg(target_os = "macos")]
+fn configure_overlay_window(window: tauri::WebviewWindow, pinned: bool) -> tauri::Result<()> {
+    window.set_always_on_top(pinned)?;
+    window.set_shadow(false)?;
+
+    let overlay_window = window.clone();
+    window.run_on_main_thread(move || unsafe {
+        let ns_window: &NSWindow = &*overlay_window
+            .ns_window()
+            .expect("无法获取 macOS 窗口句柄")
+            .cast();
+        if pinned {
+            ns_window.setLevel(NSScreenSaverWindowLevel);
+        } else {
+            ns_window.setLevel(0);
+        }
+        ns_window.setOpaque(false);
+        ns_window.setHasShadow(false);
+        ns_window.setHidesOnDeactivate(false);
+        ns_window.setCanHide(false);
+        ns_window.setMovableByWindowBackground(false);
+        ns_window.setIgnoresMouseEvents(false);
+        ns_window.setReleasedWhenClosed(false);
+
+        let clear = NSColor::clearColor();
+        ns_window.setBackgroundColor(Some(&clear));
+
+        let behavior = if pinned {
+            ns_window.collectionBehavior()
+                | NSWindowCollectionBehavior::CanJoinAllSpaces
+                | NSWindowCollectionBehavior::CanJoinAllApplications
+                | NSWindowCollectionBehavior::Stationary
+                | NSWindowCollectionBehavior::FullScreenAuxiliary
+                | NSWindowCollectionBehavior::IgnoresCycle
+        } else {
+            ns_window.collectionBehavior()
+                & !NSWindowCollectionBehavior::CanJoinAllSpaces
+                & !NSWindowCollectionBehavior::CanJoinAllApplications
+                & !NSWindowCollectionBehavior::FullScreenAuxiliary
+        };
+        ns_window.setCollectionBehavior(behavior);
+        if pinned {
+            ns_window.makeKeyAndOrderFront(None);
+            ns_window.orderFrontRegardless();
+        }
+    })
+}
+
+fn recall_overlay_window(app: &tauri::AppHandle, pinned: bool) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.show()?;
+        window.set_focus()?;
+        #[cfg(target_os = "macos")]
+        {
+            configure_overlay_window(window, pinned)?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_overlay_pinned(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    pinned: bool,
+) -> Result<(), String> {
+    state.overlay_pinned.store(pinned, Ordering::SeqCst);
+    if let Some(window) = app.get_webview_window("main") {
+        #[cfg(target_os = "macos")]
+        configure_overlay_window(window, pinned).map_err(|e| e.to_string())?;
+        #[cfg(not(target_os = "macos"))]
+        window
+            .set_always_on_top(pinned)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn get_overlay_pinned(state: State<'_, StreamState>) -> bool {
+    state.overlay_pinned.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn start_window_dragging(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.start_dragging().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn main() {
+    let recall_shortcut = Shortcut::new(
+        Some(Modifiers::SUPER | Modifiers::SHIFT | Modifiers::ALT),
+        Code::KeyW,
+    );
+    let recall_shortcut_for_handler = recall_shortcut.clone();
+    let recall_shortcut_for_setup = recall_shortcut.clone();
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    if shortcut == &recall_shortcut_for_handler
+                        && event.state() == ShortcutState::Pressed
+                    {
+                        let pinned = app
+                            .state::<StreamState>()
+                            .overlay_pinned
+                            .load(Ordering::SeqCst);
+                        let _ = recall_overlay_window(app, pinned);
+                    }
+                })
+                .build(),
+        )
         .manage(StreamState::default())
+        .setup(move |app| {
+            #[cfg(target_os = "macos")]
+            {
+                app.set_activation_policy(ActivationPolicy::Accessory);
+                if let Some(window) = app.get_webview_window("main") {
+                    let pinned = app.state::<StreamState>().overlay_pinned.load(Ordering::SeqCst);
+                    configure_overlay_window(window, pinned)?;
+                }
+            }
+            app.global_shortcut().register(recall_shortcut_for_setup)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             start_waveform_stream,
             stop_waveform_stream,
@@ -295,7 +426,10 @@ fn main() {
             update_high_tilt_percent,
             get_high_tilt_percent,
             update_frequency_range,
-            get_frequency_range
+            get_frequency_range,
+            set_overlay_pinned,
+            get_overlay_pinned,
+            start_window_dragging
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -5,6 +5,8 @@ const statusEl = document.querySelector("#status");
 const canvas = document.querySelector("#waveCanvas");
 const startBtn = document.querySelector("#startBtn");
 const stopBtn = document.querySelector("#stopBtn");
+const pinToggle = document.querySelector("#pinToggle");
+const dragBar = document.querySelector("#dragBar");
 const bucketRange = document.querySelector("#bucketRange");
 const bucketValue = document.querySelector("#bucketValue");
 const bucketMode = document.querySelector("#bucketMode");
@@ -79,7 +81,7 @@ function resizeCanvas() {
 
 function renderWaveform() {
   resizeCanvas();
-  gl.clearColor(0.03, 0.05, 0.12, 1.0);
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   if (latestPoints.length > 1) {
@@ -106,6 +108,20 @@ function renderWaveform() {
 }
 
 async function init() {
+  const triggerNativeDrag = async (event) => {
+    if (event.button !== 0) return;
+    const target = event.target;
+    if (target.closest("[data-no-drag], button, input, select, textarea, a")) return;
+    try {
+      await invoke("start_window_dragging");
+    } catch {
+      // ignore drag call failures when system rejects dragging state
+    }
+  };
+
+  dragBar.addEventListener("mousedown", triggerNativeDrag);
+  document.body.addEventListener("mousedown", triggerNativeDrag);
+
   await listen("waveform-frame", (event) => {
     const payload = event.payload;
     if (Array.isArray(payload.points)) {
@@ -128,6 +144,16 @@ async function init() {
 
   stopBtn.addEventListener("click", async () => {
     await invoke("stop_waveform_stream");
+  });
+
+  pinToggle.addEventListener("change", async (event) => {
+    const pinned = event.target.checked;
+    try {
+      await invoke("set_overlay_pinned", { pinned });
+      statusEl.textContent = pinned ? "置顶模式已开启" : "置顶模式已关闭";
+    } catch (err) {
+      statusEl.textContent = `更新置顶状态失败：${String(err)}`;
+    }
   });
 
   bucketRange.addEventListener("input", async (event) => {
@@ -190,11 +216,12 @@ async function syncFrequencyRange(minHz, maxHz) {
   });
 
   try {
-    const [currentBucket, currentMode, currentTilt, frequencyRange] = await Promise.all([
+    const [currentBucket, currentMode, currentTilt, frequencyRange, overlayPinned] = await Promise.all([
       invoke("get_bucket_count"),
       invoke("get_bucket_mode"),
       invoke("get_high_tilt_percent"),
       invoke("get_frequency_range"),
+      invoke("get_overlay_pinned"),
     ]);
     bucketRange.value = String(currentBucket);
     bucketValue.textContent = String(currentBucket);
@@ -206,11 +233,13 @@ async function syncFrequencyRange(minHz, maxHz) {
     freqMaxRange.value = String(maxHz);
     freqMinValue.textContent = String(minHz);
     freqMaxValue.textContent = String(maxHz);
+    pinToggle.checked = Boolean(overlayPinned);
   } catch {
     bucketValue.textContent = bucketRange.value;
     tiltValue.textContent = tiltRange.value;
     freqMinValue.textContent = freqMinRange.value;
     freqMaxValue.textContent = freqMaxRange.value;
+    pinToggle.checked = true;
   }
 
   renderWaveform();

@@ -249,3 +249,12 @@
 - 已加入 `NSMicrophoneUsageDescription`，确保安装版可触发音频输入权限授权。
 - 新增一键打包脚本：`scripts/build-macos.sh`。
 - 新增打包说明文档：`BUILD_MACOS.md`，包含前置条件、分步命令和常见问题。
+
+进度更新（Snipaste 式浮层窗口）：
+- 主窗口已切换为透明、无边框、置顶模式，并启用 `macOSPrivateApi`。
+- macOS 下已对原生 `NSWindow` 设置高层级、跨 Space、`FullScreenAuxiliary` 等行为。
+- 前端画布已改为透明清屏，标题区域支持拖拽移动浮层窗口。
+- 已接入全局快捷键召回策略（默认 `Cmd+Shift+Option+W`），触发时重新前置浮层窗口并恢复高层级行为。
+- macOS 激活策略已切为 `Accessory`，更接近截图贴图类工具的前台表现。
+- 浮层窗口层级已进一步提升到 `screen saver level`，并启用 `CanJoinAllApplications`。
+- 安装版已启用 `LSUIElement`，让应用更接近无 Dock 图标的工具型浮层应用。

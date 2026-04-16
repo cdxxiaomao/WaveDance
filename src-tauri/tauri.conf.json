@@ -10,12 +10,16 @@
     "frontendDist": "../frontend/dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "WaveDance",
         "width": 1080,
         "height": 680,
-        "resizable": true
+        "resizable": true,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true
       }
     ],
     "security": {
