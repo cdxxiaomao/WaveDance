@@ -112,3 +112,14 @@
   - 背景透明度可调
   - 背景模糊度可调
 - 所有外观参数实时生效。
+
+## 2026-04-17 ~ 2026-04-18
+
+### 第 11 阶段：鼠标穿透与浮动解锁条（多屏 / HiDPI）
+
+- 主窗在「穿透锁定」下整窗忽略鼠标；可点击 UI 迁至子窗口 `main-toolbar`（`toolbar.html`），与主窗工具栏语义一致（图标 + 解锁文案）。
+- 后端命令：`set_main_mouse_passthrough_locked` / `get_main_mouse_passthrough_locked`；事件 `mouse-passthrough-changed` 同步主窗与子窗。
+- 全局快捷键：`Cmd+Shift+Option+L` 切换穿透状态（与召回 `W` 并存）。
+- 子窗定位与尺寸改为**逻辑坐标（点）** `set_position` / `set_size`，解决 Retina、4K 外接与多显示器下物理像素与子窗 DPI 不一致导致的错位。
+- 主窗 `Moved` / `Resized` / `ScaleFactorChanged` 时重算子窗位置；macOS 上主线程投递避免与 `configure_overlay_window`（`setIgnoresMouseEvents` 等）竞态导致子窗偶发不显示。
+- 垂直方向按设备像素微调（`NUDGE_UP_DEVICE_PX`），与主窗锁定按钮视觉对齐。
