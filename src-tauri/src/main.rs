@@ -11,8 +11,13 @@ use std::time::Duration;
 use objc2_app_kit::{
     NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior,
 };
+#[cfg(target_os = "macos")]
+use window_vibrancy::clear_vibrancy;
 use rustfft::{num_complex::Complex, FftPlanner};
-use tauri::{ActivationPolicy, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, State};
+use tauri::{
+    window::{Effect, EffectState, EffectsBuilder},
+    ActivationPolicy, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, State,
+};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::WaveformFrame;
@@ -20,6 +25,7 @@ use wavedance::audio_processing::WaveformFrame;
 struct StreamState {
     running: Arc<AtomicBool>,
     overlay_pinned: Arc<AtomicBool>,
+    overlay_blur_enabled: Arc<AtomicBool>,
     bucket_count: Arc<AtomicUsize>,
     bucket_mode: Arc<AtomicU8>,
     high_tilt_percent: Arc<AtomicUsize>,
@@ -32,6 +38,7 @@ impl Default for StreamState {
         Self {
             running: Arc::new(AtomicBool::new(false)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
+            overlay_blur_enabled: Arc::new(AtomicBool::new(true)),
             bucket_count: Arc::new(AtomicUsize::new(64)),
             bucket_mode: Arc::new(AtomicU8::new(0)),
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
@@ -290,9 +297,27 @@ fn get_frequency_range(state: State<'_, StreamState>) -> (usize, usize) {
 }
 
 #[cfg(target_os = "macos")]
-fn configure_overlay_window(window: tauri::WebviewWindow, pinned: bool) -> tauri::Result<()> {
+fn configure_overlay_window(
+    window: tauri::WebviewWindow,
+    pinned: bool,
+    blur_enabled: bool,
+) -> tauri::Result<()> {
+    const OVERLAY_EFFECT: Effect = Effect::HudWindow;
+    const OVERLAY_BLUR_RADIUS: f64 = 14.0;
     window.set_always_on_top(pinned)?;
     window.set_shadow(false)?;
+    if !blur_enabled {
+        let _ = window.set_effects(None);
+        let _ = clear_vibrancy(&window);
+    } else {
+        window.set_effects(
+            EffectsBuilder::new()
+                .effect(OVERLAY_EFFECT)
+                .state(EffectState::Active)
+                .radius(OVERLAY_BLUR_RADIUS)
+                .build(),
+        )?;
+    }
 
     let overlay_window = window.clone();
     window.run_on_main_thread(move || unsafe {
@@ -343,7 +368,11 @@ fn recall_overlay_window(app: &tauri::AppHandle, pinned: bool) -> tauri::Result<
         window.set_focus()?;
         #[cfg(target_os = "macos")]
         {
-            configure_overlay_window(window, pinned)?;
+            let blur_enabled = app
+                .state::<StreamState>()
+                .overlay_blur_enabled
+                .load(Ordering::SeqCst);
+            configure_overlay_window(window, pinned, blur_enabled)?;
         }
     }
     Ok(())
@@ -358,7 +387,10 @@ fn set_overlay_pinned(
     state.overlay_pinned.store(pinned, Ordering::SeqCst);
     if let Some(window) = app.get_webview_window("main") {
         #[cfg(target_os = "macos")]
-        configure_overlay_window(window, pinned).map_err(|e| e.to_string())?;
+        {
+            let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+            configure_overlay_window(window, pinned, blur_enabled).map_err(|e| e.to_string())?;
+        }
         #[cfg(not(target_os = "macos"))]
         window
             .set_always_on_top(pinned)
@@ -370,6 +402,28 @@ fn set_overlay_pinned(
 #[tauri::command]
 fn get_overlay_pinned(state: State<'_, StreamState>) -> bool {
     state.overlay_pinned.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn set_overlay_blur_enabled(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    enabled: bool,
+) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        #[cfg(target_os = "macos")]
+        {
+            let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+            configure_overlay_window(window, pinned, enabled).map_err(|e| e.to_string())?;
+        }
+    }
+    state.overlay_blur_enabled.store(enabled, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_overlay_blur_enabled(state: State<'_, StreamState>) -> bool {
+    state.overlay_blur_enabled.load(Ordering::SeqCst)
 }
 
 #[tauri::command]
@@ -474,8 +528,10 @@ fn main() {
             {
                 app.set_activation_policy(ActivationPolicy::Accessory);
                 if let Some(window) = app.get_webview_window("main") {
-                    let pinned = app.state::<StreamState>().overlay_pinned.load(Ordering::SeqCst);
-                    configure_overlay_window(window, pinned)?;
+                    let state = app.state::<StreamState>();
+                    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+                    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+                    configure_overlay_window(window, pinned, blur_enabled)?;
                 }
             }
             app.global_shortcut().register(recall_shortcut_for_setup)?;
@@ -494,6 +550,8 @@ fn main() {
             get_frequency_range,
             set_overlay_pinned,
             get_overlay_pinned,
+            set_overlay_blur_enabled,
+            get_overlay_blur_enabled,
             start_window_dragging,
             resize_window_by_delta
         ])

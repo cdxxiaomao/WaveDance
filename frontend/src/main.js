@@ -19,6 +19,7 @@ const freqMaxValue = document.querySelector("#freqMaxValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
+const blurToggle = document.querySelector("#blurToggle");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -232,7 +233,15 @@ async function init() {
 
   bodyBgColor.addEventListener("input", applyBodyBackgroundStyle);
   bodyBgAlpha.addEventListener("input", applyBodyBackgroundStyle);
-
+  blurToggle.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      await invoke("set_overlay_blur_enabled", { enabled });
+      statusEl.textContent = enabled ? "毛玻璃已开启" : "毛玻璃已关闭";
+    } catch (err) {
+      statusEl.textContent = `更新毛玻璃开关失败：${String(err)}`;
+    }
+  });
   tiltRange.addEventListener("input", async (event) => {
     const percent = Number(event.target.value);
     tiltValue.textContent = String(percent);
@@ -274,13 +283,22 @@ async function syncFrequencyRange(minHz, maxHz) {
   });
 
   try {
-    const [currentBucket, currentMode, currentTilt, frequencyRange, overlayPinned] = await Promise.all([
-      invoke("get_bucket_count"),
-      invoke("get_bucket_mode"),
-      invoke("get_high_tilt_percent"),
-      invoke("get_frequency_range"),
-      invoke("get_overlay_pinned"),
-    ]);
+    const [
+      currentBucket,
+      currentMode,
+      currentTilt,
+      frequencyRange,
+      overlayPinned,
+      blurEnabled,
+    ] =
+      await Promise.all([
+        invoke("get_bucket_count"),
+        invoke("get_bucket_mode"),
+        invoke("get_high_tilt_percent"),
+        invoke("get_frequency_range"),
+        invoke("get_overlay_pinned"),
+        invoke("get_overlay_blur_enabled"),
+      ]);
     bucketRange.value = String(currentBucket);
     bucketValue.textContent = String(currentBucket);
     bucketMode.value = currentMode;
@@ -292,12 +310,14 @@ async function syncFrequencyRange(minHz, maxHz) {
     freqMinValue.textContent = String(minHz);
     freqMaxValue.textContent = String(maxHz);
     pinToggle.checked = Boolean(overlayPinned);
+    blurToggle.checked = Boolean(blurEnabled);
   } catch {
     bucketValue.textContent = bucketRange.value;
     tiltValue.textContent = tiltRange.value;
     freqMinValue.textContent = freqMinRange.value;
     freqMaxValue.textContent = freqMaxRange.value;
     pinToggle.checked = true;
+    blurToggle.checked = true;
   }
 
   applyBodyBackgroundStyle();
