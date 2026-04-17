@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
+const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -229,6 +230,25 @@ async function init() {
     applyWaveformLineWidthPx(event.payload);
   });
 
+  const applyMousePassthroughLockUi = (locked) => {
+    const on = Boolean(locked);
+    document.body.classList.toggle("mouse-passthrough-locked", on);
+    if (!mousePassthroughLockBtn) return;
+    mousePassthroughLockBtn.setAttribute("aria-pressed", on ? "true" : "false");
+    mousePassthroughLockBtn.classList.toggle("is-locked", on);
+    mousePassthroughLockBtn.title = on
+      ? "已穿透：点击关闭穿透，或按 ⌘⇧⌥L"
+      : "开启后主窗口鼠标穿透到下层；也可用 ⌘⇧⌥L";
+    const lockImg = mousePassthroughLockBtn.querySelector("img[data-lock-icon]");
+    if (lockImg) {
+      lockImg.src = on ? "/icons/passthrough-active.svg" : "/icons/passthrough-idle.svg";
+    }
+  };
+
+  await listen("mouse-passthrough-changed", (event) => {
+    applyMousePassthroughLockUi(event.payload);
+  });
+
   try {
     const saved = await invoke("get_waveform_color");
     applyWaveformColorHex(saved);
@@ -241,6 +261,26 @@ async function init() {
     applyWaveformLineWidthPx(w);
   } catch {
     applyWaveformLineWidthPx(2);
+  }
+
+  try {
+    const locked = await invoke("get_main_mouse_passthrough_locked");
+    applyMousePassthroughLockUi(locked);
+  } catch {
+    applyMousePassthroughLockUi(false);
+  }
+
+  if (mousePassthroughLockBtn) {
+    mousePassthroughLockBtn.addEventListener("click", async () => {
+      try {
+        const cur = await invoke("get_main_mouse_passthrough_locked");
+        const next = !cur;
+        await invoke("set_main_mouse_passthrough_locked", { locked: next });
+        applyMousePassthroughLockUi(next);
+      } catch (err) {
+        console.error("mouse passthrough toggle failed:", err);
+      }
+    });
   }
 
   openSettingsBtn.addEventListener("click", async () => {

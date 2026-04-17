@@ -16,8 +16,8 @@ use window_vibrancy::clear_vibrancy;
 use rustfft::{num_complex::Complex, FftPlanner};
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
-    ActivationPolicy, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, State,
-    WebviewUrl, WebviewWindowBuilder,
+    ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
+    Position, Size, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
@@ -27,6 +27,8 @@ struct StreamState {
     running: Arc<AtomicBool>,
     overlay_pinned: Arc<AtomicBool>,
     overlay_blur_enabled: Arc<AtomicBool>,
+    /// 为 true 时主窗口整窗忽略鼠标（穿透）；可交互控件放在子窗口 `main-toolbar`。
+    mouse_passthrough_locked: Arc<AtomicBool>,
     bucket_count: Arc<AtomicUsize>,
     bucket_mode: Arc<AtomicU8>,
     high_tilt_percent: Arc<AtomicUsize>,
@@ -43,6 +45,7 @@ impl Default for StreamState {
             running: Arc::new(AtomicBool::new(false)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
             overlay_blur_enabled: Arc::new(AtomicBool::new(false)),
+            mouse_passthrough_locked: Arc::new(AtomicBool::new(false)),
             bucket_count: Arc::new(AtomicUsize::new(256)),
             bucket_mode: Arc::new(AtomicU8::new(1)),
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
@@ -371,6 +374,7 @@ fn configure_overlay_window(
     window: tauri::WebviewWindow,
     pinned: bool,
     blur_enabled: bool,
+    main_ignores_mouse_events: bool,
 ) -> tauri::Result<()> {
     const OVERLAY_EFFECT: Effect = Effect::HudWindow;
     const OVERLAY_BLUR_RADIUS: f64 = 14.0;
@@ -405,7 +409,7 @@ fn configure_overlay_window(
         ns_window.setHidesOnDeactivate(false);
         ns_window.setCanHide(false);
         ns_window.setMovableByWindowBackground(false);
-        ns_window.setIgnoresMouseEvents(false);
+        ns_window.setIgnoresMouseEvents(main_ignores_mouse_events);
         ns_window.setReleasedWhenClosed(false);
 
         let clear = NSColor::clearColor();
@@ -430,6 +434,202 @@ fn configure_overlay_window(
             ns_window.orderFrontRegardless();
         }
     })
+}
+
+#[cfg(target_os = "macos")]
+fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    let ignore_mouse = state
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst);
+    configure_overlay_window(window, pinned, blur_enabled, ignore_mouse)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let ignore_mouse = state
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst);
+    window.set_always_on_top(pinned)?;
+    window.set_ignore_cursor_events(ignore_mouse)?;
+    Ok(())
+}
+
+/// 将 `main-toolbar` 子窗口贴到主窗口右上角。
+///
+/// 使用**逻辑坐标（点）**设置位置与尺寸：在 Retina / 4K 等多倍缩放下，子窗若用物理像素
+/// `set_position`，部分环境下会与主窗 `inner_*` 的换算或子窗自身 DPI 不一致；与 CSS 中
+/// `top/right` 语义一致，交给各窗口按当前屏 `scale_factor` 换算为物理像素。
+fn position_main_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let Some(toolbar) = app.get_webview_window("main-toolbar") else {
+        return Ok(());
+    };
+    let Some(main) = app.get_webview_window("main") else {
+        return Ok(());
+    };
+    let (pos, sz) = match (main.inner_position(), main.inner_size()) {
+        (Ok(p), Ok(s)) => (p, s),
+        _ => (main.outer_position()?, main.outer_size()?),
+    };
+    let scale = main.scale_factor().unwrap_or(1.0);
+    let pos_l: LogicalPosition<f64> = pos.to_logical(scale);
+    let sz_l: LogicalSize<f64> = sz.to_logical(scale);
+
+    const TOOLBAR_W_PT: f64 = 52.0;
+    const TOOLBAR_H_PT: f64 = 58.0;
+    const MARGIN_PT: f64 = 16.0;
+    /// 相对主窗锁定按钮上移若干**设备像素**（逻辑量 = px / scale），与主工具栏视觉对齐。
+    const NUDGE_UP_DEVICE_PX: f64 = 4.0;
+
+    let x = pos_l.x + sz_l.width - TOOLBAR_W_PT - MARGIN_PT;
+    let y = pos_l.y + MARGIN_PT - NUDGE_UP_DEVICE_PX / scale;
+
+    toolbar.set_position(Position::Logical(LogicalPosition::new(x, y)))?;
+    toolbar.set_size(Size::Logical(LogicalSize::new(
+        TOOLBAR_W_PT,
+        TOOLBAR_H_PT,
+    )))?;
+    Ok(())
+}
+
+/// 主窗移动、缩放或跨显示器导致 DPI 变化时，将浮动工具栏重新贴到主窗视口右上。
+fn reposition_main_toolbar_if_passthrough_locked(app: &tauri::AppHandle) {
+    if !app
+        .state::<StreamState>()
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst)
+    {
+        return;
+    }
+    // macOS：跨屏瞬间 `inner_position` / scale 可能尚未与当前屏一致，放到主线程与系统布局对齐后再算。
+    #[cfg(target_os = "macos")]
+    if let Some(main) = app.get_webview_window("main") {
+        let app_h = app.clone();
+        let _ = main.run_on_main_thread(move || {
+            let _ = position_main_toolbar_window(&app_h);
+        });
+        return;
+    }
+    let _ = position_main_toolbar_window(app);
+}
+
+/// `main-toolbar`（toolbar.html）：仅当主窗开启鼠标穿透锁定时显示，并贴在主窗 Web 视口右上。
+fn sync_main_toolbar_for_passthrough_locked(
+    app: &tauri::AppHandle,
+    locked: bool,
+) -> tauri::Result<()> {
+    if app.get_webview_window("main-toolbar").is_none() {
+        return Ok(());
+    }
+    if !locked {
+        if let Some(tb) = app.get_webview_window("main-toolbar") {
+            tb.hide()?;
+        }
+        return Ok(());
+    }
+
+    // macOS：`refresh_main_overlay_window` 里对主窗 NSWindow 的修改通过 `run_on_main_thread` 投递；
+    // 若在同一时刻同步 `toolbar.show()`，会与 `setIgnoresMouseEvents` / `orderFront` 竞态，子窗常不显。
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(main) = app.get_webview_window("main") {
+            let app_handle = app.clone();
+            main.run_on_main_thread(move || {
+                let _ = position_main_toolbar_window(&app_handle);
+                if let Some(tb) = app_handle.get_webview_window("main-toolbar") {
+                    let _ = tb.show();
+                }
+            })?;
+        } else {
+            position_main_toolbar_window(app)?;
+            if let Some(tb) = app.get_webview_window("main-toolbar") {
+                tb.show()?;
+            }
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        position_main_toolbar_window(app)?;
+        if let Some(tb) = app.get_webview_window("main-toolbar") {
+            tb.show()?;
+        }
+        Ok(())
+    }
+}
+
+/// 按当前穿透状态同步浮动工具栏（置顶/模糊等路径也会调用）。
+fn sync_floating_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let locked = app
+        .state::<StreamState>()
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst);
+    sync_main_toolbar_for_passthrough_locked(app, locked)
+}
+
+/// 刷新主窗鼠标穿透（整窗忽略鼠标）后，同步子工具栏（供主屏按钮、快捷键、命令调用）。
+fn sync_mouse_passthrough_stack(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let locked = app
+        .state::<StreamState>()
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst);
+    refresh_main_overlay_window(app)?;
+    sync_main_toolbar_for_passthrough_locked(app, locked)
+}
+
+fn wire_main_window_toolbar_follow(handle: tauri::AppHandle) {
+    let Some(main) = handle.get_webview_window("main") else {
+        return;
+    };
+    let h = handle.clone();
+    main.on_window_event(move |event| {
+        if matches!(
+            event,
+            WindowEvent::Moved(_)
+                | WindowEvent::Resized(_)
+                | WindowEvent::ScaleFactorChanged { .. }
+        ) {
+            reposition_main_toolbar_if_passthrough_locked(&h);
+        }
+    });
+}
+
+fn create_main_toolbar_window(app: &tauri::AppHandle) -> Result<(), String> {
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "未找到主窗口".to_string())?;
+    let toolbar = WebviewWindowBuilder::new(app, "main-toolbar", WebviewUrl::App("toolbar.html".into()))
+        .parent(&main)
+        .map_err(|e| e.to_string())?
+        .title("")
+        .inner_size(52.0, 58.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .closable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .skip_taskbar(true)
+        .visible(false)
+        .build()
+        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    attach_toolbar_window_to_main_space(&main, &toolbar).map_err(|e| e.to_string())?;
+    toolbar.hide().map_err(|e| e.to_string())?;
+    let _ = position_main_toolbar_window(app);
+    Ok(())
 }
 
 /// 将设置窗口挂到主窗口子窗口链上，使其随主窗口出现在同一 Space（解决多桌面残留问题）。
@@ -459,18 +659,40 @@ fn attach_settings_window_to_main_space(
     })
 }
 
-fn recall_overlay_window(app: &tauri::AppHandle, pinned: bool) -> tauri::Result<()> {
+/// 将浮动工具栏挂到主窗口子窗口链（与设置窗一致，避免多 Space 行为异常）。
+#[cfg(target_os = "macos")]
+fn attach_toolbar_window_to_main_space(
+    main_window: &tauri::WebviewWindow,
+    toolbar_window: &tauri::WebviewWindow,
+) -> tauri::Result<()> {
+    let main_clone = main_window.clone();
+    let toolbar_clone = toolbar_window.clone();
+    main_window.run_on_main_thread(move || unsafe {
+        let main_ns = main_clone
+            .ns_window()
+            .expect("无法获取主窗口 NSWindow 句柄")
+            .cast::<NSWindow>();
+        let toolbar_ns = toolbar_clone
+            .ns_window()
+            .expect("无法获取工具栏 NSWindow 句柄")
+            .cast::<NSWindow>();
+        let main_ref: &NSWindow = &*main_ns;
+        let toolbar_ref: &NSWindow = &*toolbar_ns;
+
+        if let Some(old_parent) = toolbar_ref.parentWindow() {
+            old_parent.removeChildWindow(toolbar_ref);
+        }
+        main_ref.addChildWindow_ordered(toolbar_ref, NSWindowOrderingMode::Above);
+        // 可见性由 Tauri hide/show 控制；此处不再 orderOut，避免部分环境下子窗 WebView 重显后不绘制内容
+    })
+}
+
+fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("main") {
         window.show()?;
         window.set_focus()?;
-        #[cfg(target_os = "macos")]
-        {
-            let blur_enabled = app
-                .state::<StreamState>()
-                .overlay_blur_enabled
-                .load(Ordering::SeqCst);
-            configure_overlay_window(window, pinned, blur_enabled)?;
-        }
+        refresh_main_overlay_window(app)?;
+        sync_floating_toolbar_window(app)?;
     }
     Ok(())
 }
@@ -482,17 +704,8 @@ fn set_overlay_pinned(
     pinned: bool,
 ) -> Result<(), String> {
     state.overlay_pinned.store(pinned, Ordering::SeqCst);
-    if let Some(window) = app.get_webview_window("main") {
-        #[cfg(target_os = "macos")]
-        {
-            let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
-            configure_overlay_window(window, pinned, blur_enabled).map_err(|e| e.to_string())?;
-        }
-        #[cfg(not(target_os = "macos"))]
-        window
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-    }
+    refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
+    sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
 
     if let Some(settings_window) = app.get_webview_window("settings") {
         settings_window
@@ -513,20 +726,39 @@ fn set_overlay_blur_enabled(
     state: State<'_, StreamState>,
     enabled: bool,
 ) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        #[cfg(target_os = "macos")]
-        {
-            let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-            configure_overlay_window(window, pinned, enabled).map_err(|e| e.to_string())?;
-        }
-    }
     state.overlay_blur_enabled.store(enabled, Ordering::SeqCst);
+    #[cfg(target_os = "macos")]
+    {
+        refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
+        sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
 #[tauri::command]
 fn get_overlay_blur_enabled(state: State<'_, StreamState>) -> bool {
     state.overlay_blur_enabled.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn set_main_mouse_passthrough_locked(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    locked: bool,
+) -> Result<(), String> {
+    state
+        .mouse_passthrough_locked
+        .store(locked, Ordering::SeqCst);
+    let _ = app.emit("mouse-passthrough-changed", locked);
+    sync_mouse_passthrough_stack(&app).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_main_mouse_passthrough_locked(state: State<'_, StreamState>) -> bool {
+    state
+        .mouse_passthrough_locked
+        .load(Ordering::SeqCst)
 }
 
 #[tauri::command]
@@ -652,37 +884,52 @@ fn main() {
         Some(Modifiers::SUPER | Modifiers::SHIFT | Modifiers::ALT),
         Code::KeyW,
     );
+    let passthrough_toggle_shortcut = Shortcut::new(
+        Some(Modifiers::SUPER | Modifiers::SHIFT | Modifiers::ALT),
+        Code::KeyL,
+    );
     let recall_shortcut_for_handler = recall_shortcut.clone();
+    let passthrough_shortcut_for_handler = passthrough_toggle_shortcut.clone();
     let recall_shortcut_for_setup = recall_shortcut.clone();
+    let passthrough_shortcut_for_setup = passthrough_toggle_shortcut.clone();
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
-                    if shortcut == &recall_shortcut_for_handler
-                        && event.state() == ShortcutState::Pressed
-                    {
-                        let pinned = app
-                            .state::<StreamState>()
-                            .overlay_pinned
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+                    if shortcut == &recall_shortcut_for_handler {
+                        let _ = recall_overlay_window(app);
+                    } else if shortcut == &passthrough_shortcut_for_handler {
+                        let state = app.state::<StreamState>();
+                        let next = !state
+                            .mouse_passthrough_locked
                             .load(Ordering::SeqCst);
-                        let _ = recall_overlay_window(app, pinned);
+                        state
+                            .mouse_passthrough_locked
+                            .store(next, Ordering::SeqCst);
+                        let _ = app.emit("mouse-passthrough-changed", next);
+                        let _ = sync_mouse_passthrough_stack(app);
                     }
                 })
                 .build(),
         )
         .manage(StreamState::default())
-        .setup(move |app| {
+        .setup(move |app| -> Result<(), Box<dyn std::error::Error>> {
             #[cfg(target_os = "macos")]
             {
                 app.set_activation_policy(ActivationPolicy::Accessory);
-                if let Some(window) = app.get_webview_window("main") {
-                    let state = app.state::<StreamState>();
-                    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-                    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
-                    configure_overlay_window(window, pinned, blur_enabled)?;
-                }
+                refresh_main_overlay_window(app.handle())?;
             }
+            create_main_toolbar_window(app.handle()).map_err(|e| -> Box<dyn std::error::Error> {
+                e.into()
+            })?;
+            sync_floating_toolbar_window(app.handle())?;
+            wire_main_window_toolbar_follow(app.handle().clone());
             app.global_shortcut().register(recall_shortcut_for_setup)?;
+            app.global_shortcut()
+                .register(passthrough_shortcut_for_setup)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -705,6 +952,8 @@ fn main() {
             get_overlay_pinned,
             set_overlay_blur_enabled,
             get_overlay_blur_enabled,
+            set_main_mouse_passthrough_locked,
+            get_main_mouse_passthrough_locked,
             open_settings_window,
             start_window_dragging,
             resize_window_by_delta

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="toolbar-floater">
+    <div class="toolbar-floater-inner" data-no-drag>
+      <div class="toolbar-floater-buttons">
+        <div class="toolbar-unlock-stack" data-no-drag>
+          <button
+            type="button"
+            id="mousePassthroughLockBtn"
+            title="解锁：关闭鼠标穿透（或按 ⌘⇧⌥L）"
+            aria-pressed="true"
+            aria-label="解锁穿透"
+          >
+            <img
+              class="toolbar-icon"
+              data-lock-icon
+              src="/icons/passthrough-active.svg"
+              alt=""
+              width="14"
+              height="14"
+              decoding="async"
+            />
+          </button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/toolbar.js"></script>
+  </body>
+</html>
