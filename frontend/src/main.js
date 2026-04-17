@@ -19,8 +19,9 @@ void main() {
 
 const fragmentShaderSource = `
 precision mediump float;
+uniform vec3 u_lineColor;
 void main() {
-  gl_FragColor = vec4(0.28, 0.84, 1.0, 1.0);
+  gl_FragColor = vec4(u_lineColor, 1.0);
 }
 `;
 
@@ -49,6 +50,7 @@ function createProgram() {
 
 const program = createProgram();
 const positionLoc = gl.getAttribLocation(program, "a_position");
+const lineColorLoc = gl.getUniformLocation(program, "u_lineColor");
 const buffer = gl.createBuffer();
 
 // 手动调节波形显示增益：越大越“高”
@@ -64,6 +66,31 @@ function hexToRgb(hex) {
     g: Number.parseInt(safeHex.slice(2, 4), 16),
     b: Number.parseInt(safeHex.slice(4, 6), 16),
   };
+}
+
+const DEFAULT_WAVEFORM_HEX = "#c4a574";
+
+const waveformLineRgb = { r: 0, g: 0, b: 0 };
+
+function applyWaveformColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_WAVEFORM_HEX;
+  const { r, g, b } = hexToRgb(safe);
+  waveformLineRgb.r = r / 255;
+  waveformLineRgb.g = g / 255;
+  waveformLineRgb.b = b / 255;
+}
+
+applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
+
+const WAVEFORM_WIDTH_MIN = 1;
+const WAVEFORM_WIDTH_MAX = 12;
+let waveformLineWidthPx = 2;
+
+function applyWaveformLineWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  waveformLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
 }
 
 function applyMainBackgroundStyle(payload) {
@@ -90,23 +117,36 @@ function renderWaveform() {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   if (latestPoints.length > 1) {
-    const vertices = new Float32Array(latestPoints.length * 2);
     const len = latestPoints.length;
+    const ys = new Float32Array(len);
     for (let i = 0; i < len; i++) {
-      const x = (i / (len - 1)) * 2 - 1;
       const amplified = Math.min(1, latestPoints[i] * WAVEFORM_GAIN);
-      const y = (amplified * 2 - 1) * 0.95;
-      vertices[i * 2] = x;
-      vertices[i * 2 + 1] = y;
+      ys[i] = (amplified * 2 - 1) * 0.95;
     }
 
+    const canvasH = gl.canvas.height;
+    const stepNdc = canvasH > 0 ? 2 / canvasH : 0;
+    const passes = waveformLineWidthPx;
+    const half = (passes - 1) / 2;
+
+    const vertices = new Float32Array(len * 2);
     gl.useProgram(program);
+    gl.uniform3f(lineColorLoc, waveformLineRgb.r, waveformLineRgb.g, waveformLineRgb.b);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(positionLoc);
     gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.lineWidth(2);
-    gl.drawArrays(gl.LINE_STRIP, 0, len);
+    gl.lineWidth(1);
+
+    for (let p = 0; p < passes; p++) {
+      const yOff = (p - half) * stepNdc;
+      for (let i = 0; i < len; i++) {
+        const x = (i / (len - 1)) * 2 - 1;
+        vertices[i * 2] = x;
+        vertices[i * 2 + 1] = ys[i] + yOff;
+      }
+      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+      gl.drawArrays(gl.LINE_STRIP, 0, len);
+    }
   }
 
   requestAnimationFrame(renderWaveform);
@@ -178,6 +218,30 @@ async function init() {
   await listen("main-bg-style", (event) => {
     applyMainBackgroundStyle(event.payload);
   });
+
+  await listen("waveform-line-color", (event) => {
+    const raw = event.payload;
+    const color = typeof raw === "string" ? raw : "";
+    applyWaveformColorHex(color);
+  });
+
+  await listen("waveform-line-width", (event) => {
+    applyWaveformLineWidthPx(event.payload);
+  });
+
+  try {
+    const saved = await invoke("get_waveform_color");
+    applyWaveformColorHex(saved);
+  } catch {
+    applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
+  }
+
+  try {
+    const w = await invoke("get_waveform_line_width");
+    applyWaveformLineWidthPx(w);
+  } catch {
+    applyWaveformLineWidthPx(2);
+  }
 
   openSettingsBtn.addEventListener("click", async () => {
     try {

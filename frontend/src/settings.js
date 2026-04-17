@@ -14,6 +14,9 @@ const freqMinRange = document.querySelector("#freqMinRange");
 const freqMinValue = document.querySelector("#freqMinValue");
 const freqMaxRange = document.querySelector("#freqMaxRange");
 const freqMaxValue = document.querySelector("#freqMaxValue");
+const waveformColor = document.querySelector("#waveformColor");
+const waveformWidthRange = document.querySelector("#waveformWidthRange");
+const waveformWidthValue = document.querySelector("#waveformWidthValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -112,6 +115,25 @@ async function init() {
     }
   });
 
+  waveformColor.addEventListener("input", async () => {
+    const color = waveformColor.value;
+    try {
+      await invoke("set_waveform_color", { color });
+    } catch (err) {
+      statusEl.textContent = `更新波形颜色失败：${String(err)}`;
+    }
+  });
+
+  waveformWidthRange.addEventListener("input", async (event) => {
+    const widthPx = Number(event.target.value);
+    waveformWidthValue.textContent = String(widthPx);
+    try {
+      await invoke("set_waveform_line_width", { widthPx });
+    } catch (err) {
+      statusEl.textContent = `更新波形粗细失败：${String(err)}`;
+    }
+  });
+
   bodyBgColor.addEventListener("input", () => {
     void syncMainBackgroundStyle();
   });
@@ -170,6 +192,8 @@ async function init() {
       overlayPinned,
       blurEnabled,
       streamRunning,
+      waveformHex,
+      waveformWidthPx,
     ] = await Promise.all([
       invoke("get_bucket_count"),
       invoke("get_bucket_mode"),
@@ -178,6 +202,8 @@ async function init() {
       invoke("get_overlay_pinned"),
       invoke("get_overlay_blur_enabled"),
       invoke("get_waveform_stream_running"),
+      invoke("get_waveform_color"),
+      invoke("get_waveform_line_width"),
     ]);
     bucketRange.value = String(currentBucket);
     bucketValue.textContent = String(currentBucket);
@@ -192,6 +218,14 @@ async function init() {
     pinToggle.checked = Boolean(overlayPinned);
     blurToggle.checked = Boolean(blurEnabled);
     setCaptureTransportRunning(Boolean(streamRunning));
+    if (typeof waveformHex === "string" && /^#[0-9A-Fa-f]{6}$/.test(waveformHex)) {
+      waveformColor.value = waveformHex.toLowerCase();
+    }
+    const w = Number(waveformWidthPx);
+    if (Number.isFinite(w) && w >= 1 && w <= 12) {
+      waveformWidthRange.value = String(Math.round(w));
+      waveformWidthValue.textContent = String(Math.round(w));
+    }
   } catch {
     bucketValue.textContent = bucketRange.value;
     tiltValue.textContent = tiltRange.value;

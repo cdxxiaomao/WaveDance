@@ -67,6 +67,14 @@
         <h2 id="sec-display" class="settings-card__title">主窗口显示</h2>
         <div class="settings-card__body settings-form" data-no-drag>
           <div class="settings-field settings-field--row">
+            <label for="waveformColor" class="settings-label">波形颜色</label>
+            <input id="waveformColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="waveformWidthRange" class="settings-label">波形粗细 <span class="settings-value" id="waveformWidthValue">2</span> px</label>
+            <input id="waveformWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <div class="settings-field settings-field--row">
             <label for="bodyBgColor" class="settings-label">叠加背景色</label>
             <input id="bodyBgColor" type="color" value="#000000" class="settings-color" />
           </div>
