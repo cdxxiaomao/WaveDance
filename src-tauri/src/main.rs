@@ -2,7 +2,7 @@
 
 use std::sync::{
     atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
-    Arc,
+    Arc, Mutex,
 };
 use std::thread;
 use std::time::Duration;
@@ -32,6 +32,9 @@ struct StreamState {
     high_tilt_percent: Arc<AtomicUsize>,
     freq_min_hz: Arc<AtomicUsize>,
     freq_max_hz: Arc<AtomicUsize>,
+    waveform_color_hex: Arc<Mutex<String>>,
+    /// 波形线宽（逻辑像素），由前端用多条竖直偏移的 LINE_STRIP 模拟；WebGL 的 lineWidth 在浏览器中常无效。
+    waveform_line_width_px: Arc<AtomicUsize>,
 }
 
 impl Default for StreamState {
@@ -45,8 +48,21 @@ impl Default for StreamState {
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
             freq_min_hz: Arc::new(AtomicUsize::new(480)),
             freq_max_hz: Arc::new(AtomicUsize::new(7_600)),
+            waveform_color_hex: Arc::new(Mutex::new("#c4a574".to_string())),
+            waveform_line_width_px: Arc::new(AtomicUsize::new(2)),
         }
     }
+}
+
+fn normalize_waveform_color_hex(input: &str) -> Result<String, String> {
+    let s = input.trim();
+    let body = s
+        .strip_prefix('#')
+        .ok_or_else(|| "颜色须为 #RRGGBB 十六进制格式".to_string())?;
+    if body.len() != 6 || !body.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("颜色须为 #RRGGBB 十六进制格式".to_string());
+    }
+    Ok(format!("#{}", body.to_ascii_lowercase()))
 }
 
 fn rebucket_points(points: &[f32], bucket_count: usize) -> Vec<f32> {
@@ -300,6 +316,54 @@ fn get_frequency_range(state: State<'_, StreamState>) -> (usize, usize) {
         state.freq_min_hz.load(Ordering::SeqCst),
         state.freq_max_hz.load(Ordering::SeqCst),
     )
+}
+
+#[tauri::command]
+fn set_waveform_color(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    color: String,
+) -> Result<(), String> {
+    let normalized = normalize_waveform_color_hex(&color)?;
+    {
+        let mut guard = state
+            .waveform_color_hex
+            .lock()
+            .map_err(|_| "更新波形颜色失败".to_string())?;
+        *guard = normalized.clone();
+    }
+    let _ = app.emit("waveform-line-color", normalized);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_waveform_color(state: State<'_, StreamState>) -> Result<String, String> {
+    state
+        .waveform_color_hex
+        .lock()
+        .map(|g| g.clone())
+        .map_err(|_| "读取波形颜色失败".to_string())
+}
+
+#[tauri::command]
+fn set_waveform_line_width(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    width_px: usize,
+) -> Result<(), String> {
+    let w = width_px.clamp(1, 12);
+    state
+        .waveform_line_width_px
+        .store(w, Ordering::SeqCst);
+    let _ = app.emit("waveform-line-width", w);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_waveform_line_width(state: State<'_, StreamState>) -> usize {
+    state
+        .waveform_line_width_px
+        .load(Ordering::Relaxed)
 }
 
 #[cfg(target_os = "macos")]
@@ -633,6 +697,10 @@ fn main() {
             get_high_tilt_percent,
             update_frequency_range,
             get_frequency_range,
+            set_waveform_color,
+            get_waveform_color,
+            set_waveform_line_width,
+            get_waveform_line_width,
             set_overlay_pinned,
             get_overlay_pinned,
             set_overlay_blur_enabled,
