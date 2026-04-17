@@ -19,8 +19,6 @@ const freqMaxValue = document.querySelector("#freqMaxValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
-const bodyBlur = document.querySelector("#bodyBlur");
-const bodyBlurValue = document.querySelector("#bodyBlurValue");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -84,15 +82,11 @@ function hexToRgb(hex) {
   };
 }
 
-function applyBodyVisualStyle() {
+function applyBodyBackgroundStyle() {
   const { r, g, b } = hexToRgb(bodyBgColor.value);
   const alpha = Number(bodyBgAlpha.value) / 100;
-  const blurPx = Number(bodyBlur.value);
   document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
-  document.body.style.backdropFilter = `blur(${blurPx}px)`;
-  document.body.style.webkitBackdropFilter = `blur(${blurPx}px)`;
   bodyBgAlphaValue.textContent = String(bodyBgAlpha.value);
-  bodyBlurValue.textContent = String(bodyBlur.value);
 }
 
 function resizeCanvas() {
@@ -236,9 +230,8 @@ async function init() {
     }
   });
 
-  bodyBgColor.addEventListener("input", applyBodyVisualStyle);
-  bodyBgAlpha.addEventListener("input", applyBodyVisualStyle);
-  bodyBlur.addEventListener("input", applyBodyVisualStyle);
+  bodyBgColor.addEventListener("input", applyBodyBackgroundStyle);
+  bodyBgAlpha.addEventListener("input", applyBodyBackgroundStyle);
 
   tiltRange.addEventListener("input", async (event) => {
     const percent = Number(event.target.value);
@@ -307,7 +300,7 @@ async function syncFrequencyRange(minHz, maxHz) {
     pinToggle.checked = true;
   }
 
-  applyBodyVisualStyle();
+  applyBodyBackgroundStyle();
   renderWaveform();
 }
 

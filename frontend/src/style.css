@@ -12,9 +12,8 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: rgba(11, 16, 32, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
+  /* backdrop-filter: blur(10px); */
 }
 
 .resize-handle {
@@ -110,7 +109,6 @@ header {
   border: 1px solid rgba(60, 74, 123, 0.75);
   border-radius: 12px;
   background: rgba(11, 16, 32, 0.68);
-  backdrop-filter: blur(10px);
 }
 
 header h1 {
@@ -153,7 +151,6 @@ header h1 {
   border: 1px solid rgba(42, 53, 88, 0.75);
   border-radius: 10px;
   background: rgba(14, 22, 48, 0.72);
-  backdrop-filter: blur(10px);
 }
 
 .panel label {
