@@ -13,6 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
+        "label": "main",
         "title": "WaveDance",
         "width": 1080,
         "height": 680,
@@ -20,6 +21,16 @@
         "transparent": true,
         "decorations": false,
         "alwaysOnTop": true
+      },
+      {
+        "label": "settings",
+        "title": "WaveDance 设置",
+        "url": "settings.html",
+        "width": 620,
+        "height": 760,
+        "resizable": true,
+        "visible": false,
+        "alwaysOnTop": false
       }
     ],
     "security": {

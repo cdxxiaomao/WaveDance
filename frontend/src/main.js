@@ -1,25 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-const statusEl = document.querySelector("#status");
 const canvas = document.querySelector("#waveCanvas");
-const startBtn = document.querySelector("#startBtn");
-const stopBtn = document.querySelector("#stopBtn");
-const pinToggle = document.querySelector("#pinToggle");
-const dragBar = document.querySelector("#dragBar");
-const bucketRange = document.querySelector("#bucketRange");
-const bucketValue = document.querySelector("#bucketValue");
-const bucketMode = document.querySelector("#bucketMode");
-const tiltRange = document.querySelector("#tiltRange");
-const tiltValue = document.querySelector("#tiltValue");
-const freqMinRange = document.querySelector("#freqMinRange");
-const freqMinValue = document.querySelector("#freqMinValue");
-const freqMaxRange = document.querySelector("#freqMaxRange");
-const freqMaxValue = document.querySelector("#freqMaxValue");
-const bodyBgColor = document.querySelector("#bodyBgColor");
-const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
-const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
-const blurToggle = document.querySelector("#blurToggle");
+const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -74,8 +57,8 @@ const WAVEFORM_GAIN = 0.5;
 let latestPoints = [];
 
 function hexToRgb(hex) {
-  const safeHex = hex.replace("#", "");
-  if (safeHex.length !== 6) return { r: 11, g: 16, b: 32 };
+  const safeHex = typeof hex === "string" ? hex.replace("#", "") : "";
+  if (safeHex.length !== 6) return { r: 0, g: 0, b: 0 };
   return {
     r: Number.parseInt(safeHex.slice(0, 2), 16),
     g: Number.parseInt(safeHex.slice(2, 4), 16),
@@ -83,11 +66,11 @@ function hexToRgb(hex) {
   };
 }
 
-function applyBodyBackgroundStyle() {
-  const { r, g, b } = hexToRgb(bodyBgColor.value);
-  const alpha = Number(bodyBgAlpha.value) / 100;
-  document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
-  bodyBgAlphaValue.textContent = String(bodyBgAlpha.value);
+function applyMainBackgroundStyle(payload) {
+  const { color = "#000000", alpha = 0.35 } = payload ?? {};
+  const { r, g, b } = hexToRgb(color);
+  const safeAlpha = Number.isFinite(alpha) ? Math.max(0, Math.min(1, alpha)) : 0.35;
+  document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${safeAlpha.toFixed(3)})`;
 }
 
 function resizeCanvas() {
@@ -141,7 +124,6 @@ async function init() {
     }
   };
 
-  dragBar.addEventListener("mousedown", triggerNativeDrag);
   document.body.addEventListener("mousedown", triggerNativeDrag);
 
   const triggerNativeResize = (event) => {
@@ -182,148 +164,37 @@ async function init() {
     const payload = event.payload;
     if (Array.isArray(payload.points)) {
       latestPoints = payload.points;
-      statusEl.textContent = `实时采集中 · peak=${payload.peak.toFixed(3)} · rms=${payload.rms.toFixed(3)}`;
     }
   });
 
   await listen("waveform-error", (event) => {
-    statusEl.textContent = `错误：${event.payload}`;
+    console.error("waveform-error:", event.payload);
   });
 
   await listen("waveform-status", (event) => {
-    statusEl.textContent = event.payload;
+    console.info("waveform-status:", event.payload);
   });
 
-  startBtn.addEventListener("click", async () => {
+  await listen("main-bg-style", (event) => {
+    applyMainBackgroundStyle(event.payload);
+  });
+
+  openSettingsBtn.addEventListener("click", async () => {
+    try {
+      await invoke("open_settings_window");
+    } catch (err) {
+      console.error("open_settings_window failed:", err);
+    }
+  });
+  try {
     await invoke("start_waveform_stream");
-  });
-
-  stopBtn.addEventListener("click", async () => {
-    await invoke("stop_waveform_stream");
-  });
-
-  pinToggle.addEventListener("change", async (event) => {
-    const pinned = event.target.checked;
-    try {
-      await invoke("set_overlay_pinned", { pinned });
-      statusEl.textContent = pinned ? "置顶模式已开启" : "置顶模式已关闭";
-    } catch (err) {
-      statusEl.textContent = `更新置顶状态失败：${String(err)}`;
-    }
-  });
-
-  bucketRange.addEventListener("input", async (event) => {
-    const count = Number(event.target.value);
-    bucketValue.textContent = String(count);
-    try {
-      await invoke("update_bucket_count", { bucketCount: count });
-    } catch (err) {
-      statusEl.textContent = `更新分桶失败：${String(err)}`;
-    }
-  });
-
-  bucketMode.addEventListener("change", async (event) => {
-    const mode = event.target.value;
-    try {
-      await invoke("update_bucket_mode", { mode });
-    } catch (err) {
-      statusEl.textContent = `更新分桶模式失败：${String(err)}`;
-    }
-  });
-
-  bodyBgColor.addEventListener("input", applyBodyBackgroundStyle);
-  bodyBgAlpha.addEventListener("input", applyBodyBackgroundStyle);
-  blurToggle.addEventListener("change", async (event) => {
-    const enabled = event.target.checked;
-    try {
-      await invoke("set_overlay_blur_enabled", { enabled });
-      statusEl.textContent = enabled ? "毛玻璃已开启" : "毛玻璃已关闭";
-    } catch (err) {
-      statusEl.textContent = `更新毛玻璃开关失败：${String(err)}`;
-    }
-  });
-  tiltRange.addEventListener("input", async (event) => {
-    const percent = Number(event.target.value);
-    tiltValue.textContent = String(percent);
-    try {
-      await invoke("update_high_tilt_percent", { percent });
-    } catch (err) {
-      statusEl.textContent = `更新高频补偿失败：${String(err)}`;
-    }
-  });
-
-async function syncFrequencyRange(minHz, maxHz) {
-  try {
-    await invoke("update_frequency_range", { minHz, maxHz });
   } catch (err) {
-    statusEl.textContent = `更新频率区间失败：${String(err)}`;
+    console.error("start_waveform_stream failed:", err);
   }
-}
-
-  freqMinRange.addEventListener("input", async (event) => {
-    let minHz = Number(event.target.value);
-    let maxHz = Number(freqMaxRange.value);
-    if (minHz >= maxHz - 20) {
-      minHz = maxHz - 20;
-      freqMinRange.value = String(minHz);
-    }
-    freqMinValue.textContent = String(minHz);
-    await syncFrequencyRange(minHz, maxHz);
-  });
-
-  freqMaxRange.addEventListener("input", async (event) => {
-    let maxHz = Number(event.target.value);
-    let minHz = Number(freqMinRange.value);
-    if (maxHz <= minHz + 20) {
-      maxHz = minHz + 20;
-      freqMaxRange.value = String(maxHz);
-    }
-    freqMaxValue.textContent = String(maxHz);
-    await syncFrequencyRange(minHz, maxHz);
-  });
-
-  try {
-    const [
-      currentBucket,
-      currentMode,
-      currentTilt,
-      frequencyRange,
-      overlayPinned,
-      blurEnabled,
-    ] =
-      await Promise.all([
-        invoke("get_bucket_count"),
-        invoke("get_bucket_mode"),
-        invoke("get_high_tilt_percent"),
-        invoke("get_frequency_range"),
-        invoke("get_overlay_pinned"),
-        invoke("get_overlay_blur_enabled"),
-      ]);
-    bucketRange.value = String(currentBucket);
-    bucketValue.textContent = String(currentBucket);
-    bucketMode.value = currentMode;
-    tiltRange.value = String(currentTilt);
-    tiltValue.textContent = String(currentTilt);
-    const [minHz, maxHz] = frequencyRange;
-    freqMinRange.value = String(minHz);
-    freqMaxRange.value = String(maxHz);
-    freqMinValue.textContent = String(minHz);
-    freqMaxValue.textContent = String(maxHz);
-    pinToggle.checked = Boolean(overlayPinned);
-    blurToggle.checked = Boolean(blurEnabled);
-  } catch {
-    bucketValue.textContent = bucketRange.value;
-    tiltValue.textContent = tiltRange.value;
-    freqMinValue.textContent = freqMinRange.value;
-    freqMaxValue.textContent = freqMaxRange.value;
-    pinToggle.checked = true;
-    blurToggle.checked = true;
-  }
-
-  applyBodyBackgroundStyle();
+  applyMainBackgroundStyle({ color: "#000000", alpha: 0.35 });
   renderWaveform();
 }
 
 init().catch((error) => {
-  statusEl.textContent = `初始化失败：${String(error)}`;
+  console.error("main init failed:", error);
 });

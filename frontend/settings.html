@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">WaveDance</h1>
+            <p class="settings-header__subtitle">系统音频 · 频谱显示</p>
+          </div>
+        </div>
+        <p id="status" class="settings-status" role="status">等待启动采集…</p>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-transport">
+        <h2 id="sec-transport" class="settings-card__title">采集与窗口</h2>
+        <div class="settings-card__body">
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="startBtn" class="settings-btn settings-btn--primary">开始采集</button>
+            <button type="button" id="stopBtn" class="settings-btn">停止采集</button>
+            <label class="settings-toggle">
+              <input id="pinToggle" type="checkbox" checked />
+              <span class="settings-toggle__ui" aria-hidden="true"></span>
+              <span>置顶模式</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-spectrum">
+        <h2 id="sec-spectrum" class="settings-card__title">频谱分析</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field">
+            <label for="bucketRange" class="settings-label">分桶数量 <span class="settings-value" id="bucketValue">256</span></label>
+            <input id="bucketRange" type="range" min="8" max="256" step="1" value="256" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="bucketMode" class="settings-label">分桶模式</label>
+            <select id="bucketMode" class="settings-select">
+              <option value="log">对数（低频更细）</option>
+              <option value="linear" selected>线性（频段等宽）</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="tiltRange" class="settings-label">高频补偿 <span class="settings-value" id="tiltValue">35</span>%</label>
+            <input id="tiltRange" type="range" min="0" max="200" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="freqMinRange" class="settings-label">频率下限 <span class="settings-value" id="freqMinValue">480</span> Hz</label>
+            <input id="freqMinRange" type="range" min="20" max="20000" step="10" value="480" />
+          </div>
+          <div class="settings-field">
+            <label for="freqMaxRange" class="settings-label">频率上限 <span class="settings-value" id="freqMaxValue">7600</span> Hz</label>
+            <input id="freqMaxRange" type="range" min="100" max="24000" step="10" value="7600" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-display">
+        <h2 id="sec-display" class="settings-card__title">主窗口显示</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="bodyBgColor" class="settings-label">叠加背景色</label>
+            <input id="bodyBgColor" type="color" value="#000000" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="bodyBgAlpha" class="settings-label">透明度 <span class="settings-value" id="bodyBgAlphaValue">35</span>%</label>
+            <input id="bodyBgAlpha" type="range" min="0" max="100" step="1" value="35" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="blurToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>主窗口毛玻璃（系统效果）</span>
+          </label>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/settings.js"></script>
+  </body>
+</html>

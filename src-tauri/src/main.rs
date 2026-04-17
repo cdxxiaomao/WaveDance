@@ -9,7 +9,7 @@ use std::time::Duration;
 
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{
-    NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior,
+    NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior, NSWindowOrderingMode,
 };
 #[cfg(target_os = "macos")]
 use window_vibrancy::clear_vibrancy;
@@ -17,6 +17,7 @@ use rustfft::{num_complex::Complex, FftPlanner};
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     ActivationPolicy, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, State,
+    WebviewUrl, WebviewWindowBuilder,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
@@ -38,12 +39,12 @@ impl Default for StreamState {
         Self {
             running: Arc::new(AtomicBool::new(false)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
-            overlay_blur_enabled: Arc::new(AtomicBool::new(true)),
-            bucket_count: Arc::new(AtomicUsize::new(64)),
-            bucket_mode: Arc::new(AtomicU8::new(0)),
+            overlay_blur_enabled: Arc::new(AtomicBool::new(false)),
+            bucket_count: Arc::new(AtomicUsize::new(256)),
+            bucket_mode: Arc::new(AtomicU8::new(1)),
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
-            freq_min_hz: Arc::new(AtomicUsize::new(20)),
-            freq_max_hz: Arc::new(AtomicUsize::new(12_000)),
+            freq_min_hz: Arc::new(AtomicUsize::new(480)),
+            freq_max_hz: Arc::new(AtomicUsize::new(7_600)),
         }
     }
 }
@@ -227,6 +228,11 @@ fn stop_waveform_stream(state: State<'_, StreamState>) {
 }
 
 #[tauri::command]
+fn get_waveform_stream_running(state: State<'_, StreamState>) -> bool {
+    state.running.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
 fn update_bucket_count(state: State<'_, StreamState>, bucket_count: usize) -> Result<(), String> {
     if !(8..=256).contains(&bucket_count) {
         return Err("桶数量必须在 8 到 256 之间".to_string());
@@ -306,10 +312,10 @@ fn configure_overlay_window(
     const OVERLAY_BLUR_RADIUS: f64 = 14.0;
     window.set_always_on_top(pinned)?;
     window.set_shadow(false)?;
-    if !blur_enabled {
-        let _ = window.set_effects(None);
-        let _ = clear_vibrancy(&window);
-    } else {
+    // 先清理旧效果，再按当前开关重建，避免频繁切换时出现偶发状态残留。
+    let _ = window.set_effects(None);
+    let _ = clear_vibrancy(&window);
+    if blur_enabled {
         window.set_effects(
             EffectsBuilder::new()
                 .effect(OVERLAY_EFFECT)
@@ -362,6 +368,33 @@ fn configure_overlay_window(
     })
 }
 
+/// 将设置窗口挂到主窗口子窗口链上，使其随主窗口出现在同一 Space（解决多桌面残留问题）。
+#[cfg(target_os = "macos")]
+fn attach_settings_window_to_main_space(
+    main_window: &tauri::WebviewWindow,
+    settings_window: &tauri::WebviewWindow,
+) -> tauri::Result<()> {
+    let main_clone = main_window.clone();
+    let settings_clone = settings_window.clone();
+    main_window.run_on_main_thread(move || unsafe {
+        let main_ns = main_clone
+            .ns_window()
+            .expect("无法获取主窗口 NSWindow 句柄")
+            .cast::<NSWindow>();
+        let settings_ns = settings_clone
+            .ns_window()
+            .expect("无法获取设置窗口 NSWindow 句柄")
+            .cast::<NSWindow>();
+        let main_ref: &NSWindow = &*main_ns;
+        let settings_ref: &NSWindow = &*settings_ns;
+
+        if let Some(old_parent) = settings_ref.parentWindow() {
+            old_parent.removeChildWindow(settings_ref);
+        }
+        main_ref.addChildWindow_ordered(settings_ref, NSWindowOrderingMode::Above);
+    })
+}
+
 fn recall_overlay_window(app: &tauri::AppHandle, pinned: bool) -> tauri::Result<()> {
     if let Some(window) = app.get_webview_window("main") {
         window.show()?;
@@ -396,6 +429,12 @@ fn set_overlay_pinned(
             .set_always_on_top(pinned)
             .map_err(|e| e.to_string())?;
     }
+
+    if let Some(settings_window) = app.get_webview_window("settings") {
+        settings_window
+            .set_always_on_top(pinned)
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -424,6 +463,51 @@ fn set_overlay_blur_enabled(
 #[tauri::command]
 fn get_overlay_blur_enabled(state: State<'_, StreamState>) -> bool {
     state.overlay_blur_enabled.load(Ordering::SeqCst)
+}
+
+#[tauri::command]
+fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+
+    let main = app
+        .get_webview_window("main")
+        .ok_or_else(|| "未找到主窗口".to_string())?;
+
+    // 先激活主窗口，确保当前 Space 与主窗口一致，再挂接/显示设置窗。
+    main.set_focus().map_err(|e| e.to_string())?;
+
+    if let Some(settings) = app.get_webview_window("settings") {
+        #[cfg(target_os = "macos")]
+        attach_settings_window_to_main_space(&main, &settings).map_err(|e| e.to_string())?;
+
+        settings
+            .set_always_on_top(pinned)
+            .map_err(|e| e.to_string())?;
+        settings.show().map_err(|e| e.to_string())?;
+        settings.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let settings = WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        WebviewUrl::App("settings.html".into()),
+    )
+    .title("WaveDance 设置")
+    .inner_size(620.0, 760.0)
+    .parent(&main)
+    .map_err(|e| e.to_string())?
+    .always_on_top(pinned)
+    .resizable(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    settings.show().map_err(|e| e.to_string())?;
+    settings.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -540,6 +624,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             start_waveform_stream,
             stop_waveform_stream,
+            get_waveform_stream_running,
             update_bucket_count,
             get_bucket_count,
             update_bucket_mode,
@@ -552,6 +637,7 @@ fn main() {
             get_overlay_pinned,
             set_overlay_blur_enabled,
             get_overlay_blur_enabled,
+            open_settings_window,
             start_window_dragging,
             resize_window_by_delta
         ])

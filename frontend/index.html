@@ -15,48 +15,11 @@
     <div class="resize-handle corner top-right" data-resize-dir="northeast"></div>
     <div class="resize-handle corner bottom-right" data-resize-dir="southeast"></div>
     <div class="resize-handle corner bottom-left" data-resize-dir="southwest"></div>
-    <div class="app" >
-      <div id="dragBar" title="按住拖动窗口"></div>
-      <header>
-        <h1>WaveDance 实时系统音频波形</h1>
-        <p id="status">等待启动采集...</p>
-      </header>
-      <canvas id="waveCanvas" data-no-drag></canvas>
-      <div class="controls" data-no-drag>
-        <button id="startBtn">开始采集</button>
-        <button id="stopBtn">停止采集</button>
-        <label class="pin-toggle">
-          <input id="pinToggle" type="checkbox" checked />
-          <span>置顶模式</span>
-        </label>
+    <div class="app main-only">
+      <div class="main-toolbar" data-no-drag>
+        <button id="openSettingsBtn">设置</button>
       </div>
-      <div class="panel" data-no-drag>
-        <label for="bucketRange">分桶数量：<span id="bucketValue">64</span></label>
-        <input id="bucketRange" type="range" min="8" max="256" step="1" value="64" />
-        <div class="row">
-          <label for="bucketMode">分桶模式：</label>
-          <select id="bucketMode">
-            <option value="log">log（低频更细）</option>
-            <option value="linear">linear（频段等宽）</option>
-          </select>
-        </div>
-        <label for="tiltRange">高频补偿：<span id="tiltValue">35</span>%</label>
-        <input id="tiltRange" type="range" min="0" max="200" step="1" value="35" />
-        <label for="freqMinRange">频率下限：<span id="freqMinValue">20</span> Hz</label>
-        <input id="freqMinRange" type="range" min="20" max="20000" step="10" value="20" />
-        <label for="freqMaxRange">频率上限：<span id="freqMaxValue">12000</span> Hz</label>
-        <input id="freqMaxRange" type="range" min="100" max="24000" step="10" value="12000" />
-        <div class="row">
-          <label for="bodyBgColor">背景颜色：</label>
-          <input id="bodyBgColor" type="color" value="#0b1020" />
-        </div>
-        <label for="bodyBgAlpha">背景透明度：<span id="bodyBgAlphaValue">45</span>%</label>
-        <input id="bodyBgAlpha" type="range" min="0" max="100" step="1" value="45" />
-        <label class="pin-toggle">
-          <input id="blurToggle" type="checkbox" checked />
-          <span>启用毛玻璃</span>
-        </label>
-      </div>
+      <canvas id="waveCanvas"></canvas>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

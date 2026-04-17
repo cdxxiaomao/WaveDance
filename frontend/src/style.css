@@ -5,6 +5,12 @@
   color: #d9e1ff;
 }
 
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -13,17 +19,62 @@ body {
   margin: 0;
   min-height: 100vh;
   background: transparent;
-  /* backdrop-filter: blur(10px); */
+}
+
+body:not(.settings-window) {
+  overflow: hidden;
+}
+
+/* 设置页：解除固定视口高度，使背景与内容一同延伸到底部 */
+html:has(body.settings-window),
+html:has(body.settings-window) body.settings-window {
+  height: auto;
+}
+
+html:has(body.settings-window) {
+  min-height: 100%;
+  background-color: #060607;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 165, 116, 0.45) rgba(12, 12, 14, 0.85);
+}
+
+html:has(body.settings-window) body.settings-window {
+  min-height: 100vh;
+}
+
+html:has(body.settings-window)::-webkit-scrollbar {
+  width: 10px;
+}
+
+html:has(body.settings-window)::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, rgba(18, 18, 20, 0.95), rgba(8, 8, 9, 0.98));
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html:has(body.settings-window)::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 2px solid rgba(12, 12, 14, 0.6);
+  background:
+    linear-gradient(180deg, rgba(237, 214, 173, 0.35), rgba(120, 98, 62, 0.55)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.25));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
+  background:
+    linear-gradient(180deg, rgba(237, 214, 173, 0.45), rgba(140, 115, 72, 0.65)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.2));
 }
 
 .resize-handle {
   position: fixed;
-  z-index: 9999;
+  z-index: 20000;
   user-select: none;
 }
 
 .resize-handle.edge {
-  --edge-size: 6px;
+  --edge-size: 12px;
 }
 
 .resize-handle.edge.top,
@@ -61,7 +112,7 @@ body {
 }
 
 .resize-handle.corner {
-  --corner-size: 12px;
+  --corner-size: 22px;
   width: var(--corner-size);
   height: var(--corner-size);
 }
@@ -95,39 +146,39 @@ body {
   margin: 28px auto;
 }
 
-#dragBar {
-  height: 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(60, 74, 123, 0.75);
-  background: rgba(24, 36, 72, 0.65);
-  margin-bottom: 10px;
-  cursor: move;
-}
-
-header {
-  padding: 10px 14px;
-  border: 1px solid rgba(60, 74, 123, 0.75);
-  border-radius: 12px;
-  background: rgba(11, 16, 32, 0.68);
-}
-
-header h1 {
+.app.main-only {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   margin: 0;
-  font-size: 24px;
 }
 
-#status {
-  margin: 10px 0 16px;
-  color: #94a3c5;
+.main-toolbar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10000;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+body:hover .main-toolbar,
+body:focus-within .main-toolbar {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 #waveCanvas {
-  width: 100%;
-  height: 420px;
-  border-radius: 12px;
-  border: 1px solid rgba(42, 53, 88, 0.55);
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  border-radius: 0;
   background: transparent;
-  margin-top: 14px;
 }
 
 .controls {
@@ -198,4 +249,307 @@ button {
 
 button:hover {
   background: #21315f;
+}
+
+/* —— 设置窗口：专业暗色（音乐工具向），与主窗口蓝紫系分离 —— */
+body.settings-window {
+  --settings-bg: #0a0a0b;
+  --settings-surface: #121214;
+  --settings-surface-2: #18181b;
+  --settings-border: rgba(255, 255, 255, 0.08);
+  --settings-border-strong: rgba(255, 255, 255, 0.12);
+  --settings-text: #ececed;
+  --settings-text-muted: #8b8b90;
+  --settings-text-dim: #5c5c62;
+  --settings-accent: #c4a574;
+  min-height: 100vh;
+  background-color: #060607;
+  background-image:
+    radial-gradient(110% 80% at 10% -10%, rgba(196, 165, 116, 0.12), transparent 56%),
+    radial-gradient(80% 60% at 100% 0%, rgba(120, 120, 130, 0.08), transparent 62%),
+    linear-gradient(180deg, #0e0e10 0%, #0a0a0c 42%, #080809 100%);
+  color: var(--settings-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.settings-window .settings-app {
+  width: min(520px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 20px 0 28px;
+}
+
+body.settings-window .settings-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--settings-border);
+  position: relative;
+}
+
+body.settings-window .settings-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 165, 116, 0.45), transparent);
+}
+
+body.settings-window .settings-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+body.settings-window .settings-header__mark {
+  display: block;
+  width: 4px;
+  height: 40px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--settings-accent) 0%, #6b5a42 100%);
+  flex-shrink: 0;
+}
+
+body.settings-window .settings-header__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--settings-text);
+}
+
+body.settings-window .settings-header__subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--settings-text-muted);
+}
+
+body.settings-window .settings-status {
+  margin: 14px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--settings-text-muted);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.1)),
+    var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body.settings-window .settings-card {
+  margin-bottom: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.22)),
+    var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+body.settings-window .settings-card__title {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--settings-text-dim);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.14)),
+    var(--settings-surface-2);
+  border-bottom: 1px solid var(--settings-border);
+}
+
+body.settings-window .settings-card__body {
+  padding: 14px 14px 16px;
+}
+
+body.settings-window .settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.settings-window .settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.settings-window .settings-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.settings-window .settings-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--settings-text-muted);
+}
+
+body.settings-window .settings-value {
+  color: var(--settings-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+body.settings-window input[type="range"] {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--settings-accent);
+  cursor: pointer;
+  filter: drop-shadow(0 0 0.2px rgba(0, 0, 0, 0.8));
+}
+
+body.settings-window .settings-select {
+  flex: 1;
+  min-width: 0;
+  max-width: 240px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--settings-text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.18)),
+    var(--settings-bg);
+  border: 1px solid var(--settings-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+body.settings-window .settings-select:focus {
+  outline: none;
+  border-color: rgba(196, 165, 116, 0.45);
+  box-shadow: 0 0 0 2px rgba(196, 165, 116, 0.12);
+}
+
+body.settings-window .settings-color {
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--settings-border-strong);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.22));
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+body.settings-window .settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+body.settings-window .settings-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--settings-text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02) 45%, rgba(0, 0, 0, 0.22)),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--settings-border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 3px 10px rgba(0, 0, 0, 0.28);
+}
+
+body.settings-window .settings-btn:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05) 45%, rgba(0, 0, 0, 0.2)),
+    rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+body.settings-window .settings-btn--primary {
+  background:
+    linear-gradient(180deg, rgba(237, 214, 173, 0.36), rgba(196, 165, 116, 0.2) 45%, rgba(76, 59, 34, 0.3)),
+    rgba(196, 165, 116, 0.08);
+  border-color: rgba(196, 165, 116, 0.35);
+  color: #e8dcc8;
+}
+
+body.settings-window .settings-btn--primary:hover {
+  background:
+    linear-gradient(180deg, rgba(237, 214, 173, 0.42), rgba(196, 165, 116, 0.28) 45%, rgba(76, 59, 34, 0.36)),
+    rgba(196, 165, 116, 0.12);
+  border-color: rgba(196, 165, 116, 0.5);
+}
+
+body.settings-window .settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--settings-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+body.settings-window .settings-toggle--block {
+  margin-top: 4px;
+}
+
+body.settings-window .settings-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+body.settings-window .settings-toggle__ui {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.25)),
+    var(--settings-bg);
+  border: 1px solid var(--settings-border-strong);
+  border-radius: 999px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.settings-window .settings-toggle__ui::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background:
+    linear-gradient(180deg, #c9c9cd, #8a8a90);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+body.settings-window .settings-toggle input:checked + .settings-toggle__ui {
+  background:
+    linear-gradient(180deg, rgba(237, 214, 173, 0.3), rgba(92, 74, 48, 0.36)),
+    rgba(196, 165, 116, 0.12);
+  border-color: rgba(196, 165, 116, 0.45);
+}
+
+body.settings-window .settings-toggle input:checked + .settings-toggle__ui::after {
+  transform: translateX(16px);
+  background: var(--settings-accent);
 }
