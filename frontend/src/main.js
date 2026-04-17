@@ -21,6 +21,7 @@ const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
 const bodyBlur = document.querySelector("#bodyBlur");
 const bodyBlurValue = document.querySelector("#bodyBlurValue");
+const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
 if (!gl) {
@@ -147,6 +148,40 @@ async function init() {
 
   dragBar.addEventListener("mousedown", triggerNativeDrag);
   document.body.addEventListener("mousedown", triggerNativeDrag);
+
+  const triggerNativeResize = (event) => {
+    if (event.button !== 0) return;
+    const direction = event.currentTarget.dataset.resizeDir;
+    if (!direction) return;
+    let lastX = event.screenX;
+    let lastY = event.screenY;
+
+    const onMouseMove = async (moveEvent) => {
+      const deltaX = moveEvent.screenX - lastX;
+      const deltaY = moveEvent.screenY - lastY;
+      if (deltaX === 0 && deltaY === 0) return;
+      lastX = moveEvent.screenX;
+      lastY = moveEvent.screenY;
+      try {
+        await invoke("resize_window_by_delta", { direction, deltaX, deltaY });
+      } catch {
+        // ignore resize call failures when system rejects resizing state
+      }
+    };
+
+    const stopResize = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", stopResize);
+      window.removeEventListener("mouseleave", stopResize);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", stopResize);
+    window.addEventListener("mouseleave", stopResize);
+  };
+  resizeHandles.forEach((handle) => {
+    handle.addEventListener("mousedown", triggerNativeResize);
+  });
 
   await listen("waveform-frame", (event) => {
     const payload = event.payload;

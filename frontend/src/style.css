@@ -17,6 +17,80 @@ body {
   -webkit-backdrop-filter: blur(8px);
 }
 
+.resize-handle {
+  position: fixed;
+  z-index: 9999;
+  user-select: none;
+}
+
+.resize-handle.edge {
+  --edge-size: 6px;
+}
+
+.resize-handle.edge.top,
+.resize-handle.edge.bottom {
+  left: 0;
+  width: 100vw;
+  height: var(--edge-size);
+}
+
+.resize-handle.edge.top {
+  top: 0;
+  cursor: ns-resize;
+}
+
+.resize-handle.edge.bottom {
+  bottom: 0;
+  cursor: ns-resize;
+}
+
+.resize-handle.edge.left,
+.resize-handle.edge.right {
+  top: 0;
+  width: var(--edge-size);
+  height: 100vh;
+}
+
+.resize-handle.edge.left {
+  left: 0;
+  cursor: ew-resize;
+}
+
+.resize-handle.edge.right {
+  right: 0;
+  cursor: ew-resize;
+}
+
+.resize-handle.corner {
+  --corner-size: 12px;
+  width: var(--corner-size);
+  height: var(--corner-size);
+}
+
+.resize-handle.corner.top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.resize-handle.corner.top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.resize-handle.corner.bottom-right {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.resize-handle.corner.bottom-left {
+  left: 0;
+  bottom: 0;
+  cursor: nesw-resize;
+}
+
 .app {
   width: min(1100px, 92vw);
   margin: 28px auto;

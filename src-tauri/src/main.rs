@@ -12,7 +12,7 @@ use objc2_app_kit::{
     NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior,
 };
 use rustfft::{num_complex::Complex, FftPlanner};
-use tauri::{ActivationPolicy, Emitter, Manager, State};
+use tauri::{ActivationPolicy, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, State};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::WaveformFrame;
@@ -380,6 +380,71 @@ fn start_window_dragging(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn resize_window_by_delta(
+    app: tauri::AppHandle,
+    direction: String,
+    delta_x: i32,
+    delta_y: i32,
+) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let pos = window.outer_position().map_err(|e| e.to_string())?;
+        let size = window.outer_size().map_err(|e| e.to_string())?;
+
+        let mut x = pos.x;
+        let mut y = pos.y;
+        let mut width = size.width as i32;
+        let mut height = size.height as i32;
+        let right = x + width;
+        let bottom = y + height;
+
+        let normalized = direction.to_lowercase();
+        let resize_west = normalized.contains("west");
+        let resize_east = normalized.contains("east");
+        let resize_north = normalized.contains("north");
+        let resize_south = normalized.contains("south");
+
+        if resize_west {
+            x += delta_x;
+            width -= delta_x;
+        }
+        if resize_east {
+            width += delta_x;
+        }
+        if resize_north {
+            y += delta_y;
+            height -= delta_y;
+        }
+        if resize_south {
+            height += delta_y;
+        }
+
+        const MIN_WIDTH: i32 = 640;
+        const MIN_HEIGHT: i32 = 420;
+
+        if width < MIN_WIDTH {
+            width = MIN_WIDTH;
+            if resize_west {
+                x = right - width;
+            }
+        }
+        if height < MIN_HEIGHT {
+            height = MIN_HEIGHT;
+            if resize_north {
+                y = bottom - height;
+            }
+        }
+
+        window
+            .set_position(Position::Physical(PhysicalPosition::new(x, y)))
+            .map_err(|e| e.to_string())?;
+        window
+            .set_size(Size::Physical(PhysicalSize::new(width as u32, height as u32)))
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn main() {
     let recall_shortcut = Shortcut::new(
         Some(Modifiers::SUPER | Modifiers::SHIFT | Modifiers::ALT),
@@ -429,7 +494,8 @@ fn main() {
             get_frequency_range,
             set_overlay_pinned,
             get_overlay_pinned,
-            start_window_dragging
+            start_window_dragging,
+            resize_window_by_delta
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
