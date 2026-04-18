@@ -612,6 +612,34 @@ body.settings-window .settings-btn--primary:hover {
   border-color: rgba(196, 165, 116, 0.5);
 }
 
+body.settings-window .settings-btn--ghost {
+  background: transparent;
+  box-shadow: none;
+  border-color: var(--settings-border);
+}
+
+body.settings-window .settings-btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body.settings-window .settings-actions--wrap {
+  flex-wrap: wrap;
+}
+
+body.settings-window .settings-blackhole-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--settings-text-muted);
+}
+
+body.settings-window .settings-muted {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--settings-text-muted);
+}
+
 body.settings-window .settings-toggle {
   display: inline-flex;
   align-items: center;

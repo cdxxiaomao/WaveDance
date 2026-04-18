@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::Path;
+use std::process::Command;
 use std::sync::{
     atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
     Arc, Mutex,
@@ -22,6 +24,7 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::WaveformFrame;
+use wavedance::platform::PlatformService;
 
 struct StreamState {
     running: Arc<AtomicBool>,
@@ -367,6 +370,90 @@ fn get_waveform_line_width(state: State<'_, StreamState>) -> usize {
     state
         .waveform_line_width_px
         .load(Ordering::Relaxed)
+}
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
+fn get_loopback_device_status() -> wavedance::platform::DeviceStatus {
+    wavedance::platform::MacPlatformService::default().detect_audio_loopback_status()
+}
+
+/// 在应用资源目录中查找随包分发的 BlackHole `.pkg`（支持放在 `blackhole/` 下或其一层的子文件夹内）。
+#[cfg(target_os = "macos")]
+fn find_bundled_blackhole_pkg(resource_dir: &Path) -> Option<std::path::PathBuf> {
+    let preferred = [
+        resource_dir.join("blackhole").join("BlackHole.pkg"),
+        resource_dir.join("BlackHole.pkg"),
+    ];
+    for p in &preferred {
+        if p.is_file() {
+            return Some(p.clone());
+        }
+    }
+
+    let blackhole = resource_dir.join("blackhole");
+    if !blackhole.is_dir() {
+        return None;
+    }
+
+    let mut found: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&blackhole) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().is_some_and(|e| e == "pkg") {
+                found.push(path);
+            } else if path.is_dir() {
+                if let Ok(sub) = std::fs::read_dir(&path) {
+                    for e in sub.flatten() {
+                        let p = e.path();
+                        if p.is_file() && p.extension().is_some_and(|e| e == "pkg") {
+                            found.push(p);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    found.sort();
+    found.into_iter().next()
+}
+
+/// 打开随包分发的 BlackHole `.pkg`（若存在），否则打开官方发布页；由系统安装器处理密码与授权。
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_blackhole_installer(app: tauri::AppHandle) -> Result<(), String> {
+    const FALLBACK_URL: &str = "https://github.com/ExistentialAudio/BlackHole/releases/latest";
+    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    if let Some(pkg_path) = find_bundled_blackhole_pkg(&resource_dir) {
+        let status = Command::new("open")
+            .arg(&pkg_path)
+            .status()
+            .map_err(|e| format!("无法打开安装包: {e}"))?;
+        return if status.success() {
+            Ok(())
+        } else {
+            Err("安装包未能打开".to_string())
+        };
+    }
+    let status = Command::new("open")
+        .arg(FALLBACK_URL)
+        .status()
+        .map_err(|e| format!("无法打开下载页: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("打开下载页失败".to_string())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn open_blackhole_installer(_app: tauri::AppHandle) -> Result<(), String> {
+    Err("BlackHole 仅适用于 macOS".to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -948,6 +1035,8 @@ fn main() {
             get_waveform_color,
             set_waveform_line_width,
             get_waveform_line_width,
+            get_loopback_device_status,
+            open_blackhole_installer,
             set_overlay_pinned,
             get_overlay_pinned,
             set_overlay_blur_enabled,
@@ -955,6 +1044,7 @@ fn main() {
             set_main_mouse_passthrough_locked,
             get_main_mouse_passthrough_locked,
             open_settings_window,
+            quit_app,
             start_window_dragging,
             resize_window_by_delta
         ])

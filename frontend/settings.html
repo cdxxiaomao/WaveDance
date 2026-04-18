@@ -19,6 +19,21 @@
         <p id="status" class="settings-status" role="status">等待启动采集…</p>
       </header>
 
+      <section class="settings-card" aria-labelledby="sec-blackhole">
+        <h2 id="sec-blackhole" class="settings-card__title">系统音频（BlackHole）</h2>
+        <div class="settings-card__body">
+          <p id="blackholeHint" class="settings-blackhole-hint" role="status"></p>
+          <div class="settings-actions settings-actions--wrap" data-no-drag>
+            <button type="button" id="blackholeInstallBtn" class="settings-btn">
+              安装 BlackHole…
+            </button>
+            <button type="button" id="blackholeRefreshBtn" class="settings-btn settings-btn--ghost">
+              重新检测
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section class="settings-card" aria-labelledby="sec-transport">
         <h2 id="sec-transport" class="settings-card__title">采集与窗口</h2>
         <div class="settings-card__body">
@@ -87,6 +102,20 @@
             <span class="settings-toggle__ui" aria-hidden="true"></span>
             <span>主窗口毛玻璃（系统效果）</span>
           </label>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-app">
+        <h2 id="sec-app" class="settings-card__title">应用</h2>
+        <div class="settings-card__body">
+          <p class="settings-muted">
+            本应用为叠加显示工具，默认不在程序坞常驻；退出请使用下方按钮，或通过活动监视器结束进程。
+          </p>
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="quitAppBtn" class="settings-btn settings-btn--ghost">
+              退出 WaveDance
+            </button>
+          </div>
         </div>
       </section>
     </div>

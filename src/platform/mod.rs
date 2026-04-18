@@ -1,6 +1,6 @@
 use std::process::Command;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct DeviceStatus {
     pub blackhole_installed: bool,
     pub hint: String,

@@ -5,6 +5,7 @@ WaveDance 是一个面向 macOS 的实时音频可视化桌面应用。
 
 ## 文档导航
 
+- 最终用户安装说明：`docs/INSTALL.md`
 - 快速上下文：`docs/QUICK_CONTEXT.md`
 - 当前执行上下文：`PROJECT_CONTEXT.md`
 - 历史实现轨迹：`docs/CHANGELOG_AGENT.md`

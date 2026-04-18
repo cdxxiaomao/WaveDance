@@ -21,6 +21,25 @@ const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
 const blurToggle = document.querySelector("#blurToggle");
+const blackholeHint = document.querySelector("#blackholeHint");
+const blackholeInstallBtn = document.querySelector("#blackholeInstallBtn");
+const blackholeRefreshBtn = document.querySelector("#blackholeRefreshBtn");
+const quitAppBtn = document.querySelector("#quitAppBtn");
+
+async function refreshBlackholeStatus() {
+  if (!blackholeHint || !blackholeInstallBtn) {
+    return;
+  }
+  try {
+    const s = await invoke("get_loopback_device_status");
+    blackholeHint.textContent = typeof s.hint === "string" ? s.hint : "";
+    const installed = Boolean(s.blackhole_installed);
+    blackholeInstallBtn.hidden = installed;
+    blackholeInstallBtn.disabled = installed;
+  } catch (err) {
+    blackholeHint.textContent = `无法读取设备状态：${String(err)}`;
+  }
+}
 
 function setCaptureTransportRunning(running) {
   startBtn.hidden = Boolean(running);
@@ -151,6 +170,27 @@ async function init() {
     }
   });
 
+  blackholeInstallBtn?.addEventListener("click", async () => {
+    if (
+      !confirm(
+        "将打开 BlackHole 安装程序（若已随应用打包），否则打开官方下载页。安装时可能需要输入管理员密码，并在「系统设置」中允许相关音频组件。是否继续？",
+      )
+    ) {
+      return;
+    }
+    try {
+      await invoke("open_blackhole_installer");
+      statusEl.textContent =
+        "若已打开安装程序，请按提示完成；完成后可在「系统设置 → 声音」中选择 BlackHole 作为输出。";
+    } catch (err) {
+      statusEl.textContent = `打开安装失败：${String(err)}`;
+    }
+  });
+
+  blackholeRefreshBtn?.addEventListener("click", () => {
+    void refreshBlackholeStatus();
+  });
+
   tiltRange.addEventListener("input", async (event) => {
     const percent = Number(event.target.value);
     tiltValue.textContent = String(percent);
@@ -240,7 +280,21 @@ async function init() {
     }
   }
 
+  if (quitAppBtn) {
+    quitAppBtn.addEventListener("click", async () => {
+      if (!window.confirm("确定要退出 WaveDance 吗？")) {
+        return;
+      }
+      try {
+        await invoke("quit_app");
+      } catch (err) {
+        statusEl.textContent = `退出失败：${String(err)}`;
+      }
+    });
+  }
+
   await syncMainBackgroundStyle();
+  await refreshBlackholeStatus();
 }
 
 init().catch((error) => {
