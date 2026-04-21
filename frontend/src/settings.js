@@ -282,9 +282,6 @@ async function init() {
 
   if (quitAppBtn) {
     quitAppBtn.addEventListener("click", async () => {
-      if (!window.confirm("确定要退出 WaveDance 吗？")) {
-        return;
-      }
       try {
         await invoke("quit_app");
       } catch (err) {

@@ -21,6 +21,8 @@ use tauri::{
     ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
     Position, Size, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
+#[cfg(target_os = "macos")]
+use tauri::{menu::MenuBuilder, tray::TrayIconBuilder};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::WaveformFrame;
@@ -848,8 +850,8 @@ fn get_main_mouse_passthrough_locked(state: State<'_, StreamState>) -> bool {
         .load(Ordering::SeqCst)
 }
 
-#[tauri::command]
-fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+/// 菜单栏托盘「设置」与 `open_settings_window` 命令共用。
+fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     let pinned = app
         .state::<StreamState>()
         .overlay_pinned
@@ -875,7 +877,7 @@ fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     let settings = WebviewWindowBuilder::new(
-        &app,
+        app,
         "settings",
         WebviewUrl::App("settings.html".into()),
     )
@@ -891,6 +893,11 @@ fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     settings.show().map_err(|e| e.to_string())?;
     settings.set_focus().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_settings_window_impl(&app)
 }
 
 #[tauri::command]
@@ -1017,6 +1024,36 @@ fn main() {
             app.global_shortcut().register(recall_shortcut_for_setup)?;
             app.global_shortcut()
                 .register(passthrough_shortcut_for_setup)?;
+
+            #[cfg(target_os = "macos")]
+            {
+                const TRAY_MENU_SETTINGS: &str = "tray_settings";
+                const TRAY_MENU_QUIT: &str = "tray_quit";
+
+                let Some(icon) = app.default_window_icon().cloned() else {
+                    return Err("缺少 bundle 图标，无法创建菜单栏托盘".into());
+                };
+                let menu = MenuBuilder::new(app.handle())
+                    .text(TRAY_MENU_SETTINGS, "设置…")
+                    .separator()
+                    .text(TRAY_MENU_QUIT, "退出 WaveDance")
+                    .build()?;
+
+                let _tray = TrayIconBuilder::new()
+                    .icon(icon)
+                    .tooltip("WaveDance")
+                    .menu(&menu)
+                    .show_menu_on_left_click(true)
+                    .on_menu_event(|app, event| {
+                        if event.id() == TRAY_MENU_SETTINGS {
+                            let _ = open_settings_window_impl(app);
+                        } else if event.id() == TRAY_MENU_QUIT {
+                            app.exit(0);
+                        }
+                    })
+                    .build(app.handle())?;
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
