@@ -169,12 +169,15 @@ async function init() {
 
   const triggerNativeResize = (event) => {
     if (event.button !== 0) return;
+    event.preventDefault();
     const direction = event.currentTarget.dataset.resizeDir;
     if (!direction) return;
+    document.body.classList.add("is-resizing-window");
     let lastX = event.screenX;
     let lastY = event.screenY;
 
     const onMouseMove = async (moveEvent) => {
+      moveEvent.preventDefault();
       const deltaX = moveEvent.screenX - lastX;
       const deltaY = moveEvent.screenY - lastY;
       if (deltaX === 0 && deltaY === 0) return;
@@ -191,6 +194,7 @@ async function init() {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", stopResize);
       window.removeEventListener("mouseleave", stopResize);
+      document.body.classList.remove("is-resizing-window");
     };
 
     window.addEventListener("mousemove", onMouseMove);

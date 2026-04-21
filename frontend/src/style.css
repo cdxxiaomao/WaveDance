@@ -27,6 +27,12 @@ body:not(.settings-window):not(.toolbar-floater) {
   overflow: hidden;
 }
 
+body.is-resizing-window,
+body.is-resizing-window * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
 /* 设置页：解除固定视口高度，使背景与内容一同延伸到底部 */
 html:has(body.settings-window),
 html:has(body.settings-window) body.settings-window {
@@ -73,10 +79,12 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   position: fixed;
   z-index: 20000;
   user-select: none;
+  background: rgba(196, 165, 116, 0);
+  transition: background 0.12s ease, box-shadow 0.12s ease;
 }
 
 .resize-handle.edge {
-  --edge-size: 12px;
+  --edge-size: 10px;
 }
 
 .resize-handle.edge.top,
@@ -88,12 +96,14 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
 
 .resize-handle.edge.top {
   top: 0;
-  cursor: ns-resize;
+  cursor: row-resize;
+  box-shadow: inset 0 1px 0 rgba(196, 165, 116, 0);
 }
 
 .resize-handle.edge.bottom {
   bottom: 0;
-  cursor: ns-resize;
+  cursor: row-resize;
+  box-shadow: inset 0 -1px 0 rgba(196, 165, 116, 0);
 }
 
 .resize-handle.edge.left,
@@ -105,12 +115,14 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
 
 .resize-handle.edge.left {
   left: 0;
-  cursor: ew-resize;
+  cursor: col-resize;
+  box-shadow: inset 1px 0 0 rgba(196, 165, 116, 0);
 }
 
 .resize-handle.edge.right {
   right: 0;
-  cursor: ew-resize;
+  cursor: col-resize;
+  box-shadow: inset -1px 0 0 rgba(196, 165, 116, 0);
 }
 
 .resize-handle.corner {
@@ -143,6 +155,15 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   cursor: nesw-resize;
 }
 
+.resize-handle:hover {
+  background: rgba(196, 165, 116, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(237, 214, 173, 0.45);
+}
+
+.resize-handle:active {
+  background: rgba(196, 165, 116, 0.24);
+}
+
 .app {
   width: min(1100px, 92vw);
   margin: 28px auto;
@@ -154,6 +175,7 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   width: 100vw;
   height: 100vh;
   margin: 0;
+  z-index: 10;
 }
 
 .main-toolbar {
