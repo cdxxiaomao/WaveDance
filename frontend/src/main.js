@@ -54,10 +54,40 @@ const positionLoc = gl.getAttribLocation(program, "a_position");
 const lineColorLoc = gl.getUniformLocation(program, "u_lineColor");
 const buffer = gl.createBuffer();
 
-// 手动调节波形显示增益：越大越“高”
-const WAVEFORM_GAIN = 0.5;
+const WAVE_SHAPE_KEY = "wavedance.waveShapeConfig";
+const waveShapeConfig = {
+  gainPercent: 50,
+  smoothPercent: 28,
+  softClipPercent: 22,
+  fallEasePercent: 68,
+};
 
 let latestPoints = [];
+let easedPoints = [];
+
+function clampInt(n, min, max) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return min;
+  return Math.min(max, Math.max(min, v));
+}
+
+function applyWaveShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  waveShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  waveShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  waveShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  waveShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
+function loadWaveShapeConfigFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(WAVE_SHAPE_KEY);
+    if (!raw) return;
+    applyWaveShapeConfig(JSON.parse(raw));
+  } catch {
+    // ignore storage failures and keep defaults
+  }
+}
 
 function hexToRgb(hex) {
   const safeHex = typeof hex === "string" ? hex.replace("#", "") : "";
@@ -120,9 +150,39 @@ function renderWaveform() {
   if (latestPoints.length > 1) {
     const len = latestPoints.length;
     const ys = new Float32Array(len);
+    if (easedPoints.length !== len) {
+      easedPoints = new Array(len).fill(0);
+    }
+    const gain = waveShapeConfig.gainPercent / 100;
+    const softGamma = 1 + (waveShapeConfig.softClipPercent / 100) * 1.6;
+    const fallBlend = 0.08 + (1 - waveShapeConfig.fallEasePercent / 100) * 0.62;
     for (let i = 0; i < len; i++) {
-      const amplified = Math.min(1, latestPoints[i] * WAVEFORM_GAIN);
-      ys[i] = (amplified * 2 - 1) * 0.95;
+      const raw = Math.max(0, Math.min(1, latestPoints[i] * gain));
+      const prev = easedPoints[i];
+      const followed = raw >= prev ? raw : prev + (raw - prev) * fallBlend;
+      easedPoints[i] = followed;
+      // 用 gamma 压缩峰值，避免波峰/波谷过尖。
+      const softened = Math.pow(followed, softGamma);
+      ys[i] = (softened * 2 - 1) * 0.95;
+    }
+
+    const smoothNorm = waveShapeConfig.smoothPercent / 400;
+    const smoothPasses = Math.round(smoothNorm * smoothNorm * 24);
+    if (smoothPasses > 0 && len > 2) {
+      const temp = new Float32Array(len);
+      for (let pass = 0; pass < smoothPasses; pass++) {
+        temp[0] = ys[0];
+        temp[len - 1] = ys[len - 1];
+        const useWideKernel = waveShapeConfig.smoothPercent > 260;
+        for (let i = 1; i < len - 1; i++) {
+          if (useWideKernel && i > 1 && i < len - 2) {
+            temp[i] = (ys[i - 2] + ys[i - 1] * 2 + ys[i] * 4 + ys[i + 1] * 2 + ys[i + 2]) * 0.1;
+          } else {
+            temp[i] = (ys[i - 1] + ys[i] * 2 + ys[i + 1]) * 0.25;
+          }
+        }
+        ys.set(temp);
+      }
     }
 
     const canvasH = gl.canvas.height;
@@ -234,6 +294,10 @@ async function init() {
     applyWaveformLineWidthPx(event.payload);
   });
 
+  await listen("waveform-shape-config", (event) => {
+    applyWaveShapeConfig(event.payload);
+  });
+
   const applyMousePassthroughLockUi = (locked) => {
     const on = Boolean(locked);
     document.body.classList.toggle("mouse-passthrough-locked", on);
@@ -266,6 +330,8 @@ async function init() {
   } catch {
     applyWaveformLineWidthPx(2);
   }
+
+  loadWaveShapeConfigFromStorage();
 
   try {
     const locked = await invoke("get_main_mouse_passthrough_locked");

@@ -77,7 +77,7 @@ fn rebucket_points(points: &[f32], bucket_count: usize) -> Vec<f32> {
     if points.is_empty() {
         return Vec::new();
     }
-    let target = bucket_count.clamp(8, 256);
+    let target = bucket_count.clamp(8, 500);
     if points.len() <= target {
         return points.to_vec();
     }
@@ -143,7 +143,7 @@ fn spectrum_bands_from_frame(
     let half = fft_size / 2;
     let magnitudes: Vec<f32> = buffer[..half].iter().map(|c| c.norm()).collect();
     let nyquist = sample_rate as f32 / 2.0;
-    let target = bucket_count.clamp(8, 256);
+    let target = bucket_count.clamp(8, 500);
     let min_freq = (freq_min_hz as f32).max(20.0).min(nyquist - 1.0);
     let max_freq = (freq_max_hz as f32).max(min_freq + 1.0).min(nyquist);
 
@@ -258,8 +258,8 @@ fn get_waveform_stream_running(state: State<'_, StreamState>) -> bool {
 
 #[tauri::command]
 fn update_bucket_count(state: State<'_, StreamState>, bucket_count: usize) -> Result<(), String> {
-    if !(8..=256).contains(&bucket_count) {
-        return Err("桶数量必须在 8 到 256 之间".to_string());
+    if !(8..=500).contains(&bucket_count) {
+        return Err("桶数量必须在 8 到 500 之间".to_string());
     }
     state.bucket_count.store(bucket_count, Ordering::SeqCst);
     Ok(())

@@ -54,7 +54,7 @@
         <div class="settings-card__body settings-form" data-no-drag>
           <div class="settings-field">
             <label for="bucketRange" class="settings-label">分桶数量 <span class="settings-value" id="bucketValue">256</span></label>
-            <input id="bucketRange" type="range" min="8" max="256" step="1" value="256" />
+            <input id="bucketRange" type="range" min="8" max="500" step="1" value="256" />
           </div>
           <div class="settings-field settings-field--row">
             <label for="bucketMode" class="settings-label">分桶模式</label>
@@ -88,6 +88,22 @@
           <div class="settings-field">
             <label for="waveformWidthRange" class="settings-label">波形粗细 <span class="settings-value" id="waveformWidthValue">2</span> px</label>
             <input id="waveformWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="waveformGainRange" class="settings-label">振幅增益 <span class="settings-value" id="waveformGainValue">50</span>%</label>
+            <input id="waveformGainRange" type="range" min="10" max="150" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="waveformSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="waveformSmoothValue">28</span>%</label>
+            <input id="waveformSmoothRange" type="range" min="0" max="400" step="1" value="28" />
+          </div>
+          <div class="settings-field">
+            <label for="waveformSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="waveformSoftClipValue">22</span>%</label>
+            <input id="waveformSoftClipRange" type="range" min="0" max="100" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="waveformFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="waveformFallEaseValue">68</span>%</label>
+            <input id="waveformFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
           </div>
           <div class="settings-field settings-field--row">
             <label for="bodyBgColor" class="settings-label">叠加背景色</label>
