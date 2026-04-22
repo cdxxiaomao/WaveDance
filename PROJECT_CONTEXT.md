@@ -72,10 +72,37 @@
 3. 完善异常提示与自检（权限、设备、快捷键占用）。
 4. 发布流程增强：签名 + notarization。
 
-## 近期进度摘要（截至 2026-04-18）
+## 近期进度摘要（截至 2026-04-22）
 
-- 已完成：穿透锁定链路、独立浮动解锁窗、多屏与 HiDPI 对齐、与主窗锁定按钮垂直微调对齐。
-- 相关代码入口：`src-tauri/src/main.rs`（`position_main_toolbar_window`、`sync_main_toolbar_for_passthrough_locked`、`wire_main_window_toolbar_follow`）、`frontend/toolbar.html` / `toolbar.js`、`frontend/src/main.js`（主窗锁定与事件同步）。
+### 已完成（最近一个实现阶段）
+
+- 穿透锁定链路已闭环：主窗可整窗忽略鼠标，交互能力迁移至独立子窗 `main-toolbar`。
+- 浮动解锁窗已稳定：支持与主窗状态联动，并通过事件同步更新 UI。
+- 多屏 / HiDPI 适配已落地：子窗位置与尺寸采用逻辑坐标，覆盖 Retina 与异 DPI 组合场景。
+- 跟随机制已完善：主窗移动、缩放、尺寸变化时，子窗会自动重定位并保持在可预期区域。
+- macOS 竞态问题已规避：主线程顺序处理 overlay 配置与子窗显示，降低偶发不显示概率。
+- 视觉对齐已收敛：对穿透解锁条做垂直像素微调，与主窗锁定按钮对齐。
+
+### 代码影响范围（便于快速定位）
+
+- 后端主入口：`src-tauri/src/main.rs`
+  - 关键函数：`position_main_toolbar_window`
+  - 关键函数：`sync_main_toolbar_for_passthrough_locked`
+  - 关键函数：`wire_main_window_toolbar_follow`
+- 子窗前端：`frontend/toolbar.html`、`frontend/toolbar.js`
+- 主窗交互联动：`frontend/src/main.js`
+
+### 当前验证结论
+
+- 已覆盖主链路：锁定/解锁、快捷键切换、主窗与子窗状态同步可用。
+- 已覆盖核心环境：单屏、双屏、Retina 与 4K 组合场景下，子窗定位明显改善。
+- 仍需持续观察：不同全屏应用及复杂显示器缩放组合下，系统级窗口行为可能有差异。
+
+### 下一步建议（与当前进度衔接）
+
+1. 完成外观参数持久化（背景颜色 / 透明度 / 模糊度重启可恢复）。
+2. 提供快捷键自定义（重点覆盖召回 `W` 与穿透 `L`，减少系统冲突）。
+3. 增加运行时自检与提示（权限缺失、快捷键占用、设备不可用）。
 
 ## 历史追溯
 
