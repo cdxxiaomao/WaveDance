@@ -198,6 +198,8 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let freq_max_hz = Arc::clone(&state.freq_max_hz);
     thread::spawn(move || {
         const FFT_SIZE: usize = 2048;
+        const SILENCE_RMS_GATE: f32 = 0.003;
+        const SILENCE_PEAK_GATE: f32 = 0.008;
         let source_mode = capture_source_mode.load(Ordering::Relaxed);
         let preferred = if source_mode == 1 {
             None
@@ -223,16 +225,20 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
                     let tilt_percent = high_tilt_percent.load(Ordering::Relaxed);
                     let min_hz = freq_min_hz.load(Ordering::Relaxed);
                     let max_hz = freq_max_hz.load(Ordering::Relaxed);
-                    let spectrum = spectrum_bands_from_frame(
-                        &mono,
-                        frame.sample_rate,
-                        bucket,
-                        FFT_SIZE,
-                        log_mode,
-                        tilt_percent,
-                        min_hz,
-                        max_hz,
-                    );
+                    let spectrum = if rms < SILENCE_RMS_GATE && peak < SILENCE_PEAK_GATE {
+                        vec![0.0; bucket.clamp(8, 500)]
+                    } else {
+                        spectrum_bands_from_frame(
+                            &mono,
+                            frame.sample_rate,
+                            bucket,
+                            FFT_SIZE,
+                            log_mode,
+                            tilt_percent,
+                            min_hz,
+                            max_hz,
+                        )
+                    };
                     let mut waveform = WaveformFrame {
                         peak,
                         rms,
