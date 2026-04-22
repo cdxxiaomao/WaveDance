@@ -3,6 +3,14 @@
 WaveDance 是一个面向 macOS 的实时音频可视化桌面应用。  
 项目基于 Tauri（Rust + Web）构建，采集系统播放音频并实时绘制频谱浮层。
 
+## 产品图标
+
+![WaveDance 产品图标](src-tauri/icons/icon.png)
+
+## 效果预览
+
+![WaveDance 预览图](docs/images/wavedance-preview.png)
+
 ## 项目特性
 
 - 系统音频实时频谱可视化（WebGL 渲染）
