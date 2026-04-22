@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "identifier": "com.wavedance.desktop",
   "build": {
-    "beforeDevCommand": "cd ../frontend && npm run dev",
-    "beforeBuildCommand": "cd ../frontend && npm run build",
+    "beforeDevCommand": "if [ -d frontend ]; then cd frontend; else cd ../frontend; fi && npm run dev",
+    "beforeBuildCommand": "if [ -d frontend ]; then cd frontend; else cd ../frontend; fi && npm run build",
     "devUrl": "http://localhost:5173",
     "frontendDist": "../frontend/dist"
   },

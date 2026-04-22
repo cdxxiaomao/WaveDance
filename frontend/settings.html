@@ -22,6 +22,13 @@
       <section class="settings-card" aria-labelledby="sec-blackhole">
         <h2 id="sec-blackhole" class="settings-card__title">系统音频（BlackHole）</h2>
         <div class="settings-card__body">
+          <div class="settings-field settings-field--row" data-no-drag>
+            <label for="captureSourceMode" class="settings-label">采集模式</label>
+            <select id="captureSourceMode" class="settings-select">
+              <option value="blackhole" selected>BlackHole（系统声音）</option>
+              <option value="microphone">麦克风（默认输入）</option>
+            </select>
+          </div>
           <p id="blackholeHint" class="settings-blackhole-hint" role="status"></p>
           <div class="settings-actions settings-actions--wrap" data-no-drag>
             <button type="button" id="blackholeInstallBtn" class="settings-btn">
@@ -29,6 +36,22 @@
             </button>
             <button type="button" id="blackholeRefreshBtn" class="settings-btn settings-btn--ghost">
               重新检测
+            </button>
+            <button
+              type="button"
+              id="openMidiSetupBtn"
+              class="settings-btn settings-btn--ghost"
+              hidden
+            >
+              打开音频 MIDI 设置
+            </button>
+            <button
+              type="button"
+              id="openSoundSettingsBtn"
+              class="settings-btn settings-btn--ghost"
+              hidden
+            >
+              打开音频设置
             </button>
           </div>
         </div>

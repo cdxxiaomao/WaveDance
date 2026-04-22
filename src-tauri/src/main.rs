@@ -30,6 +30,7 @@ use wavedance::platform::PlatformService;
 
 struct StreamState {
     running: Arc<AtomicBool>,
+    capture_source_mode: Arc<AtomicU8>,
     overlay_pinned: Arc<AtomicBool>,
     overlay_blur_enabled: Arc<AtomicBool>,
     /// 为 true 时主窗口整窗忽略鼠标（穿透）；可交互控件放在子窗口 `main-toolbar`。
@@ -48,6 +49,7 @@ impl Default for StreamState {
     fn default() -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
+            capture_source_mode: Arc::new(AtomicU8::new(0)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
             overlay_blur_enabled: Arc::new(AtomicBool::new(false)),
             mouse_passthrough_locked: Arc::new(AtomicBool::new(false)),
@@ -188,6 +190,7 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     }
 
     let running = Arc::clone(&state.running);
+    let capture_source_mode = Arc::clone(&state.capture_source_mode);
     let bucket_count = Arc::clone(&state.bucket_count);
     let bucket_mode = Arc::clone(&state.bucket_mode);
     let high_tilt_percent = Arc::clone(&state.high_tilt_percent);
@@ -195,7 +198,13 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let freq_max_hz = Arc::clone(&state.freq_max_hz);
     thread::spawn(move || {
         const FFT_SIZE: usize = 2048;
-        let mut source = MacSystemAudioSource::new(Some("BlackHole".to_string()));
+        let source_mode = capture_source_mode.load(Ordering::Relaxed);
+        let preferred = if source_mode == 1 {
+            None
+        } else {
+            Some("BlackHole".to_string())
+        };
+        let mut source = MacSystemAudioSource::new(preferred);
 
         if let Err(err) = source.start() {
             let _ = app.emit("waveform-error", format!("启动系统音频采集失败: {err}"));
@@ -244,6 +253,27 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     });
 
     Ok(())
+}
+
+#[tauri::command]
+fn set_capture_source_mode(state: State<'_, StreamState>, mode: String) -> Result<(), String> {
+    let normalized = mode.trim().to_lowercase();
+    let value = match normalized.as_str() {
+        "blackhole" => 0_u8,
+        "microphone" => 1_u8,
+        _ => return Err("采集模式必须是 blackhole 或 microphone".to_string()),
+    };
+    state.capture_source_mode.store(value, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_capture_source_mode(state: State<'_, StreamState>) -> String {
+    if state.capture_source_mode.load(Ordering::SeqCst) == 1 {
+        "microphone".to_string()
+    } else {
+        "blackhole".to_string()
+    }
 }
 
 #[tauri::command]
@@ -388,7 +418,23 @@ fn get_loopback_device_status() -> wavedance::platform::DeviceStatus {
 #[cfg(target_os = "macos")]
 fn find_bundled_blackhole_pkg(resource_dir: &Path) -> Option<std::path::PathBuf> {
     let preferred = [
+        resource_dir
+            .join("blackhole")
+            .join("BlackHole2ch-0.6.1.pkg"),
+        resource_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole2ch-0.6.1.pkg"),
+        resource_dir.join("blackhole").join("BlackHole2ch.pkg"),
+        resource_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole2ch.pkg"),
         resource_dir.join("blackhole").join("BlackHole.pkg"),
+        resource_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole.pkg"),
         resource_dir.join("BlackHole.pkg"),
     ];
     for p in &preferred {
@@ -397,23 +443,27 @@ fn find_bundled_blackhole_pkg(resource_dir: &Path) -> Option<std::path::PathBuf>
         }
     }
 
-    let blackhole = resource_dir.join("blackhole");
-    if !blackhole.is_dir() {
-        return None;
-    }
-
     let mut found: Vec<std::path::PathBuf> = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(&blackhole) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_file() && path.extension().is_some_and(|e| e == "pkg") {
-                found.push(path);
-            } else if path.is_dir() {
-                if let Ok(sub) = std::fs::read_dir(&path) {
-                    for e in sub.flatten() {
-                        let p = e.path();
-                        if p.is_file() && p.extension().is_some_and(|e| e == "pkg") {
-                            found.push(p);
+    let search_roots = [
+        resource_dir.join("blackhole"),
+        resource_dir.join("resources").join("blackhole"),
+    ];
+    for blackhole in search_roots {
+        if !blackhole.is_dir() {
+            continue;
+        }
+        if let Ok(entries) = std::fs::read_dir(&blackhole) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() && path.extension().is_some_and(|e| e == "pkg") {
+                    found.push(path);
+                } else if path.is_dir() {
+                    if let Ok(sub) = std::fs::read_dir(&path) {
+                        for e in sub.flatten() {
+                            let p = e.path();
+                            if p.is_file() && p.extension().is_some_and(|e| e == "pkg") {
+                                found.push(p);
+                            }
                         }
                     }
                 }
@@ -424,11 +474,43 @@ fn find_bundled_blackhole_pkg(resource_dir: &Path) -> Option<std::path::PathBuf>
     found.into_iter().next()
 }
 
+#[cfg(target_os = "macos")]
+fn find_dev_blackhole_pkg() -> Option<std::path::PathBuf> {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let preferred = [
+        manifest_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole2ch-0.6.1.pkg"),
+        manifest_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole2ch.pkg"),
+        manifest_dir
+            .join("resources")
+            .join("blackhole")
+            .join("BlackHole.pkg"),
+    ];
+    preferred.into_iter().find(|p| p.is_file())
+}
+
 /// 打开随包分发的 BlackHole `.pkg`（若存在），否则打开官方发布页；由系统安装器处理密码与授权。
 #[cfg(target_os = "macos")]
 #[tauri::command]
 fn open_blackhole_installer(app: tauri::AppHandle) -> Result<(), String> {
-    const FALLBACK_URL: &str = "https://github.com/ExistentialAudio/BlackHole/releases/latest";
+    const FALLBACK_URL: &str = "https://existential.audio/blackhole/";
+    if let Some(pkg_path) = find_dev_blackhole_pkg() {
+        let status = Command::new("open")
+            .arg(&pkg_path)
+            .status()
+            .map_err(|e| format!("无法打开本地安装包: {e}"))?;
+        return if status.success() {
+            Ok(())
+        } else {
+            Err("本地安装包未能打开".to_string())
+        };
+    }
+
     let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
     if let Some(pkg_path) = find_bundled_blackhole_pkg(&resource_dir) {
         let status = Command::new("open")
@@ -456,6 +538,58 @@ fn open_blackhole_installer(app: tauri::AppHandle) -> Result<(), String> {
 #[tauri::command]
 fn open_blackhole_installer(_app: tauri::AppHandle) -> Result<(), String> {
     Err("BlackHole 仅适用于 macOS".to_string())
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_audio_midi_setup() -> Result<(), String> {
+    let status = Command::new("open")
+        .arg("-a")
+        .arg("Audio MIDI Setup")
+        .status()
+        .map_err(|e| format!("无法打开「音频 MIDI 设置」: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err("打开「音频 MIDI 设置」失败".to_string())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn open_audio_midi_setup() -> Result<(), String> {
+    Err("音频 MIDI 设置仅适用于 macOS".to_string())
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_sound_settings() -> Result<(), String> {
+    // 新版 macOS（System Settings）
+    let new_settings = Command::new("open")
+        .arg("x-apple.systempreferences:com.apple.Sound-Settings.extension")
+        .status();
+    if let Ok(status) = new_settings {
+        if status.success() {
+            return Ok(());
+        }
+    }
+
+    // 旧版 macOS（System Preferences）兜底
+    let legacy = Command::new("open")
+        .arg("/System/Library/PreferencePanes/Sound.prefPane")
+        .status()
+        .map_err(|e| format!("无法打开「声音设置」: {e}"))?;
+    if legacy.success() {
+        Ok(())
+    } else {
+        Err("打开「声音设置」失败".to_string())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+fn open_sound_settings() -> Result<(), String> {
+    Err("声音设置仅适用于 macOS".to_string())
 }
 
 #[cfg(target_os = "macos")]
@@ -1060,6 +1194,8 @@ fn main() {
             start_waveform_stream,
             stop_waveform_stream,
             get_waveform_stream_running,
+            set_capture_source_mode,
+            get_capture_source_mode,
             update_bucket_count,
             get_bucket_count,
             update_bucket_mode,
@@ -1074,6 +1210,8 @@ fn main() {
             get_waveform_line_width,
             get_loopback_device_status,
             open_blackhole_installer,
+            open_audio_midi_setup,
+            open_sound_settings,
             set_overlay_pinned,
             get_overlay_pinned,
             set_overlay_blur_enabled,

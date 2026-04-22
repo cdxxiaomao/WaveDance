@@ -32,8 +32,39 @@ const blurToggle = document.querySelector("#blurToggle");
 const blackholeHint = document.querySelector("#blackholeHint");
 const blackholeInstallBtn = document.querySelector("#blackholeInstallBtn");
 const blackholeRefreshBtn = document.querySelector("#blackholeRefreshBtn");
+const captureSourceModeSelect = document.querySelector("#captureSourceMode");
+const openMidiSetupBtn = document.querySelector("#openMidiSetupBtn");
+const openSoundSettingsBtn = document.querySelector("#openSoundSettingsBtn");
 const quitAppBtn = document.querySelector("#quitAppBtn");
 const WAVE_SHAPE_KEY = "wavedance.waveShapeConfig";
+const NO_FRAME_TIMEOUT_MS = 4000;
+const ACTIVE_PEAK_THRESHOLD = 0.003;
+const ACTIVE_RMS_THRESHOLD = 0.0015;
+const ACTIVE_POINTS_THRESHOLD = 0.01;
+let blackholeInstalled = false;
+let captureTransportRunning = false;
+let lastWaveformFrameAt = 0;
+let captureSourceMode = "blackhole";
+
+function setupStatusFlashOnChange() {
+  if (!statusEl) {
+    return;
+  }
+  const triggerFlash = () => {
+    statusEl.classList.remove("settings-status--flash");
+    // 强制重排，确保重复文案变更时动画也可再次触发。
+    void statusEl.offsetWidth;
+    statusEl.classList.add("settings-status--flash");
+  };
+  const observer = new MutationObserver(() => {
+    triggerFlash();
+  });
+  observer.observe(statusEl, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  });
+}
 
 function clampInt(n, min, max) {
   const v = Math.round(Number(n));
@@ -88,17 +119,70 @@ async function refreshBlackholeStatus() {
     const s = await invoke("get_loopback_device_status");
     blackholeHint.textContent = typeof s.hint === "string" ? s.hint : "";
     const installed = Boolean(s.blackhole_installed);
+    blackholeInstalled = installed;
     blackholeInstallBtn.hidden = installed;
     blackholeInstallBtn.disabled = installed;
+    refreshMidiSetupVisibility();
   } catch (err) {
     blackholeHint.textContent = `无法读取设备状态：${String(err)}`;
   }
 }
 
 function setCaptureTransportRunning(running) {
+  captureTransportRunning = Boolean(running);
+  if (captureTransportRunning) {
+    // 刚启动采集给一个缓冲期，避免按钮立即出现。
+    lastWaveformFrameAt = Date.now();
+  }
   startBtn.hidden = Boolean(running);
   stopBtn.hidden = !running;
   startBtn.classList.toggle("settings-btn--primary", !running);
+  refreshMidiSetupVisibility();
+}
+
+function refreshMidiSetupVisibility() {
+  if (!openMidiSetupBtn) {
+    return;
+  }
+  const noEffectiveDataForLongTime =
+    captureTransportRunning && Date.now() - lastWaveformFrameAt >= NO_FRAME_TIMEOUT_MS;
+  const shouldShow =
+    captureSourceMode === "blackhole" && blackholeInstalled && noEffectiveDataForLongTime;
+  openMidiSetupBtn.hidden = !shouldShow;
+  openMidiSetupBtn.disabled = !shouldShow;
+  if (openSoundSettingsBtn) {
+    openSoundSettingsBtn.hidden = !shouldShow;
+    openSoundSettingsBtn.disabled = !shouldShow;
+  }
+}
+
+function hasEffectiveWaveformData(payload) {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+  const peak = Number(payload.peak ?? 0);
+  const rms = Number(payload.rms ?? 0);
+  if (Number.isFinite(peak) && peak >= ACTIVE_PEAK_THRESHOLD) {
+    return true;
+  }
+  if (Number.isFinite(rms) && rms >= ACTIVE_RMS_THRESHOLD) {
+    return true;
+  }
+  const points = Array.isArray(payload.points) ? payload.points : [];
+  if (!points.length) {
+    return false;
+  }
+  let maxPoint = 0;
+  for (const v of points) {
+    const n = Math.abs(Number(v));
+    if (Number.isFinite(n) && n > maxPoint) {
+      maxPoint = n;
+      if (maxPoint >= ACTIVE_POINTS_THRESHOLD) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 async function syncMainBackgroundStyle() {
@@ -121,6 +205,7 @@ async function syncFrequencyRange(minHz, maxHz) {
 }
 
 async function init() {
+  setupStatusFlashOnChange();
   await listen("waveform-status", (event) => {
     const text = String(event.payload ?? "");
     statusEl.textContent = text;
@@ -136,6 +221,32 @@ async function init() {
     statusEl.textContent = `错误：${msg}`;
     if (msg.includes("启动系统音频采集失败")) {
       setCaptureTransportRunning(false);
+    }
+  });
+  await listen("waveform-frame", (event) => {
+    if (hasEffectiveWaveformData(event.payload)) {
+      lastWaveformFrameAt = Date.now();
+    }
+    refreshMidiSetupVisibility();
+  });
+
+  captureSourceModeSelect?.addEventListener("change", async (event) => {
+    const mode = String(event.target.value || "blackhole");
+    try {
+      await invoke("set_capture_source_mode", { mode });
+      captureSourceMode = mode;
+      refreshMidiSetupVisibility();
+      statusEl.textContent = mode === "microphone" ? "采集模式已切换为麦克风" : "采集模式已切换为 BlackHole";
+      if (captureTransportRunning) {
+        await invoke("stop_waveform_stream");
+        await invoke("start_waveform_stream");
+        statusEl.textContent += "，已自动重启采集生效。";
+      }
+    } catch (err) {
+      if (captureSourceModeSelect) {
+        captureSourceModeSelect.value = captureSourceMode;
+      }
+      statusEl.textContent = `切换采集模式失败：${String(err)}`;
     }
   });
 
@@ -238,13 +349,7 @@ async function init() {
   });
 
   blackholeInstallBtn?.addEventListener("click", async () => {
-    if (
-      !confirm(
-        "将打开 BlackHole 安装程序（若已随应用打包），否则打开官方下载页。安装时可能需要输入管理员密码，并在「系统设置」中允许相关音频组件。是否继续？",
-      )
-    ) {
-      return;
-    }
+    statusEl.textContent = "正在打开 BlackHole 安装程序（或官方下载页）…";
     try {
       await invoke("open_blackhole_installer");
       statusEl.textContent =
@@ -256,6 +361,22 @@ async function init() {
 
   blackholeRefreshBtn?.addEventListener("click", () => {
     void refreshBlackholeStatus();
+  });
+  openMidiSetupBtn?.addEventListener("click", async () => {
+    try {
+      await invoke("open_audio_midi_setup");
+      statusEl.textContent = "已打开「音频 MIDI 设置」，请在多输出设备，勾选 BlackHole 2ch。";
+    } catch (err) {
+      statusEl.textContent = `打开「音频 MIDI 设置」失败：${String(err)}`;
+    }
+  });
+  openSoundSettingsBtn?.addEventListener("click", async () => {
+    try {
+      await invoke("open_sound_settings");
+      statusEl.textContent = "已打开「声音设置」，请在输出中，选择多设备输出。";
+    } catch (err) {
+      statusEl.textContent = `打开「声音设置」失败：${String(err)}`;
+    }
   });
 
   tiltRange.addEventListener("input", async (event) => {
@@ -299,6 +420,7 @@ async function init() {
       overlayPinned,
       blurEnabled,
       streamRunning,
+      sourceMode,
       waveformHex,
       waveformWidthPx,
     ] = await Promise.all([
@@ -309,6 +431,7 @@ async function init() {
       invoke("get_overlay_pinned"),
       invoke("get_overlay_blur_enabled"),
       invoke("get_waveform_stream_running"),
+      invoke("get_capture_source_mode"),
       invoke("get_waveform_color"),
       invoke("get_waveform_line_width"),
     ]);
@@ -325,6 +448,13 @@ async function init() {
     pinToggle.checked = Boolean(overlayPinned);
     blurToggle.checked = Boolean(blurEnabled);
     setCaptureTransportRunning(Boolean(streamRunning));
+    if (sourceMode === "microphone" || sourceMode === "blackhole") {
+      captureSourceMode = sourceMode;
+    }
+    if (captureSourceModeSelect) {
+      captureSourceModeSelect.value = captureSourceMode;
+    }
+    refreshMidiSetupVisibility();
     if (typeof waveformHex === "string" && /^#[0-9A-Fa-f]{6}$/.test(waveformHex)) {
       waveformColor.value = waveformHex.toLowerCase();
     }
@@ -375,6 +505,7 @@ async function init() {
 
   await syncMainBackgroundStyle();
   await refreshBlackholeStatus();
+  window.setInterval(refreshMidiSetupVisibility, 1000);
 }
 
 init().catch((error) => {
