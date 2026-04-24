@@ -140,6 +140,18 @@ function applyMainBackgroundStyle(payload) {
   document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${safeAlpha.toFixed(3)})`;
 }
 
+function loadMainBackgroundStyleFromStorage() {
+  try {
+    const savedColor = window.localStorage.getItem(STORAGE_KEYS.mainBgColor);
+    const savedAlphaRaw = window.localStorage.getItem(STORAGE_KEYS.mainBgAlpha);
+    const color = /^#[0-9A-Fa-f]{6}$/.test(savedColor ?? "") ? savedColor.toLowerCase() : "#000000";
+    const alphaPercent = clampInt(savedAlphaRaw, 0, 100);
+    applyMainBackgroundStyle({ color, alpha: alphaPercent / 100 });
+  } catch {
+    applyMainBackgroundStyle({ color: "#000000", alpha: 0.35 });
+  }
+}
+
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
   const width = Math.floor(canvas.clientWidth * dpr);
@@ -390,7 +402,7 @@ async function init() {
   } catch (err) {
     console.error("start_waveform_stream failed:", err);
   }
-  applyMainBackgroundStyle({ color: "#000000", alpha: 0.35 });
+  loadMainBackgroundStyleFromStorage();
   renderWaveform();
 }
 

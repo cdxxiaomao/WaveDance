@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   barPeakHold: "wavedance.barPeakHoldEnabled",
   barPeakFallSpeed: "wavedance.barPeakFallSpeed",
   barPeakThickness: "wavedance.barPeakThickness",
+  mainBgColor: "wavedance.mainBgColor",
+  mainBgAlpha: "wavedance.mainBgAlpha",
 };
 
 export const DISPLAY_MODES = {

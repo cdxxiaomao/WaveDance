@@ -274,10 +274,30 @@ function hasEffectiveWaveformData(payload) {
   return false;
 }
 
+function readMainBackgroundConfig() {
+  try {
+    const savedColor = window.localStorage.getItem(STORAGE_KEYS.mainBgColor);
+    const savedAlpha = window.localStorage.getItem(STORAGE_KEYS.mainBgAlpha);
+    const color = /^#[0-9A-Fa-f]{6}$/.test(savedColor ?? "") ? savedColor.toLowerCase() : "#000000";
+    const alphaPercent = clampInt(savedAlpha, 0, 100);
+    return { color, alphaPercent };
+  } catch {
+    return { color: "#000000", alphaPercent: 35 };
+  }
+}
+
 async function syncMainBackgroundStyle() {
   const color = bodyBgColor.value;
-  const alpha = Number(bodyBgAlpha.value) / 100;
-  bodyBgAlphaValue.textContent = String(bodyBgAlpha.value);
+  const alphaPercent = clampInt(bodyBgAlpha.value, 0, 100);
+  const alpha = alphaPercent / 100;
+  bodyBgAlpha.value = String(alphaPercent);
+  bodyBgAlphaValue.textContent = String(alphaPercent);
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.mainBgColor, color);
+    window.localStorage.setItem(STORAGE_KEYS.mainBgAlpha, String(alphaPercent));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
   try {
     await emit("main-bg-style", { color, alpha });
   } catch (err) {
@@ -295,6 +315,10 @@ async function syncFrequencyRange(minHz, maxHz) {
 
 async function init() {
   setupStatusFlashOnChange();
+  const savedMainBackground = readMainBackgroundConfig();
+  bodyBgColor.value = savedMainBackground.color;
+  bodyBgAlpha.value = String(savedMainBackground.alphaPercent);
+  bodyBgAlphaValue.textContent = String(savedMainBackground.alphaPercent);
   await listen("waveform-status", (event) => {
     const text = String(event.payload ?? "");
     statusEl.textContent = text;
