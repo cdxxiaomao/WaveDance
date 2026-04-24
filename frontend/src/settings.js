@@ -1,12 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
-import { emit, listen } from "@tauri-apps/api/event";
+import { emitTo, listen } from "@tauri-apps/api/event";
 import {
   clampInt,
   DEFAULT_CONFIG,
   DISPLAY_MODES,
   PANEL_STYLES,
   STORAGE_KEYS,
+  normalizeSpectrumWindowLabel,
   parseBoolean,
+  readWindowStorageString,
+  writeWindowStorageString,
 } from "./visualizationSchema.js";
 
 const statusEl = document.querySelector("#status");
@@ -68,7 +71,7 @@ const blackholeRefreshBtn = document.querySelector("#blackholeRefreshBtn");
 const captureSourceModeSelect = document.querySelector("#captureSourceMode");
 const openMidiSetupBtn = document.querySelector("#openMidiSetupBtn");
 const openSoundSettingsBtn = document.querySelector("#openSoundSettingsBtn");
-const quitAppBtn = document.querySelector("#quitAppBtn");
+const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const NO_FRAME_TIMEOUT_MS = 4000;
 const ACTIVE_PEAK_THRESHOLD = 0.003;
 const ACTIVE_RMS_THRESHOLD = 0.0015;
@@ -100,9 +103,9 @@ function setupStatusFlashOnChange() {
   });
 }
 
-function readWaveShapeConfig() {
+function readWaveShapeConfig(visualTargetLabel) {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.lineShape);
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "lineShape");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
@@ -116,7 +119,7 @@ function readWaveShapeConfig() {
   }
 }
 
-async function syncWaveShapeConfig() {
+async function syncWaveShapeConfig(visualTargetLabel, emitVisual) {
   const config = {
     gainPercent: clampInt(waveformGainRange?.value, 10, 150),
     smoothPercent: clampInt(waveformSmoothRange?.value, 0, 400),
@@ -128,20 +131,20 @@ async function syncWaveShapeConfig() {
   waveformSoftClipValue.textContent = String(config.softClipPercent);
   waveformFallEaseValue.textContent = String(config.fallEasePercent);
   try {
-    window.localStorage.setItem(STORAGE_KEYS.lineShape, JSON.stringify(config));
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "lineShape", JSON.stringify(config));
   } catch {
     // ignore storage failures in restricted contexts
   }
   try {
-    await emit("waveform-shape-config", config);
+    await emitVisual("waveform-shape-config", config);
   } catch (err) {
     statusEl.textContent = `同步波形形态参数失败：${String(err)}`;
   }
 }
 
-function readBarShapeConfig() {
+function readBarShapeConfig(visualTargetLabel) {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.barShape);
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "barShape");
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
@@ -155,7 +158,7 @@ function readBarShapeConfig() {
   }
 }
 
-async function syncBarShapeConfig() {
+async function syncBarShapeConfig(visualTargetLabel, emitVisual) {
   const config = {
     gainPercent: clampInt(barGainRange?.value, 10, 150),
     smoothPercent: clampInt(barSmoothRange?.value, 0, 400),
@@ -167,12 +170,12 @@ async function syncBarShapeConfig() {
   barSoftClipValue.textContent = String(config.softClipPercent);
   barFallEaseValue.textContent = String(config.fallEasePercent);
   try {
-    window.localStorage.setItem(STORAGE_KEYS.barShape, JSON.stringify(config));
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "barShape", JSON.stringify(config));
   } catch {
     // ignore storage failures in restricted contexts
   }
   try {
-    await emit("waveform-bar-shape-config", config);
+    await emitVisual("waveform-bar-shape-config", config);
   } catch (err) {
     statusEl.textContent = `同步柱状图参数失败：${String(err)}`;
   }
@@ -274,10 +277,10 @@ function hasEffectiveWaveformData(payload) {
   return false;
 }
 
-function readMainBackgroundConfig() {
+function readMainBackgroundConfig(visualTargetLabel) {
   try {
-    const savedColor = window.localStorage.getItem(STORAGE_KEYS.mainBgColor);
-    const savedAlpha = window.localStorage.getItem(STORAGE_KEYS.mainBgAlpha);
+    const savedColor = readWindowStorageString(window.localStorage, visualTargetLabel, "mainBgColor");
+    const savedAlpha = readWindowStorageString(window.localStorage, visualTargetLabel, "mainBgAlpha");
     const color = /^#[0-9A-Fa-f]{6}$/.test(savedColor ?? "") ? savedColor.toLowerCase() : "#000000";
     const alphaPercent = clampInt(savedAlpha, 0, 100);
     return { color, alphaPercent };
@@ -286,20 +289,20 @@ function readMainBackgroundConfig() {
   }
 }
 
-async function syncMainBackgroundStyle() {
+async function syncMainBackgroundStyle(visualTargetLabel, emitVisual) {
   const color = bodyBgColor.value;
   const alphaPercent = clampInt(bodyBgAlpha.value, 0, 100);
   const alpha = alphaPercent / 100;
   bodyBgAlpha.value = String(alphaPercent);
   bodyBgAlphaValue.textContent = String(alphaPercent);
   try {
-    window.localStorage.setItem(STORAGE_KEYS.mainBgColor, color);
-    window.localStorage.setItem(STORAGE_KEYS.mainBgAlpha, String(alphaPercent));
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "mainBgColor", color);
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "mainBgAlpha", String(alphaPercent));
   } catch {
     // ignore storage failures in restricted contexts
   }
   try {
-    await emit("main-bg-style", { color, alpha });
+    await emitVisual("main-bg-style", { color, alpha });
   } catch (err) {
     statusEl.textContent = `同步主窗口背景失败：${String(err)}`;
   }
@@ -315,7 +318,138 @@ async function syncFrequencyRange(minHz, maxHz) {
 
 async function init() {
   setupStatusFlashOnChange();
-  const savedMainBackground = readMainBackgroundConfig();
+
+  let visualTargetLabel = "main";
+  try {
+    visualTargetLabel = await invoke("get_visual_settings_target");
+  } catch {
+    visualTargetLabel = "main";
+  }
+  visualTargetLabel = normalizeSpectrumWindowLabel(visualTargetLabel);
+
+  const emitVisual = async (event, payload) => emitTo(visualTargetLabel, event, payload);
+
+  const targetBanner = document.querySelector("#visualTargetBanner");
+  const updateVisualTargetBanner = () => {
+    if (!targetBanner) return;
+    const name = visualTargetLabel === "main" ? "主频谱窗口" : visualTargetLabel;
+    targetBanner.textContent = `当前调整：${name}`;
+    targetBanner.hidden = false;
+  };
+  updateVisualTargetBanner();
+
+  async function reloadVisualTargetForm() {
+    const v = visualTargetLabel;
+    const bg = readMainBackgroundConfig(v);
+    bodyBgColor.value = bg.color;
+    bodyBgAlpha.value = String(bg.alphaPercent);
+    bodyBgAlphaValue.textContent = String(bg.alphaPercent);
+
+    const savedMode = readWindowStorageString(window.localStorage, v, "displayMode");
+    applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
+
+    const sw = readWaveShapeConfig(v) ?? { ...DEFAULT_CONFIG.line.shape };
+    waveformGainRange.value = String(sw.gainPercent);
+    waveformSmoothRange.value = String(sw.smoothPercent);
+    waveformSoftClipRange.value = String(sw.softClipPercent);
+    waveformFallEaseRange.value = String(sw.fallEasePercent);
+    waveformGainValue.textContent = String(sw.gainPercent);
+    waveformSmoothValue.textContent = String(sw.smoothPercent);
+    waveformSoftClipValue.textContent = String(sw.softClipPercent);
+    waveformFallEaseValue.textContent = String(sw.fallEasePercent);
+
+    const sb = readBarShapeConfig(v) ?? { ...DEFAULT_CONFIG.bar.shape };
+    barGainRange.value = String(sb.gainPercent);
+    barSmoothRange.value = String(sb.smoothPercent);
+    barSoftClipRange.value = String(sb.softClipPercent);
+    barFallEaseRange.value = String(sb.fallEasePercent);
+    barGainValue.textContent = String(sb.gainPercent);
+    barSmoothValue.textContent = String(sb.smoothPercent);
+    barSoftClipValue.textContent = String(sb.softClipPercent);
+    barFallEaseValue.textContent = String(sb.fallEasePercent);
+
+    let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
+    if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
+      try {
+        lineHex = await invoke("get_waveform_color");
+      } catch {
+        lineHex = DEFAULT_CONFIG.line.color;
+      }
+    }
+    waveformColor.value = String(lineHex).toLowerCase();
+
+    const lwRaw = readWindowStorageString(window.localStorage, v, "lineWidth");
+    let wpx = Number(lwRaw);
+    if (!Number.isFinite(wpx)) {
+      try {
+        wpx = await invoke("get_waveform_line_width");
+      } catch {
+        wpx = DEFAULT_CONFIG.line.lineWidthPx;
+      }
+    }
+    const wClamped = clampInt(wpx, 1, 12);
+    waveformWidthRange.value = String(wClamped);
+    waveformWidthValue.textContent = String(wClamped);
+
+    const savedBarColor = readWindowStorageString(window.localStorage, v, "barColor");
+    if (savedBarColor && /^#[0-9A-Fa-f]{6}$/.test(savedBarColor) && barColor) {
+      barColor.value = savedBarColor.toLowerCase();
+    }
+    const savedBarWidth = readWindowStorageString(window.localStorage, v, "barWidth");
+    if (savedBarWidth && barWidthRange) {
+      const widthPercent = clampInt(savedBarWidth, 20, 100);
+      barWidthRange.value = String(widthPercent);
+      barWidthValue.textContent = String(widthPercent);
+    }
+    const savedBarGap = readWindowStorageString(window.localStorage, v, "barGap");
+    if (savedBarGap && barGapRange) {
+      const gapPercent = clampInt(savedBarGap, 0, 70);
+      barGapRange.value = String(gapPercent);
+      barGapValue.textContent = String(gapPercent);
+    }
+    const savedBarHeadroom = readWindowStorageString(window.localStorage, v, "barHeadroom");
+    if (savedBarHeadroom && barHeadroomRange) {
+      const headroomPercent = clampInt(savedBarHeadroom, 0, 40);
+      barHeadroomRange.value = String(headroomPercent);
+      barHeadroomValue.textContent = String(headroomPercent);
+    }
+    if (barMirrorToggle) {
+      barMirrorToggle.checked = parseBoolean(
+        readWindowStorageString(window.localStorage, v, "barMirror"),
+        DEFAULT_CONFIG.bar.mirrorEnabled,
+      );
+    }
+    if (barPeakHoldToggle) {
+      barPeakHoldToggle.checked = parseBoolean(
+        readWindowStorageString(window.localStorage, v, "barPeakHold"),
+        DEFAULT_CONFIG.bar.peakHoldEnabled,
+      );
+    }
+    const savedPeakFall = readWindowStorageString(window.localStorage, v, "barPeakFallSpeed");
+    if (savedPeakFall && barPeakFallSpeedRange) {
+      const speed = clampInt(savedPeakFall, 5, 120);
+      barPeakFallSpeedRange.value = String(speed);
+      barPeakFallSpeedValue.textContent = String(speed);
+    }
+    const savedPeakTh = readWindowStorageString(window.localStorage, v, "barPeakThickness");
+    if (savedPeakTh && barPeakThicknessRange) {
+      const thickness = clampInt(savedPeakTh, 1, 8);
+      barPeakThicknessRange.value = String(thickness);
+      barPeakThicknessValue.textContent = String(thickness);
+    }
+  }
+
+  await listen(
+    "visual-settings-target",
+    async (event) => {
+      visualTargetLabel = normalizeSpectrumWindowLabel(String(event.payload ?? "main"));
+      updateVisualTargetBanner();
+      await reloadVisualTargetForm();
+    },
+    { target: { kind: "WebviewWindow", label: "settings" } },
+  );
+
+  const savedMainBackground = readMainBackgroundConfig(visualTargetLabel);
   bodyBgColor.value = savedMainBackground.color;
   bodyBgAlpha.value = String(savedMainBackground.alphaPercent);
   bodyBgAlphaValue.textContent = String(savedMainBackground.alphaPercent);
@@ -415,7 +549,13 @@ async function init() {
   waveformColor.addEventListener("input", async () => {
     const color = waveformColor.value;
     try {
-      await invoke("set_waveform_color", { color });
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "lineColor", color);
+      try {
+        await invoke("set_waveform_color", { color });
+      } catch {
+        // 保留 Rust 侧默认值同步（无广播）；外观以 emitTo 为准
+      }
+      await emitVisual("waveform-line-color", color);
     } catch (err) {
       statusEl.textContent = `更新波形颜色失败：${String(err)}`;
     }
@@ -425,28 +565,34 @@ async function init() {
     const widthPx = Number(event.target.value);
     waveformWidthValue.textContent = String(widthPx);
     try {
-      await invoke("set_waveform_line_width", { widthPx });
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "lineWidth", String(widthPx));
+      try {
+        await invoke("set_waveform_line_width", { widthPx });
+      } catch {
+        // 同上
+      }
+      await emitVisual("waveform-line-width", widthPx);
     } catch (err) {
       statusEl.textContent = `更新波形粗细失败：${String(err)}`;
     }
   });
 
   waveformGainRange.addEventListener("input", () => {
-    void syncWaveShapeConfig();
+    void syncWaveShapeConfig(visualTargetLabel, emitVisual);
   });
   waveformSmoothRange.addEventListener("input", () => {
-    void syncWaveShapeConfig();
+    void syncWaveShapeConfig(visualTargetLabel, emitVisual);
   });
   waveformSoftClipRange.addEventListener("input", () => {
-    void syncWaveShapeConfig();
+    void syncWaveShapeConfig(visualTargetLabel, emitVisual);
   });
   waveformFallEaseRange.addEventListener("input", () => {
-    void syncWaveShapeConfig();
+    void syncWaveShapeConfig(visualTargetLabel, emitVisual);
   });
   barColor?.addEventListener("input", async () => {
     try {
-      await emit("waveform-bar-color", barColor.value);
-      window.localStorage.setItem(STORAGE_KEYS.barColor, barColor.value);
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barColor", barColor.value);
+      await emitVisual("waveform-bar-color", barColor.value);
     } catch (err) {
       statusEl.textContent = `更新柱状图颜色失败：${String(err)}`;
     }
@@ -455,8 +601,8 @@ async function init() {
     const widthPercent = clampInt(event.target.value, 20, 100);
     barWidthValue.textContent = String(widthPercent);
     try {
-      await emit("waveform-bar-width", widthPercent);
-      window.localStorage.setItem(STORAGE_KEYS.barWidth, String(widthPercent));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barWidth", String(widthPercent));
+      await emitVisual("waveform-bar-width", widthPercent);
     } catch (err) {
       statusEl.textContent = `更新柱体宽度失败：${String(err)}`;
     }
@@ -465,8 +611,8 @@ async function init() {
     const gapPercent = clampInt(event.target.value, 0, 70);
     barGapValue.textContent = String(gapPercent);
     try {
-      await emit("waveform-bar-gap", gapPercent);
-      window.localStorage.setItem(STORAGE_KEYS.barGap, String(gapPercent));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barGap", String(gapPercent));
+      await emitVisual("waveform-bar-gap", gapPercent);
     } catch (err) {
       statusEl.textContent = `更新柱间距失败：${String(err)}`;
     }
@@ -475,8 +621,8 @@ async function init() {
     const headroomPercent = clampInt(event.target.value, 0, 40);
     barHeadroomValue.textContent = String(headroomPercent);
     try {
-      await emit("waveform-bar-headroom", headroomPercent);
-      window.localStorage.setItem(STORAGE_KEYS.barHeadroom, String(headroomPercent));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barHeadroom", String(headroomPercent));
+      await emitVisual("waveform-bar-headroom", headroomPercent);
     } catch (err) {
       statusEl.textContent = `更新顶部留白失败：${String(err)}`;
     }
@@ -484,8 +630,8 @@ async function init() {
   barMirrorToggle?.addEventListener("change", async (event) => {
     const enabled = Boolean(event.target.checked);
     try {
-      await emit("waveform-bar-mirror", enabled);
-      window.localStorage.setItem(STORAGE_KEYS.barMirror, String(enabled));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barMirror", String(enabled));
+      await emitVisual("waveform-bar-mirror", enabled);
     } catch (err) {
       statusEl.textContent = `更新镜像模式失败：${String(err)}`;
     }
@@ -493,8 +639,8 @@ async function init() {
   barPeakHoldToggle?.addEventListener("change", async (event) => {
     const enabled = Boolean(event.target.checked);
     try {
-      await emit("waveform-bar-peak-hold", enabled);
-      window.localStorage.setItem(STORAGE_KEYS.barPeakHold, String(enabled));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakHold", String(enabled));
+      await emitVisual("waveform-bar-peak-hold", enabled);
     } catch (err) {
       statusEl.textContent = `更新峰值保持线开关失败：${String(err)}`;
     }
@@ -503,8 +649,8 @@ async function init() {
     const speed = clampInt(event.target.value, 5, 120);
     barPeakFallSpeedValue.textContent = String(speed);
     try {
-      await emit("waveform-bar-peak-fall-speed", speed);
-      window.localStorage.setItem(STORAGE_KEYS.barPeakFallSpeed, String(speed));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakFallSpeed", String(speed));
+      await emitVisual("waveform-bar-peak-fall-speed", speed);
     } catch (err) {
       statusEl.textContent = `更新峰值线回落速度失败：${String(err)}`;
     }
@@ -513,30 +659,30 @@ async function init() {
     const thickness = clampInt(event.target.value, 1, 8);
     barPeakThicknessValue.textContent = String(thickness);
     try {
-      await emit("waveform-bar-peak-thickness", thickness);
-      window.localStorage.setItem(STORAGE_KEYS.barPeakThickness, String(thickness));
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakThickness", String(thickness));
+      await emitVisual("waveform-bar-peak-thickness", thickness);
     } catch (err) {
       statusEl.textContent = `更新峰值线粗细失败：${String(err)}`;
     }
   });
   barGainRange?.addEventListener("input", () => {
-    void syncBarShapeConfig();
+    void syncBarShapeConfig(visualTargetLabel, emitVisual);
   });
   barSmoothRange?.addEventListener("input", () => {
-    void syncBarShapeConfig();
+    void syncBarShapeConfig(visualTargetLabel, emitVisual);
   });
   barSoftClipRange?.addEventListener("input", () => {
-    void syncBarShapeConfig();
+    void syncBarShapeConfig(visualTargetLabel, emitVisual);
   });
   barFallEaseRange?.addEventListener("input", () => {
-    void syncBarShapeConfig();
+    void syncBarShapeConfig(visualTargetLabel, emitVisual);
   });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
     try {
-      window.localStorage.setItem(STORAGE_KEYS.displayMode, displayMode);
-      await emit("visualization-display-mode", displayMode);
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "displayMode", displayMode);
+      await emitVisual("visualization-display-mode", displayMode);
     } catch (err) {
       statusEl.textContent = `切换展示模式失败：${String(err)}`;
     }
@@ -551,10 +697,10 @@ async function init() {
   });
 
   bodyBgColor.addEventListener("input", () => {
-    void syncMainBackgroundStyle();
+    void syncMainBackgroundStyle(visualTargetLabel, emitVisual);
   });
   bodyBgAlpha.addEventListener("input", () => {
-    void syncMainBackgroundStyle();
+    void syncMainBackgroundStyle(visualTargetLabel, emitVisual);
   });
 
   blurToggle.addEventListener("change", async (event) => {
@@ -640,8 +786,6 @@ async function init() {
       blurEnabled,
       streamRunning,
       sourceMode,
-      waveformHex,
-      waveformWidthPx,
     ] = await Promise.all([
       invoke("get_bucket_count"),
       invoke("get_bucket_mode"),
@@ -651,8 +795,6 @@ async function init() {
       invoke("get_overlay_blur_enabled"),
       invoke("get_waveform_stream_running"),
       invoke("get_capture_source_mode"),
-      invoke("get_waveform_color"),
-      invoke("get_waveform_line_width"),
     ]);
     bucketRange.value = String(currentBucket);
     bucketValue.textContent = String(currentBucket);
@@ -674,14 +816,29 @@ async function init() {
       captureSourceModeSelect.value = captureSourceMode;
     }
     refreshMidiSetupVisibility();
-    if (typeof waveformHex === "string" && /^#[0-9A-Fa-f]{6}$/.test(waveformHex)) {
-      waveformColor.value = waveformHex.toLowerCase();
+
+    let lineHex = readWindowStorageString(window.localStorage, visualTargetLabel, "lineColor");
+    if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
+      try {
+        lineHex = await invoke("get_waveform_color");
+      } catch {
+        lineHex = DEFAULT_CONFIG.line.color;
+      }
     }
-    const w = Number(waveformWidthPx);
-    if (Number.isFinite(w) && w >= 1 && w <= 12) {
-      waveformWidthRange.value = String(Math.round(w));
-      waveformWidthValue.textContent = String(Math.round(w));
+    waveformColor.value = String(lineHex).toLowerCase();
+
+    const lwRaw = readWindowStorageString(window.localStorage, visualTargetLabel, "lineWidth");
+    let w = Number(lwRaw);
+    if (!Number.isFinite(w)) {
+      try {
+        w = await invoke("get_waveform_line_width");
+      } catch {
+        w = DEFAULT_CONFIG.line.lineWidthPx;
+      }
     }
+    const wClamped = clampInt(w, 1, 12);
+    waveformWidthRange.value = String(wClamped);
+    waveformWidthValue.textContent = String(wClamped);
   } catch {
     bucketValue.textContent = bucketRange.value;
     tiltValue.textContent = tiltRange.value;
@@ -696,7 +853,7 @@ async function init() {
     }
   }
 
-  const savedWaveShape = readWaveShapeConfig() ?? {
+  const savedWaveShape = readWaveShapeConfig(visualTargetLabel) ?? {
     ...DEFAULT_CONFIG.line.shape,
   };
   waveformGainRange.value = String(savedWaveShape.gainPercent);
@@ -707,8 +864,8 @@ async function init() {
   waveformSmoothValue.textContent = String(savedWaveShape.smoothPercent);
   waveformSoftClipValue.textContent = String(savedWaveShape.softClipPercent);
   waveformFallEaseValue.textContent = String(savedWaveShape.fallEasePercent);
-  await syncWaveShapeConfig();
-  const savedBarShape = readBarShapeConfig() ?? {
+  await syncWaveShapeConfig(visualTargetLabel, emitVisual);
+  const savedBarShape = readBarShapeConfig(visualTargetLabel) ?? {
     ...DEFAULT_CONFIG.bar.shape,
   };
   barGainRange.value = String(savedBarShape.gainPercent);
@@ -719,45 +876,45 @@ async function init() {
   barSmoothValue.textContent = String(savedBarShape.smoothPercent);
   barSoftClipValue.textContent = String(savedBarShape.softClipPercent);
   barFallEaseValue.textContent = String(savedBarShape.fallEasePercent);
-  await syncBarShapeConfig();
+  await syncBarShapeConfig(visualTargetLabel, emitVisual);
   try {
-    const savedMode = window.localStorage.getItem(STORAGE_KEYS.displayMode);
+    const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
     const savedPanelStyle = window.localStorage.getItem(STORAGE_KEYS.panelStyleMode);
     applyPanelStyleMode(savedPanelStyle === PANEL_STYLES.minimal ? PANEL_STYLES.minimal : PANEL_STYLES.pro);
-    const savedBarColor = window.localStorage.getItem(STORAGE_KEYS.barColor);
+    const savedBarColor = readWindowStorageString(window.localStorage, visualTargetLabel, "barColor");
     if (savedBarColor && /^#[0-9A-Fa-f]{6}$/.test(savedBarColor)) {
       barColor.value = savedBarColor.toLowerCase();
     }
-    const savedBarWidthPercent = window.localStorage.getItem(STORAGE_KEYS.barWidth);
+    const savedBarWidthPercent = readWindowStorageString(window.localStorage, visualTargetLabel, "barWidth");
     if (savedBarWidthPercent) {
       const widthPercent = clampInt(savedBarWidthPercent, 20, 100);
       barWidthRange.value = String(widthPercent);
       barWidthValue.textContent = String(widthPercent);
     }
-    const savedBarGap = window.localStorage.getItem(STORAGE_KEYS.barGap);
+    const savedBarGap = readWindowStorageString(window.localStorage, visualTargetLabel, "barGap");
     if (savedBarGap) {
       const gapPercent = clampInt(savedBarGap, 0, 70);
       barGapRange.value = String(gapPercent);
       barGapValue.textContent = String(gapPercent);
     }
-    const savedBarHeadroom = window.localStorage.getItem(STORAGE_KEYS.barHeadroom);
+    const savedBarHeadroom = readWindowStorageString(window.localStorage, visualTargetLabel, "barHeadroom");
     if (savedBarHeadroom) {
       const headroomPercent = clampInt(savedBarHeadroom, 0, 40);
       barHeadroomRange.value = String(headroomPercent);
       barHeadroomValue.textContent = String(headroomPercent);
     }
-    const savedBarMirror = window.localStorage.getItem(STORAGE_KEYS.barMirror);
+    const savedBarMirror = readWindowStorageString(window.localStorage, visualTargetLabel, "barMirror");
     barMirrorToggle.checked = parseBoolean(savedBarMirror, DEFAULT_CONFIG.bar.mirrorEnabled);
-    const savedBarPeakHold = window.localStorage.getItem(STORAGE_KEYS.barPeakHold);
+    const savedBarPeakHold = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakHold");
     barPeakHoldToggle.checked = parseBoolean(savedBarPeakHold, DEFAULT_CONFIG.bar.peakHoldEnabled);
-    const savedPeakFallSpeed = window.localStorage.getItem(STORAGE_KEYS.barPeakFallSpeed);
+    const savedPeakFallSpeed = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakFallSpeed");
     if (savedPeakFallSpeed) {
       const speed = clampInt(savedPeakFallSpeed, 5, 120);
       barPeakFallSpeedRange.value = String(speed);
       barPeakFallSpeedValue.textContent = String(speed);
     }
-    const savedPeakThickness = window.localStorage.getItem(STORAGE_KEYS.barPeakThickness);
+    const savedPeakThickness = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakThickness");
     if (savedPeakThickness) {
       const thickness = clampInt(savedPeakThickness, 1, 8);
       barPeakThicknessRange.value = String(thickness);
@@ -767,27 +924,29 @@ async function init() {
     applyDisplayModePanels(DISPLAY_MODES.line);
     applyPanelStyleMode(PANEL_STYLES.pro);
   }
-  await emit("visualization-display-mode", displayMode);
-  await emit("waveform-bar-color", barColor.value);
-  await emit("waveform-bar-width", clampInt(barWidthRange.value, 20, 100));
-  await emit("waveform-bar-gap", clampInt(barGapRange.value, 0, 70));
-  await emit("waveform-bar-headroom", clampInt(barHeadroomRange.value, 0, 40));
-  await emit("waveform-bar-mirror", Boolean(barMirrorToggle.checked));
-  await emit("waveform-bar-peak-hold", Boolean(barPeakHoldToggle.checked));
-  await emit("waveform-bar-peak-fall-speed", clampInt(barPeakFallSpeedRange.value, 5, 120));
-  await emit("waveform-bar-peak-thickness", clampInt(barPeakThicknessRange.value, 1, 8));
+  await emitVisual("visualization-display-mode", displayMode);
+  await emitVisual("waveform-bar-color", barColor.value);
+  await emitVisual("waveform-bar-width", clampInt(barWidthRange.value, 20, 100));
+  await emitVisual("waveform-bar-gap", clampInt(barGapRange.value, 0, 70));
+  await emitVisual("waveform-bar-headroom", clampInt(barHeadroomRange.value, 0, 40));
+  await emitVisual("waveform-bar-mirror", Boolean(barMirrorToggle.checked));
+  await emitVisual("waveform-bar-peak-hold", Boolean(barPeakHoldToggle.checked));
+  await emitVisual("waveform-bar-peak-fall-speed", clampInt(barPeakFallSpeedRange.value, 5, 120));
+  await emitVisual("waveform-bar-peak-thickness", clampInt(barPeakThicknessRange.value, 1, 8));
+  await emitVisual("waveform-line-color", waveformColor.value);
+  await emitVisual("waveform-line-width", clampInt(waveformWidthRange.value, 1, 12));
 
-  if (quitAppBtn) {
-    quitAppBtn.addEventListener("click", async () => {
+  if (closeSettingsBtn) {
+    closeSettingsBtn.addEventListener("click", async () => {
       try {
-        await invoke("quit_app");
+        await invoke("close_settings_window");
       } catch (err) {
-        statusEl.textContent = `退出失败：${String(err)}`;
+        statusEl.textContent = `关闭图形窗与设置失败：${String(err)}`;
       }
     });
   }
 
-  await syncMainBackgroundStyle();
+  await syncMainBackgroundStyle(visualTargetLabel, emitVisual);
   await refreshBlackholeStatus();
   window.setInterval(refreshMidiSetupVisibility, 1000);
 }

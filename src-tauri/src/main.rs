@@ -3,7 +3,7 @@
 use std::path::Path;
 use std::process::Command;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
     Arc, Mutex,
 };
 use std::thread;
@@ -43,6 +43,10 @@ struct StreamState {
     waveform_color_hex: Arc<Mutex<String>>,
     /// 波形线宽（逻辑像素），由前端用多条竖直偏移的 LINE_STRIP 模拟；WebGL 的 lineWidth 在浏览器中常无效。
     waveform_line_width_px: Arc<AtomicUsize>,
+    /// 用于生成额外频谱窗口标签 `spectrum-{n}`（与主窗共用采集与 `waveform-frame` 广播）。
+    spectrum_window_counter: Arc<AtomicU64>,
+    /// 设置页当前编辑的频谱窗口 label（`main` 或 `spectrum-*`）；外观类事件只发往该窗。
+    visual_settings_target: Arc<Mutex<String>>,
 }
 
 impl Default for StreamState {
@@ -60,8 +64,31 @@ impl Default for StreamState {
             freq_max_hz: Arc::new(AtomicUsize::new(7_600)),
             waveform_color_hex: Arc::new(Mutex::new("#c4a574".to_string())),
             waveform_line_width_px: Arc::new(AtomicUsize::new(2)),
+            spectrum_window_counter: Arc::new(AtomicU64::new(0)),
+            visual_settings_target: Arc::new(Mutex::new("main".to_string())),
         }
     }
+}
+
+const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
+
+/// 额外频谱窗口：跟随置顶/模糊等叠加层参数，但不参与主窗整窗鼠标穿透。
+fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    for (label, win) in app.webview_windows() {
+        if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            #[cfg(target_os = "macos")]
+            configure_overlay_window(win, pinned, blur_enabled, false)?;
+            #[cfg(not(target_os = "macos"))]
+            {
+                win.set_always_on_top(pinned)?;
+                let _ = win.set_ignore_cursor_events(false);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn normalize_waveform_color_hex(input: &str) -> Result<String, String> {
@@ -364,7 +391,7 @@ fn get_frequency_range(state: State<'_, StreamState>) -> (usize, usize) {
 
 #[tauri::command]
 fn set_waveform_color(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     state: State<'_, StreamState>,
     color: String,
 ) -> Result<(), String> {
@@ -376,7 +403,6 @@ fn set_waveform_color(
             .map_err(|_| "更新波形颜色失败".to_string())?;
         *guard = normalized.clone();
     }
-    let _ = app.emit("waveform-line-color", normalized);
     Ok(())
 }
 
@@ -391,7 +417,7 @@ fn get_waveform_color(state: State<'_, StreamState>) -> Result<String, String> {
 
 #[tauri::command]
 fn set_waveform_line_width(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     state: State<'_, StreamState>,
     width_px: usize,
 ) -> Result<(), String> {
@@ -399,7 +425,6 @@ fn set_waveform_line_width(
     state
         .waveform_line_width_px
         .store(w, Ordering::SeqCst);
-    let _ = app.emit("waveform-line-width", w);
     Ok(())
 }
 
@@ -413,6 +438,33 @@ fn get_waveform_line_width(state: State<'_, StreamState>) -> usize {
 #[tauri::command]
 fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
+}
+
+/// 关闭「当前设置所针对」的频谱图形窗（`main` 或 `spectrum-*`），并隐藏设置窗。
+/// 先隐藏设置：在 macOS 上设置窗挂为主窗子窗，若先关主窗会导致子窗一并销毁。
+#[tauri::command]
+fn close_settings_window(app: tauri::AppHandle, state: State<'_, StreamState>) -> Result<(), String> {
+    let target = state
+        .visual_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| "main".to_string());
+
+    if let Some(settings) = app.get_webview_window("settings") {
+        let _ = settings.hide();
+    }
+
+    if target == "main" {
+        if let Some(w) = app.get_webview_window("main") {
+            w.close().map_err(|e| e.to_string())?;
+        }
+    } else if target.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        if let Some(w) = app.get_webview_window(&target) {
+            w.close().map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -923,6 +975,11 @@ fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         refresh_main_overlay_window(app)?;
         sync_floating_toolbar_window(app)?;
     }
+    for (label, w) in app.webview_windows() {
+        if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            w.show()?;
+        }
+    }
     Ok(())
 }
 
@@ -934,6 +991,7 @@ fn set_overlay_pinned(
 ) -> Result<(), String> {
     state.overlay_pinned.store(pinned, Ordering::SeqCst);
     refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
+    refresh_spectrum_clone_windows(&app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
 
     if let Some(settings_window) = app.get_webview_window("settings") {
@@ -959,6 +1017,7 @@ fn set_overlay_blur_enabled(
     #[cfg(target_os = "macos")]
     {
         refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
+        refresh_spectrum_clone_windows(&app).map_err(|e| e.to_string())?;
         sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -988,6 +1047,105 @@ fn get_main_mouse_passthrough_locked(state: State<'_, StreamState>) -> bool {
     state
         .mouse_passthrough_locked
         .load(Ordering::SeqCst)
+}
+
+fn open_extra_spectrum_window_impl(
+    app: &tauri::AppHandle,
+    anchor_label: Option<String>,
+) -> Result<(), String> {
+    let anchor_key = anchor_label
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
+    let anchor_opt = anchor_key
+        .as_ref()
+        .and_then(|l| app.get_webview_window(l))
+        .or_else(|| app.get_webview_window("main"));
+
+    // 托盘「新建」或无任何锚点窗时：在当前工作区/主屏居中（与锚点相邻的逻辑见下分支）
+    let use_center = anchor_opt.is_none();
+
+    let state = app.state::<StreamState>();
+    let n = state
+        .spectrum_window_counter
+        .fetch_add(1, Ordering::SeqCst)
+        .saturating_add(1);
+    let label = format!("{SPECTRUM_WINDOW_LABEL_PREFIX}{n}");
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+
+    // 紧贴锚点窗口外侧：优先放在其右侧，小步错位避免完全重叠（物理像素，与 set_position 一致）
+    const GAP: i32 = 10;
+    const STEP: i32 = 6;
+    let i = (n as i32).saturating_sub(1).rem_euclid(4);
+    let (px, py) = if let Some(ref anchor) = anchor_opt {
+        match (anchor.outer_position(), anchor.outer_size()) {
+            (Ok(pos), Ok(sz)) => (
+                pos.x + sz.width as i32 + GAP + i * STEP,
+                pos.y + GAP + i * STEP,
+            ),
+            _ => (120 + i * STEP, 120 + i * STEP),
+        }
+    } else {
+        (0, 0)
+    };
+
+    let win = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
+        .title("WaveDance 频谱")
+        .inner_size(1080.0, 680.0)
+        .resizable(true)
+        .transparent(true)
+        .decorations(false)
+        .shadow(false)
+        .always_on_top(pinned)
+        .build()
+        .map_err(|e| e.to_string())?;
+    if use_center {
+        win.center().map_err(|e| e.to_string())?;
+    } else {
+        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
+        let _ = win.set_ignore_cursor_events(false);
+    }
+
+    win.show().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn open_extra_spectrum_window(
+    app: tauri::AppHandle,
+    anchor_label: Option<String>,
+) -> Result<(), String> {
+    open_extra_spectrum_window_impl(&app, anchor_label)
+}
+
+fn notify_settings_visual_target(app: &tauri::AppHandle) {
+    let label = app
+        .state::<StreamState>()
+        .visual_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| "main".to_string());
+    let _ = app.emit_to("settings", "visual-settings-target", label);
+}
+
+/// 托盘「设置」：目标窗固定为主窗。
+fn open_settings_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Ok(mut g) = app.state::<StreamState>().visual_settings_target.lock() {
+        *g = "main".to_string();
+    }
+    open_settings_window_impl(app)?;
+    notify_settings_visual_target(app);
+    Ok(())
 }
 
 /// 菜单栏托盘「设置」与 `open_settings_window` 命令共用。
@@ -1036,80 +1194,99 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
-    open_settings_window_impl(&app)
+fn get_visual_settings_target(state: State<'_, StreamState>) -> String {
+    state
+        .visual_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| "main".to_string())
 }
 
 #[tauri::command]
-fn start_window_dragging(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        window.start_dragging().map_err(|e| e.to_string())?;
+fn open_settings_window(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    visual_target_label: Option<String>,
+) -> Result<(), String> {
+    let label = visual_target_label
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| *s == "main" || s.starts_with("spectrum-"))
+        .unwrap_or("main")
+        .to_string();
+    if let Ok(mut g) = state.visual_settings_target.lock() {
+        *g = label;
     }
+    open_settings_window_impl(&app)?;
+    notify_settings_visual_target(&app);
     Ok(())
 }
 
 #[tauri::command]
+fn start_window_dragging(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.start_dragging().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn resize_window_by_delta(
-    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
     direction: String,
     delta_x: i32,
     delta_y: i32,
 ) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        let pos = window.outer_position().map_err(|e| e.to_string())?;
-        let size = window.outer_size().map_err(|e| e.to_string())?;
+    let pos = window.outer_position().map_err(|e| e.to_string())?;
+    let size = window.outer_size().map_err(|e| e.to_string())?;
 
-        let mut x = pos.x;
-        let mut y = pos.y;
-        let mut width = size.width as i32;
-        let mut height = size.height as i32;
-        let right = x + width;
-        let bottom = y + height;
+    let mut x = pos.x;
+    let mut y = pos.y;
+    let mut width = size.width as i32;
+    let mut height = size.height as i32;
+    let right = x + width;
+    let bottom = y + height;
 
-        let normalized = direction.to_lowercase();
-        let resize_west = normalized.contains("west");
-        let resize_east = normalized.contains("east");
-        let resize_north = normalized.contains("north");
-        let resize_south = normalized.contains("south");
+    let normalized = direction.to_lowercase();
+    let resize_west = normalized.contains("west");
+    let resize_east = normalized.contains("east");
+    let resize_north = normalized.contains("north");
+    let resize_south = normalized.contains("south");
 
-        if resize_west {
-            x += delta_x;
-            width -= delta_x;
-        }
-        if resize_east {
-            width += delta_x;
-        }
-        if resize_north {
-            y += delta_y;
-            height -= delta_y;
-        }
-        if resize_south {
-            height += delta_y;
-        }
-
-        const MIN_WIDTH: i32 = 640;
-        const MIN_HEIGHT: i32 = 420;
-
-        if width < MIN_WIDTH {
-            width = MIN_WIDTH;
-            if resize_west {
-                x = right - width;
-            }
-        }
-        if height < MIN_HEIGHT {
-            height = MIN_HEIGHT;
-            if resize_north {
-                y = bottom - height;
-            }
-        }
-
-        window
-            .set_position(Position::Physical(PhysicalPosition::new(x, y)))
-            .map_err(|e| e.to_string())?;
-        window
-            .set_size(Size::Physical(PhysicalSize::new(width as u32, height as u32)))
-            .map_err(|e| e.to_string())?;
+    if resize_west {
+        x += delta_x;
+        width -= delta_x;
     }
+    if resize_east {
+        width += delta_x;
+    }
+    if resize_north {
+        y += delta_y;
+        height -= delta_y;
+    }
+    if resize_south {
+        height += delta_y;
+    }
+
+    const MIN_WIDTH: i32 = 640;
+    const MIN_HEIGHT: i32 = 420;
+
+    if width < MIN_WIDTH {
+        width = MIN_WIDTH;
+        if resize_west {
+            x = right - width;
+        }
+    }
+    if height < MIN_HEIGHT {
+        height = MIN_HEIGHT;
+        if resize_north {
+            y = bottom - height;
+        }
+    }
+
+    window
+        .set_position(Position::Physical(PhysicalPosition::new(x, y)))
+        .map_err(|e| e.to_string())?;
+    window
+        .set_size(Size::Physical(PhysicalSize::new(width as u32, height as u32)))
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -1168,6 +1345,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             {
                 const TRAY_MENU_SETTINGS: &str = "tray_settings";
+                const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_QUIT: &str = "tray_quit";
 
                 let Some(icon) = app.default_window_icon().cloned() else {
@@ -1175,6 +1353,7 @@ fn main() {
                 };
                 let menu = MenuBuilder::new(app.handle())
                     .text(TRAY_MENU_SETTINGS, "设置…")
+                    .text(TRAY_MENU_NEW_SPECTRUM, "新建频谱窗口")
                     .separator()
                     .text(TRAY_MENU_QUIT, "退出 WaveDance")
                     .build()?;
@@ -1186,7 +1365,9 @@ fn main() {
                     .show_menu_on_left_click(true)
                     .on_menu_event(|app, event| {
                         if event.id() == TRAY_MENU_SETTINGS {
-                            let _ = open_settings_window_impl(app);
+                            let _ = open_settings_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
+                            let _ = open_extra_spectrum_window_impl(app, None);
                         } else if event.id() == TRAY_MENU_QUIT {
                             app.exit(0);
                         }
@@ -1225,6 +1406,9 @@ fn main() {
             set_main_mouse_passthrough_locked,
             get_main_mouse_passthrough_locked,
             open_settings_window,
+            close_settings_window,
+            get_visual_settings_target,
+            open_extra_spectrum_window,
             quit_app,
             start_window_dragging,
             resize_window_by_delta

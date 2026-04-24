@@ -199,8 +199,8 @@ body:focus-within .main-toolbar {
   pointer-events: auto;
 }
 
-/* 穿透时主窗整窗忽略鼠标，避免与右上角浮动子窗工具栏重复显示 */
-body.mouse-passthrough-locked .main-toolbar {
+/* 穿透时主窗整窗忽略鼠标，避免与右上角浮动子窗工具栏重复显示（额外频谱窗仍保留工具栏） */
+body.mouse-passthrough-locked:not(.spectrum-clone) .main-toolbar {
   visibility: hidden;
 }
 
@@ -263,9 +263,15 @@ body.toolbar-floater #mousePassthroughLockBtn {
   pointer-events: auto !important;
 }
 
+/* 额外频谱窗口：不显示「仅主窗」的穿透锁；「+」仍可用，便于在当前屏继续开新窗 */
+body.spectrum-clone #mousePassthroughLockBtn {
+  display: none !important;
+}
+
 /* 主窗口与浮动工具栏：圆形图标按钮，纯色无描边（约原尺寸 2/3） */
 #openSettingsBtn,
-#mousePassthroughLockBtn {
+#mousePassthroughLockBtn,
+#newSpectrumWindowBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -297,14 +303,25 @@ body.toolbar-floater #mousePassthroughLockBtn {
   object-fit: contain;
 }
 
+#newSpectrumWindowBtn .toolbar-plus {
+  display: block;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  margin-top: -1px;
+  pointer-events: none;
+}
+
 #openSettingsBtn:hover,
-#mousePassthroughLockBtn:hover {
+#mousePassthroughLockBtn:hover,
+#newSpectrumWindowBtn:hover {
   background: rgba(32, 28, 24, 0.72);
   transform: translateY(-1px);
 }
 
 #openSettingsBtn:active,
-#mousePassthroughLockBtn:active {
+#mousePassthroughLockBtn:active,
+#newSpectrumWindowBtn:active {
   transform: translateY(0);
 }
 
@@ -469,6 +486,14 @@ body.settings-window .settings-header__subtitle {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--settings-text-muted);
+}
+
+body.settings-window .settings-visual-target {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--settings-accent);
 }
 
 body.settings-window .settings-status {

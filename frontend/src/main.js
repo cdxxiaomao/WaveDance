@@ -1,11 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { createLineRenderer } from "./renderers/lineRenderer.js";
 import { createBarRenderer } from "./renderers/barRenderer.js";
-import { clampInt, DEFAULT_CONFIG, DISPLAY_MODES, STORAGE_KEYS, parseBoolean } from "./visualizationSchema.js";
+import {
+  clampInt,
+  DEFAULT_CONFIG,
+  DISPLAY_MODES,
+  parseBoolean,
+  readWindowStorageString,
+} from "./visualizationSchema.js";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
+const newSpectrumWindowBtn = document.querySelector("#newSpectrumWindowBtn");
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
@@ -39,11 +47,11 @@ function applyBarShapeConfig(payload) {
   barShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
-function loadShapeConfigsFromStorage() {
+function loadShapeConfigsFromStorage(windowLabel) {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.lineShape);
+    const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
     if (raw) applyWaveShapeConfig(JSON.parse(raw));
-    const barRaw = window.localStorage.getItem(STORAGE_KEYS.barShape);
+    const barRaw = readWindowStorageString(window.localStorage, windowLabel, "barShape");
     if (barRaw) applyBarShapeConfig(JSON.parse(barRaw));
   } catch {
     // ignore storage failures and keep defaults
@@ -140,10 +148,10 @@ function applyMainBackgroundStyle(payload) {
   document.body.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${safeAlpha.toFixed(3)})`;
 }
 
-function loadMainBackgroundStyleFromStorage() {
+function loadMainBackgroundStyleFromStorage(windowLabel) {
   try {
-    const savedColor = window.localStorage.getItem(STORAGE_KEYS.mainBgColor);
-    const savedAlphaRaw = window.localStorage.getItem(STORAGE_KEYS.mainBgAlpha);
+    const savedColor = readWindowStorageString(window.localStorage, windowLabel, "mainBgColor");
+    const savedAlphaRaw = readWindowStorageString(window.localStorage, windowLabel, "mainBgAlpha");
     const color = /^#[0-9A-Fa-f]{6}$/.test(savedColor ?? "") ? savedColor.toLowerCase() : "#000000";
     const alphaPercent = clampInt(savedAlphaRaw, 0, 100);
     applyMainBackgroundStyle({ color, alpha: alphaPercent / 100 });
@@ -189,6 +197,12 @@ function renderWaveform() {
 }
 
 async function init() {
+  const windowLabel = getCurrentWebviewWindow().label;
+  const isSpectrumClone = windowLabel.startsWith("spectrum-");
+  if (isSpectrumClone) {
+    document.body.classList.add("spectrum-clone");
+  }
+
   const triggerNativeDrag = async (event) => {
     if (event.button !== 0) return;
     const target = event.target;
@@ -255,56 +269,114 @@ async function init() {
     console.info("waveform-status:", event.payload);
   });
 
-  await listen("main-bg-style", (event) => {
-    applyMainBackgroundStyle(event.payload);
-  });
+  const thisWebviewTarget = { kind: "WebviewWindow", label: windowLabel };
 
-  await listen("waveform-line-color", (event) => {
-    const raw = event.payload;
-    const color = typeof raw === "string" ? raw : "";
-    applyWaveformColorHex(color);
-  });
-  await listen("waveform-bar-color", (event) => {
-    const raw = event.payload;
-    const color = typeof raw === "string" ? raw : "";
-    applyBarColorHex(color);
-  });
+  await listen(
+    "main-bg-style",
+    (event) => {
+      applyMainBackgroundStyle(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
 
-  await listen("waveform-line-width", (event) => {
-    applyWaveformLineWidthPx(event.payload);
-  });
-  await listen("waveform-bar-width", (event) => {
-    applyBarWidthPercent(event.payload);
-  });
-  await listen("waveform-bar-gap", (event) => {
-    applyBarGapPercent(event.payload);
-  });
-  await listen("waveform-bar-headroom", (event) => {
-    applyBarHeadroomPercent(event.payload);
-  });
-  await listen("waveform-bar-mirror", (event) => {
-    applyBarMirrorEnabled(event.payload);
-  });
-  await listen("waveform-bar-peak-hold", (event) => {
-    applyBarPeakHoldEnabled(event.payload);
-  });
-  await listen("waveform-bar-peak-fall-speed", (event) => {
-    applyBarPeakFallSpeed(event.payload);
-  });
-  await listen("waveform-bar-peak-thickness", (event) => {
-    applyBarPeakThickness(event.payload);
-  });
+  await listen(
+    "waveform-line-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyWaveformColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyBarColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
 
-  await listen("waveform-shape-config", (event) => {
-    applyWaveShapeConfig(event.payload);
-  });
-  await listen("waveform-bar-shape-config", (event) => {
-    applyBarShapeConfig(event.payload);
-  });
-  await listen("visualization-display-mode", (event) => {
-    const mode = String(event.payload ?? "");
-    displayMode = mode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
-  });
+  await listen(
+    "waveform-line-width",
+    (event) => {
+      applyWaveformLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-width",
+    (event) => {
+      applyBarWidthPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-gap",
+    (event) => {
+      applyBarGapPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-headroom",
+    (event) => {
+      applyBarHeadroomPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-mirror",
+    (event) => {
+      applyBarMirrorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-peak-hold",
+    (event) => {
+      applyBarPeakHoldEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-peak-fall-speed",
+    (event) => {
+      applyBarPeakFallSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-peak-thickness",
+    (event) => {
+      applyBarPeakThickness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+
+  await listen(
+    "waveform-shape-config",
+    (event) => {
+      applyWaveShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-bar-shape-config",
+    (event) => {
+      applyBarShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "visualization-display-mode",
+    (event) => {
+      const mode = String(event.payload ?? "");
+      displayMode = mode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
+    },
+    { target: thisWebviewTarget },
+  );
 
   const applyMousePassthroughLockUi = (locked) => {
     const on = Boolean(locked);
@@ -322,59 +394,72 @@ async function init() {
   };
 
   await listen("mouse-passthrough-changed", (event) => {
+    if (isSpectrumClone) return;
     applyMousePassthroughLockUi(event.payload);
   });
 
   try {
-    const saved = await invoke("get_waveform_color");
-    applyWaveformColorHex(saved);
+    const savedLineHex = readWindowStorageString(window.localStorage, windowLabel, "lineColor");
+    if (typeof savedLineHex === "string" && /^#[0-9A-Fa-f]{6}$/.test(savedLineHex)) {
+      applyWaveformColorHex(savedLineHex);
+    } else {
+      const rust = await invoke("get_waveform_color");
+      applyWaveformColorHex(typeof rust === "string" ? rust : DEFAULT_WAVEFORM_HEX);
+    }
   } catch {
     applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
   }
 
   try {
-    const savedMode = window.localStorage.getItem(STORAGE_KEYS.displayMode);
+    const savedMode = readWindowStorageString(window.localStorage, windowLabel, "displayMode");
     if (savedMode === DISPLAY_MODES.bar || savedMode === DISPLAY_MODES.line) {
       displayMode = savedMode;
     }
-    const savedBarColor = window.localStorage.getItem(STORAGE_KEYS.barColor);
+    const savedBarColor = readWindowStorageString(window.localStorage, windowLabel, "barColor");
     if (savedBarColor) {
       applyBarColorHex(savedBarColor);
     }
-    const savedBarWidth = window.localStorage.getItem(STORAGE_KEYS.barWidth);
+    const savedBarWidth = readWindowStorageString(window.localStorage, windowLabel, "barWidth");
     if (savedBarWidth) {
       applyBarWidthPercent(savedBarWidth);
     }
-    const savedBarGap = window.localStorage.getItem(STORAGE_KEYS.barGap);
+    const savedBarGap = readWindowStorageString(window.localStorage, windowLabel, "barGap");
     if (savedBarGap) {
       applyBarGapPercent(savedBarGap);
     }
-    const savedBarHeadroom = window.localStorage.getItem(STORAGE_KEYS.barHeadroom);
+    const savedBarHeadroom = readWindowStorageString(window.localStorage, windowLabel, "barHeadroom");
     if (savedBarHeadroom) {
       applyBarHeadroomPercent(savedBarHeadroom);
     }
-    applyBarMirrorEnabled(window.localStorage.getItem(STORAGE_KEYS.barMirror));
-    applyBarPeakHoldEnabled(window.localStorage.getItem(STORAGE_KEYS.barPeakHold));
-    applyBarPeakFallSpeed(window.localStorage.getItem(STORAGE_KEYS.barPeakFallSpeed));
-    applyBarPeakThickness(window.localStorage.getItem(STORAGE_KEYS.barPeakThickness));
+    applyBarMirrorEnabled(readWindowStorageString(window.localStorage, windowLabel, "barMirror"));
+    applyBarPeakHoldEnabled(readWindowStorageString(window.localStorage, windowLabel, "barPeakHold"));
+    applyBarPeakFallSpeed(readWindowStorageString(window.localStorage, windowLabel, "barPeakFallSpeed"));
+    applyBarPeakThickness(readWindowStorageString(window.localStorage, windowLabel, "barPeakThickness"));
   } catch {
     // ignore storage failures
   }
 
   try {
-    const w = await invoke("get_waveform_line_width");
-    applyWaveformLineWidthPx(w);
+    const savedW = readWindowStorageString(window.localStorage, windowLabel, "lineWidth");
+    if (savedW) {
+      applyWaveformLineWidthPx(savedW);
+    } else {
+      const w = await invoke("get_waveform_line_width");
+      applyWaveformLineWidthPx(w);
+    }
   } catch {
     applyWaveformLineWidthPx(2);
   }
 
-  loadShapeConfigsFromStorage();
+  loadShapeConfigsFromStorage(windowLabel);
 
-  try {
-    const locked = await invoke("get_main_mouse_passthrough_locked");
-    applyMousePassthroughLockUi(locked);
-  } catch {
-    applyMousePassthroughLockUi(false);
+  if (!isSpectrumClone) {
+    try {
+      const locked = await invoke("get_main_mouse_passthrough_locked");
+      applyMousePassthroughLockUi(locked);
+    } catch {
+      applyMousePassthroughLockUi(false);
+    }
   }
 
   if (mousePassthroughLockBtn) {
@@ -392,17 +477,32 @@ async function init() {
 
   openSettingsBtn.addEventListener("click", async () => {
     try {
-      await invoke("open_settings_window");
+      await invoke("open_settings_window", { visualTargetLabel: windowLabel });
     } catch (err) {
       console.error("open_settings_window failed:", err);
     }
   });
-  try {
-    await invoke("start_waveform_stream");
-  } catch (err) {
-    console.error("start_waveform_stream failed:", err);
+
+  const canOpenExtraSpectrum =
+    windowLabel === "main" || windowLabel.startsWith("spectrum-");
+  if (newSpectrumWindowBtn && canOpenExtraSpectrum) {
+    newSpectrumWindowBtn.addEventListener("click", async () => {
+      try {
+        await invoke("open_extra_spectrum_window", { anchor_label: windowLabel });
+      } catch (err) {
+        console.error("open_extra_spectrum_window failed:", err);
+      }
+    });
   }
-  loadMainBackgroundStyleFromStorage();
+
+  if (windowLabel === "main" || windowLabel.startsWith("spectrum-")) {
+    try {
+      await invoke("start_waveform_stream");
+    } catch (err) {
+      console.error("start_waveform_stream failed:", err);
+    }
+  }
+  loadMainBackgroundStyleFromStorage(windowLabel);
   renderWaveform();
 }
 

@@ -70,3 +70,65 @@ export function parseBoolean(value, fallback = false) {
   if (value === "false") return false;
   return fallback;
 }
+
+/** 仅允许主窗与频谱副窗作为「每窗配置」的存储分区。 */
+export function normalizeSpectrumWindowLabel(label) {
+  const s = String(label ?? "").trim();
+  if (s === "main" || s.startsWith("spectrum-")) {
+    return s;
+  }
+  return "main";
+}
+
+/**
+ * 各频谱窗口独立的外观/形态 localStorage 键（与 {@link STORAGE_KEYS} 字段一一对应）。
+ * 旧版未带窗口 id 的键仍会通过 {@link readWindowStorageString} 回退读取。
+ */
+export function windowStorageKeys(windowLabel) {
+  const id = normalizeSpectrumWindowLabel(windowLabel);
+  const pre = `wavedance.win.${id}`;
+  return {
+    lineShape: `${pre}.waveShapeConfig`,
+    barShape: `${pre}.barShapeConfig`,
+    displayMode: `${pre}.displayMode`,
+    panelStyleMode: `${pre}.panelStyleMode`,
+    lineColor: `${pre}.lineColor`,
+    lineWidth: `${pre}.lineWidthPx`,
+    barColor: `${pre}.barColor`,
+    barWidth: `${pre}.barWidthPercent`,
+    barGap: `${pre}.barGapPercent`,
+    barHeadroom: `${pre}.barHeadroomPercent`,
+    barMirror: `${pre}.barMirrorEnabled`,
+    barPeakHold: `${pre}.barPeakHoldEnabled`,
+    barPeakFallSpeed: `${pre}.barPeakFallSpeed`,
+    barPeakThickness: `${pre}.barPeakThickness`,
+    mainBgColor: `${pre}.mainBgColor`,
+    mainBgAlpha: `${pre}.mainBgAlpha`,
+  };
+}
+
+/**
+ * 读取某窗专属配置；若无则回退旧全局 {@link STORAGE_KEYS}（升级迁移）。
+ * @param {Storage} ls
+ * @param {string} windowLabel
+ * @param {keyof typeof STORAGE_KEYS} prop
+ */
+export function readWindowStorageString(ls, windowLabel, prop) {
+  const wk = windowStorageKeys(windowLabel);
+  const primary = ls.getItem(wk[prop]);
+  if (primary != null && primary !== "") {
+    return primary;
+  }
+  return ls.getItem(STORAGE_KEYS[prop]);
+}
+
+/**
+ * @param {Storage} ls
+ * @param {string} windowLabel
+ * @param {keyof typeof STORAGE_KEYS} prop
+ * @param {string} value
+ */
+export function writeWindowStorageString(ls, windowLabel, prop, value) {
+  const wk = windowStorageKeys(windowLabel);
+  ls.setItem(wk[prop], value);
+}

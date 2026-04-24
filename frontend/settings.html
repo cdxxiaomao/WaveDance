@@ -14,6 +14,7 @@
           <div>
             <h1 class="settings-header__title">WaveDance</h1>
             <p class="settings-header__subtitle">系统音频 · 频谱显示</p>
+            <p id="visualTargetBanner" class="settings-visual-target" hidden></p>
           </div>
         </div>
         <p id="status" class="settings-status" role="status">等待启动采集…</p>
@@ -224,11 +225,11 @@
         <h2 id="sec-app" class="settings-card__title">应用</h2>
         <div class="settings-card__body">
           <p class="settings-muted">
-            本应用为叠加显示工具，默认不在程序坞常驻；退出请使用下方按钮，或通过活动监视器结束进程。
+            本应用为叠加显示工具，默认不在程序坞常驻。下方按钮会关闭<strong>当前设置所对应的</strong>频谱图形窗口，并收起本设置面板；退出整个应用请使用菜单栏托盘中的「退出 WaveDance」。
           </p>
           <div class="settings-actions" data-no-drag>
-            <button type="button" id="quitAppBtn" class="settings-btn settings-btn--ghost">
-              退出 WaveDance
+            <button type="button" id="closeSettingsBtn" class="settings-btn settings-btn--ghost">
+              关闭图形窗与设置
             </button>
           </div>
         </div>

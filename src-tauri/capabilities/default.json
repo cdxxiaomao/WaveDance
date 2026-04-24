@@ -2,9 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "default permissions for WaveDance desktop",
-  "windows": ["main", "settings", "main-toolbar"],
+  "windows": ["main", "settings", "main-toolbar", "spectrum-*"],
   "permissions": [
     "core:default",
+    "core:event:default",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister"
