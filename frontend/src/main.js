@@ -1,5 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { createLineRenderer } from "./renderers/lineRenderer.js";
+import { createBarRenderer } from "./renderers/barRenderer.js";
+import { clampInt, DEFAULT_CONFIG, DISPLAY_MODES, STORAGE_KEYS, parseBoolean } from "./visualizationSchema.js";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
@@ -11,65 +14,14 @@ if (!gl) {
   throw new Error("当前环境不支持 WebGL");
 }
 
-const vertexShaderSource = `
-attribute vec2 a_position;
-void main() {
-  gl_Position = vec4(a_position, 0.0, 1.0);
-}
-`;
+const lineRenderer = createLineRenderer(gl);
+const barRenderer = createBarRenderer(gl);
 
-const fragmentShaderSource = `
-precision mediump float;
-uniform vec3 u_lineColor;
-void main() {
-  gl_FragColor = vec4(u_lineColor, 1.0);
-}
-`;
-
-function compileShader(type, source) {
-  const shader = gl.createShader(type);
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    throw new Error(gl.getShaderInfoLog(shader));
-  }
-  return shader;
-}
-
-function createProgram() {
-  const vShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
-  const fShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-  const program = gl.createProgram();
-  gl.attachShader(program, vShader);
-  gl.attachShader(program, fShader);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program));
-  }
-  return program;
-}
-
-const program = createProgram();
-const positionLoc = gl.getAttribLocation(program, "a_position");
-const lineColorLoc = gl.getUniformLocation(program, "u_lineColor");
-const buffer = gl.createBuffer();
-
-const WAVE_SHAPE_KEY = "wavedance.waveShapeConfig";
-const waveShapeConfig = {
-  gainPercent: 50,
-  smoothPercent: 28,
-  softClipPercent: 22,
-  fallEasePercent: 68,
-};
+const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
+const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
 
 let latestPoints = [];
-let easedPoints = [];
-
-function clampInt(n, min, max) {
-  const v = Math.round(Number(n));
-  if (!Number.isFinite(v)) return min;
-  return Math.min(max, Math.max(min, v));
-}
+let displayMode = DEFAULT_CONFIG.displayMode;
 
 function applyWaveShapeConfig(payload) {
   if (!payload || typeof payload !== "object") return;
@@ -79,11 +31,20 @@ function applyWaveShapeConfig(payload) {
   waveShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
-function loadWaveShapeConfigFromStorage() {
+function applyBarShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  barShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  barShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  barShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  barShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
+function loadShapeConfigsFromStorage() {
   try {
-    const raw = window.localStorage.getItem(WAVE_SHAPE_KEY);
-    if (!raw) return;
-    applyWaveShapeConfig(JSON.parse(raw));
+    const raw = window.localStorage.getItem(STORAGE_KEYS.lineShape);
+    if (raw) applyWaveShapeConfig(JSON.parse(raw));
+    const barRaw = window.localStorage.getItem(STORAGE_KEYS.barShape);
+    if (barRaw) applyBarShapeConfig(JSON.parse(barRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -99,9 +60,10 @@ function hexToRgb(hex) {
   };
 }
 
-const DEFAULT_WAVEFORM_HEX = "#c4a574";
+const DEFAULT_WAVEFORM_HEX = DEFAULT_CONFIG.line.color;
 
 const waveformLineRgb = { r: 0, g: 0, b: 0 };
+const barFillRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -113,15 +75,62 @@ function applyWaveformColorHex(hex) {
 }
 
 applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
+applyBarColorHex(DEFAULT_CONFIG.bar.color);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
 let waveformLineWidthPx = 2;
+let barWidthPercent = DEFAULT_CONFIG.bar.widthPercent;
+let barGapPercent = DEFAULT_CONFIG.bar.gapPercent;
+let barHeadroomPercent = DEFAULT_CONFIG.bar.headroomPercent;
+let barMirrorEnabled = DEFAULT_CONFIG.bar.mirrorEnabled;
+let barPeakHoldEnabled = DEFAULT_CONFIG.bar.peakHoldEnabled;
+let barPeakFallSpeed = DEFAULT_CONFIG.bar.peakFallSpeed;
+let barPeakThickness = DEFAULT_CONFIG.bar.peakThickness;
+
+function applyBarColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.bar.color;
+  const { r, g, b } = hexToRgb(safe);
+  barFillRgb.r = r / 255;
+  barFillRgb.g = g / 255;
+  barFillRgb.b = b / 255;
+}
 
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
   waveformLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyBarWidthPercent(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  barWidthPercent = Math.max(20, Math.min(100, v));
+}
+
+function applyBarGapPercent(n) {
+  barGapPercent = clampInt(n, 0, 70);
+}
+
+function applyBarHeadroomPercent(n) {
+  barHeadroomPercent = clampInt(n, 0, 40);
+}
+
+function applyBarMirrorEnabled(value) {
+  barMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.bar.mirrorEnabled);
+}
+
+function applyBarPeakHoldEnabled(value) {
+  barPeakHoldEnabled = parseBoolean(value, DEFAULT_CONFIG.bar.peakHoldEnabled);
+}
+
+function applyBarPeakFallSpeed(value) {
+  barPeakFallSpeed = clampInt(value, 5, 120);
+}
+
+function applyBarPeakThickness(value) {
+  barPeakThickness = clampInt(value, 1, 8);
 }
 
 function applyMainBackgroundStyle(payload) {
@@ -146,68 +155,22 @@ function renderWaveform() {
   resizeCanvas();
   gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
-
-  if (latestPoints.length > 1) {
-    const len = latestPoints.length;
-    const ys = new Float32Array(len);
-    if (easedPoints.length !== len) {
-      easedPoints = new Array(len).fill(0);
-    }
-    const gain = waveShapeConfig.gainPercent / 100;
-    const softGamma = 1 + (waveShapeConfig.softClipPercent / 100) * 1.6;
-    const fallBlend = 0.08 + (1 - waveShapeConfig.fallEasePercent / 100) * 0.62;
-    for (let i = 0; i < len; i++) {
-      const raw = Math.max(0, Math.min(1, latestPoints[i] * gain));
-      const prev = easedPoints[i];
-      const followed = raw >= prev ? raw : prev + (raw - prev) * fallBlend;
-      easedPoints[i] = followed;
-      // 用 gamma 压缩峰值，避免波峰/波谷过尖。
-      const softened = Math.pow(followed, softGamma);
-      ys[i] = (softened * 2 - 1) * 0.95;
-    }
-
-    const smoothNorm = waveShapeConfig.smoothPercent / 400;
-    const smoothPasses = Math.round(smoothNorm * smoothNorm * 24);
-    if (smoothPasses > 0 && len > 2) {
-      const temp = new Float32Array(len);
-      for (let pass = 0; pass < smoothPasses; pass++) {
-        temp[0] = ys[0];
-        temp[len - 1] = ys[len - 1];
-        const useWideKernel = waveShapeConfig.smoothPercent > 260;
-        for (let i = 1; i < len - 1; i++) {
-          if (useWideKernel && i > 1 && i < len - 2) {
-            temp[i] = (ys[i - 2] + ys[i - 1] * 2 + ys[i] * 4 + ys[i + 1] * 2 + ys[i + 2]) * 0.1;
-          } else {
-            temp[i] = (ys[i - 1] + ys[i] * 2 + ys[i + 1]) * 0.25;
-          }
-        }
-        ys.set(temp);
-      }
-    }
-
-    const canvasH = gl.canvas.height;
-    const stepNdc = canvasH > 0 ? 2 / canvasH : 0;
-    const passes = waveformLineWidthPx;
-    const half = (passes - 1) / 2;
-
-    const vertices = new Float32Array(len * 2);
-    gl.useProgram(program);
-    gl.uniform3f(lineColorLoc, waveformLineRgb.r, waveformLineRgb.g, waveformLineRgb.b);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.enableVertexAttribArray(positionLoc);
-    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.lineWidth(1);
-
-    for (let p = 0; p < passes; p++) {
-      const yOff = (p - half) * stepNdc;
-      for (let i = 0; i < len; i++) {
-        const x = (i / (len - 1)) * 2 - 1;
-        vertices[i * 2] = x;
-        vertices[i * 2 + 1] = ys[i] + yOff;
-      }
-      gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
-      gl.drawArrays(gl.LINE_STRIP, 0, len);
-    }
+  if (displayMode === "bar") {
+    barRenderer.render(latestPoints, barShapeConfig, {
+      color: barFillRgb,
+      widthPercent: barWidthPercent,
+      gapPercent: barGapPercent,
+      headroomPercent: barHeadroomPercent,
+      mirrorEnabled: barMirrorEnabled,
+      peakHoldEnabled: barPeakHoldEnabled,
+      peakFallSpeed: barPeakFallSpeed,
+      peakThickness: barPeakThickness,
+    });
+  } else {
+    lineRenderer.render(latestPoints, waveShapeConfig, {
+      color: waveformLineRgb,
+      lineWidthPx: waveformLineWidthPx,
+    });
   }
 
   requestAnimationFrame(renderWaveform);
@@ -289,13 +252,46 @@ async function init() {
     const color = typeof raw === "string" ? raw : "";
     applyWaveformColorHex(color);
   });
+  await listen("waveform-bar-color", (event) => {
+    const raw = event.payload;
+    const color = typeof raw === "string" ? raw : "";
+    applyBarColorHex(color);
+  });
 
   await listen("waveform-line-width", (event) => {
     applyWaveformLineWidthPx(event.payload);
   });
+  await listen("waveform-bar-width", (event) => {
+    applyBarWidthPercent(event.payload);
+  });
+  await listen("waveform-bar-gap", (event) => {
+    applyBarGapPercent(event.payload);
+  });
+  await listen("waveform-bar-headroom", (event) => {
+    applyBarHeadroomPercent(event.payload);
+  });
+  await listen("waveform-bar-mirror", (event) => {
+    applyBarMirrorEnabled(event.payload);
+  });
+  await listen("waveform-bar-peak-hold", (event) => {
+    applyBarPeakHoldEnabled(event.payload);
+  });
+  await listen("waveform-bar-peak-fall-speed", (event) => {
+    applyBarPeakFallSpeed(event.payload);
+  });
+  await listen("waveform-bar-peak-thickness", (event) => {
+    applyBarPeakThickness(event.payload);
+  });
 
   await listen("waveform-shape-config", (event) => {
     applyWaveShapeConfig(event.payload);
+  });
+  await listen("waveform-bar-shape-config", (event) => {
+    applyBarShapeConfig(event.payload);
+  });
+  await listen("visualization-display-mode", (event) => {
+    const mode = String(event.payload ?? "");
+    displayMode = mode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
   });
 
   const applyMousePassthroughLockUi = (locked) => {
@@ -325,13 +321,42 @@ async function init() {
   }
 
   try {
+    const savedMode = window.localStorage.getItem(STORAGE_KEYS.displayMode);
+    if (savedMode === DISPLAY_MODES.bar || savedMode === DISPLAY_MODES.line) {
+      displayMode = savedMode;
+    }
+    const savedBarColor = window.localStorage.getItem(STORAGE_KEYS.barColor);
+    if (savedBarColor) {
+      applyBarColorHex(savedBarColor);
+    }
+    const savedBarWidth = window.localStorage.getItem(STORAGE_KEYS.barWidth);
+    if (savedBarWidth) {
+      applyBarWidthPercent(savedBarWidth);
+    }
+    const savedBarGap = window.localStorage.getItem(STORAGE_KEYS.barGap);
+    if (savedBarGap) {
+      applyBarGapPercent(savedBarGap);
+    }
+    const savedBarHeadroom = window.localStorage.getItem(STORAGE_KEYS.barHeadroom);
+    if (savedBarHeadroom) {
+      applyBarHeadroomPercent(savedBarHeadroom);
+    }
+    applyBarMirrorEnabled(window.localStorage.getItem(STORAGE_KEYS.barMirror));
+    applyBarPeakHoldEnabled(window.localStorage.getItem(STORAGE_KEYS.barPeakHold));
+    applyBarPeakFallSpeed(window.localStorage.getItem(STORAGE_KEYS.barPeakFallSpeed));
+    applyBarPeakThickness(window.localStorage.getItem(STORAGE_KEYS.barPeakThickness));
+  } catch {
+    // ignore storage failures
+  }
+
+  try {
     const w = await invoke("get_waveform_line_width");
     applyWaveformLineWidthPx(w);
   } catch {
     applyWaveformLineWidthPx(2);
   }
 
-  loadWaveShapeConfigFromStorage();
+  loadShapeConfigsFromStorage();
 
   try {
     const locked = await invoke("get_main_mouse_passthrough_locked");

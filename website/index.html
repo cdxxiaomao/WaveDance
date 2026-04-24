@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="WaveDance 是面向 macOS 的实时音频可视化桌面应用，提供丝滑频谱浮层与可调参数。"
+    />
+    <title>WaveDance | 实时音频可视化</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-wrap">
+        <a href="#top" class="brand">
+          <img src="./assets/logo.png" alt="WaveDance Logo" />
+          <span>WaveDance</span>
+        </a>
+        <nav class="site-nav">
+          <a href="#features">特性</a>
+          <a href="#install">安装</a>
+          <a href="#faq">FAQ</a>
+          <a href="#download">下载</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="hero-brand">
+              <img src="./assets/logo.png" alt="WaveDance 产品 Logo" />
+              <span>WaveDance</span>
+            </div>
+            <p class="eyebrow">macOS · Tauri · 实时渲染</p>
+            <h1>让声音在桌面上起舞</h1>
+            <p class="hero-desc">
+              WaveDance 采集系统播放音频，实时绘制丝滑频谱浮层。适用于直播、创作、专注与沉浸式背景展示。
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#download">立即下载</a>
+              <a class="btn btn-secondary" href="#install">查看安装步骤</a>
+            </div>
+            <ul class="hero-points">
+              <li>透明浮层窗口，支持置顶</li>
+              <li>多参数调节，精细控制频谱风格</li>
+              <li>兼容 BlackHole 系统回环采集模式</li>
+            </ul>
+          </div>
+          <div class="hero-media">
+            <img src="./assets/wavedance-preview.png" alt="WaveDance 应用界面预览图" />
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section">
+        <div class="container">
+          <h2>核心特性</h2>
+          <div class="feature-grid">
+            <article class="card">
+              <h3>实时频谱渲染</h3>
+              <p>基于 WebGL 实时绘制系统音频频谱，保证流畅视觉反馈与低延迟响应。</p>
+            </article>
+            <article class="card">
+              <h3>高度可调</h3>
+              <p>支持分桶、补偿、频率区间、显示模式等参数调整，快速调出你想要的动态效果。</p>
+            </article>
+            <article class="card">
+              <h3>原生桌面体验</h3>
+              <p>通过 Tauri 打包，提供轻量、稳定的 macOS 桌面体验，并可输出 `.dmg` 发布包。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="install" class="section section-alt">
+        <div class="container">
+          <h2>三步完成安装</h2>
+          <div class="steps">
+            <div class="step">
+              <span>1</span>
+              <h3>安装应用</h3>
+              <p>下载并打开 `.dmg`，将 WaveDance 拖入「应用程序」后启动。</p>
+            </div>
+            <div class="step">
+              <span>2</span>
+              <h3>配置 BlackHole</h3>
+              <p>在设置中安装或检测 BlackHole 2ch，用于系统音频回环采集。</p>
+            </div>
+            <div class="step">
+              <span>3</span>
+              <h3>授权并开始采集</h3>
+              <p>允许麦克风权限后播放任意音频，观察频谱随声音实时变化。</p>
+            </div>
+          </div>
+          <p class="note">
+            详细图文指南可查看仓库文档 `docs/INSTALL.md`。
+          </p>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <div class="container">
+          <h2>常见问题</h2>
+          <div class="faq-list">
+            <details>
+              <summary>为什么没有频谱变化？</summary>
+              <p>请确认系统输出已切换到 BlackHole（或多输出设备），并检查麦克风权限是否授予 WaveDance。</p>
+            </details>
+            <details>
+              <summary>支持哪些系统版本？</summary>
+              <p>当前面向 macOS 12 及以上版本。</p>
+            </details>
+            <details>
+              <summary>是否可以从源码运行？</summary>
+              <p>可以，仓库 `README.md` 提供了前端依赖安装与 `cargo tauri dev` 的开发流程。</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="section section-download">
+        <div class="container download-box">
+          <h2>开始使用 WaveDance</h2>
+          <p>下载最新版本并在几分钟内完成配置，让你的桌面拥有有节奏的视觉反馈。</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#" id="downloadButton">下载 macOS 版本</a>
+            <a class="btn btn-secondary" href="https://github.com" target="_blank" rel="noreferrer">查看源码仓库</a>
+          </div>
+          <small>提示：请将下载链接替换为你的正式发布页地址。</small>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-wrap">
+        <p>© <span id="year"></span> WaveDance. All rights reserved.</p>
+        <a href="#top">返回顶部</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

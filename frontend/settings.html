@@ -75,6 +75,20 @@
       <section class="settings-card" aria-labelledby="sec-spectrum">
         <h2 id="sec-spectrum" class="settings-card__title">频谱分析</h2>
         <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="displayMode" class="settings-label">展示模式</label>
+            <select id="displayMode" class="settings-select">
+              <option value="line" selected>线状图</option>
+              <option value="bar">柱状图</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="panelStyleMode" class="settings-label">面板风格</label>
+            <select id="panelStyleMode" class="settings-select">
+              <option value="pro" selected>专业风格</option>
+              <option value="minimal">简约风格</option>
+            </select>
+          </div>
           <div class="settings-field">
             <label for="bucketRange" class="settings-label">分桶数量 <span class="settings-value" id="bucketValue">256</span></label>
             <input id="bucketRange" type="range" min="8" max="500" step="1" value="256" />
@@ -101,19 +115,19 @@
         </div>
       </section>
 
-      <section class="settings-card" aria-labelledby="sec-display">
-        <h2 id="sec-display" class="settings-card__title">主窗口显示</h2>
-        <div class="settings-card__body settings-form" data-no-drag>
+      <section class="settings-card" id="lineConfigPanel" aria-labelledby="sec-line-display">
+        <h2 id="sec-line-display" class="settings-card__title">线状图配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--line" data-no-drag>
           <div class="settings-field settings-field--row">
-            <label for="waveformColor" class="settings-label">波形颜色</label>
+            <label for="waveformColor" class="settings-label">线条颜色</label>
             <input id="waveformColor" type="color" value="#c4a574" class="settings-color" />
           </div>
           <div class="settings-field">
-            <label for="waveformWidthRange" class="settings-label">波形粗细 <span class="settings-value" id="waveformWidthValue">2</span> px</label>
+            <label for="waveformWidthRange" class="settings-label">线条粗细 <span class="settings-value" id="waveformWidthValue">2</span> px</label>
             <input id="waveformWidthRange" type="range" min="1" max="12" step="1" value="2" />
           </div>
           <div class="settings-field">
-            <label for="waveformGainRange" class="settings-label">振幅增益 <span class="settings-value" id="waveformGainValue">50</span>%</label>
+            <label for="waveformGainRange" class="settings-label">增益 <span class="settings-value" id="waveformGainValue">50</span>%</label>
             <input id="waveformGainRange" type="range" min="10" max="150" step="1" value="50" />
           </div>
           <div class="settings-field">
@@ -128,6 +142,68 @@
             <label for="waveformFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="waveformFallEaseValue">68</span>%</label>
             <input id="waveformFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
           </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="barConfigPanel" aria-labelledby="sec-bar-display" hidden>
+        <h2 id="sec-bar-display" class="settings-card__title">柱状图配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--bar" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="barColor" class="settings-label">柱体颜色</label>
+            <input id="barColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="barWidthRange" class="settings-label">柱体宽度 <span class="settings-value" id="barWidthValue">76</span>%</label>
+            <input id="barWidthRange" type="range" min="20" max="100" step="1" value="76" />
+          </div>
+          <div class="settings-field">
+            <label for="barGapRange" class="settings-label">柱间距 <span class="settings-value" id="barGapValue">18</span>%</label>
+            <input id="barGapRange" type="range" min="0" max="70" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="barHeadroomRange" class="settings-label">顶部留白 <span class="settings-value" id="barHeadroomValue">6</span>%</label>
+            <input id="barHeadroomRange" type="range" min="0" max="40" step="1" value="6" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="barMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像柱体（中心对称）</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="barPeakHoldToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>峰值保持线（被顶起后缓慢回落）</span>
+          </label>
+          <div class="settings-field">
+            <label for="barPeakFallSpeedRange" class="settings-label">峰值线回落速度 <span class="settings-value" id="barPeakFallSpeedValue">35</span></label>
+            <input id="barPeakFallSpeedRange" type="range" min="5" max="120" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="barPeakThicknessRange" class="settings-label">峰值线粗细 <span class="settings-value" id="barPeakThicknessValue">2</span> px</label>
+            <input id="barPeakThicknessRange" type="range" min="1" max="8" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="barGainRange" class="settings-label">增益 <span class="settings-value" id="barGainValue">62</span>%</label>
+            <input id="barGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="barSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="barSmoothValue">18</span>%</label>
+            <input id="barSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="barSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="barSoftClipValue">12</span>%</label>
+            <input id="barSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="barFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="barFallEaseValue">52</span>%</label>
+            <input id="barFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-display">
+        <h2 id="sec-display" class="settings-card__title">主窗口显示</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
           <div class="settings-field settings-field--row">
             <label for="bodyBgColor" class="settings-label">叠加背景色</label>
             <input id="bodyBgColor" type="color" value="#000000" class="settings-color" />

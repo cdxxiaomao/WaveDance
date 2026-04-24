@@ -1,5 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
+import {
+  clampInt,
+  DEFAULT_CONFIG,
+  DISPLAY_MODES,
+  PANEL_STYLES,
+  STORAGE_KEYS,
+  parseBoolean,
+} from "./visualizationSchema.js";
 
 const statusEl = document.querySelector("#status");
 const startBtn = document.querySelector("#startBtn");
@@ -14,6 +22,10 @@ const freqMinRange = document.querySelector("#freqMinRange");
 const freqMinValue = document.querySelector("#freqMinValue");
 const freqMaxRange = document.querySelector("#freqMaxRange");
 const freqMaxValue = document.querySelector("#freqMaxValue");
+const displayModeSelect = document.querySelector("#displayMode");
+const panelStyleModeSelect = document.querySelector("#panelStyleMode");
+const lineConfigPanel = document.querySelector("#lineConfigPanel");
+const barConfigPanel = document.querySelector("#barConfigPanel");
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
 const waveformWidthValue = document.querySelector("#waveformWidthValue");
@@ -25,6 +37,27 @@ const waveformSoftClipRange = document.querySelector("#waveformSoftClipRange");
 const waveformSoftClipValue = document.querySelector("#waveformSoftClipValue");
 const waveformFallEaseRange = document.querySelector("#waveformFallEaseRange");
 const waveformFallEaseValue = document.querySelector("#waveformFallEaseValue");
+const barColor = document.querySelector("#barColor");
+const barWidthRange = document.querySelector("#barWidthRange");
+const barWidthValue = document.querySelector("#barWidthValue");
+const barGapRange = document.querySelector("#barGapRange");
+const barGapValue = document.querySelector("#barGapValue");
+const barHeadroomRange = document.querySelector("#barHeadroomRange");
+const barHeadroomValue = document.querySelector("#barHeadroomValue");
+const barMirrorToggle = document.querySelector("#barMirrorToggle");
+const barPeakHoldToggle = document.querySelector("#barPeakHoldToggle");
+const barPeakFallSpeedRange = document.querySelector("#barPeakFallSpeedRange");
+const barPeakFallSpeedValue = document.querySelector("#barPeakFallSpeedValue");
+const barPeakThicknessRange = document.querySelector("#barPeakThicknessRange");
+const barPeakThicknessValue = document.querySelector("#barPeakThicknessValue");
+const barGainRange = document.querySelector("#barGainRange");
+const barGainValue = document.querySelector("#barGainValue");
+const barSmoothRange = document.querySelector("#barSmoothRange");
+const barSmoothValue = document.querySelector("#barSmoothValue");
+const barSoftClipRange = document.querySelector("#barSoftClipRange");
+const barSoftClipValue = document.querySelector("#barSoftClipValue");
+const barFallEaseRange = document.querySelector("#barFallEaseRange");
+const barFallEaseValue = document.querySelector("#barFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -36,7 +69,6 @@ const captureSourceModeSelect = document.querySelector("#captureSourceMode");
 const openMidiSetupBtn = document.querySelector("#openMidiSetupBtn");
 const openSoundSettingsBtn = document.querySelector("#openSoundSettingsBtn");
 const quitAppBtn = document.querySelector("#quitAppBtn");
-const WAVE_SHAPE_KEY = "wavedance.waveShapeConfig";
 const NO_FRAME_TIMEOUT_MS = 4000;
 const ACTIVE_PEAK_THRESHOLD = 0.003;
 const ACTIVE_RMS_THRESHOLD = 0.0015;
@@ -45,6 +77,8 @@ let blackholeInstalled = false;
 let captureTransportRunning = false;
 let lastWaveformFrameAt = 0;
 let captureSourceMode = "blackhole";
+let displayMode = DEFAULT_CONFIG.displayMode;
+let panelStyleMode = DEFAULT_CONFIG.panelStyleMode;
 
 function setupStatusFlashOnChange() {
   if (!statusEl) {
@@ -66,15 +100,9 @@ function setupStatusFlashOnChange() {
   });
 }
 
-function clampInt(n, min, max) {
-  const v = Math.round(Number(n));
-  if (!Number.isFinite(v)) return min;
-  return Math.min(max, Math.max(min, v));
-}
-
 function readWaveShapeConfig() {
   try {
-    const raw = window.localStorage.getItem(WAVE_SHAPE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEYS.lineShape);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return {
@@ -100,7 +128,7 @@ async function syncWaveShapeConfig() {
   waveformSoftClipValue.textContent = String(config.softClipPercent);
   waveformFallEaseValue.textContent = String(config.fallEasePercent);
   try {
-    window.localStorage.setItem(WAVE_SHAPE_KEY, JSON.stringify(config));
+    window.localStorage.setItem(STORAGE_KEYS.lineShape, JSON.stringify(config));
   } catch {
     // ignore storage failures in restricted contexts
   }
@@ -109,6 +137,67 @@ async function syncWaveShapeConfig() {
   } catch (err) {
     statusEl.textContent = `同步波形形态参数失败：${String(err)}`;
   }
+}
+
+function readBarShapeConfig() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.barShape);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncBarShapeConfig() {
+  const config = {
+    gainPercent: clampInt(barGainRange?.value, 10, 150),
+    smoothPercent: clampInt(barSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(barSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(barFallEaseRange?.value, 0, 100),
+  };
+  barGainValue.textContent = String(config.gainPercent);
+  barSmoothValue.textContent = String(config.smoothPercent);
+  barSoftClipValue.textContent = String(config.softClipPercent);
+  barFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.barShape, JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emit("waveform-bar-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步柱状图参数失败：${String(err)}`;
+  }
+}
+
+function applyDisplayModePanels(mode) {
+  const isBar = mode === "bar";
+  displayMode = isBar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
+  if (displayModeSelect) {
+    displayModeSelect.value = displayMode;
+  }
+  if (lineConfigPanel) {
+    lineConfigPanel.hidden = isBar;
+  }
+  if (barConfigPanel) {
+    barConfigPanel.hidden = !isBar;
+  }
+}
+
+function applyPanelStyleMode(mode) {
+  panelStyleMode = mode === PANEL_STYLES.minimal ? PANEL_STYLES.minimal : PANEL_STYLES.pro;
+  if (panelStyleModeSelect) {
+    panelStyleModeSelect.value = panelStyleMode;
+  }
+  document.body.setAttribute("data-panel-style", panelStyleMode);
 }
 
 async function refreshBlackholeStatus() {
@@ -330,6 +419,112 @@ async function init() {
   waveformFallEaseRange.addEventListener("input", () => {
     void syncWaveShapeConfig();
   });
+  barColor?.addEventListener("input", async () => {
+    try {
+      await emit("waveform-bar-color", barColor.value);
+      window.localStorage.setItem(STORAGE_KEYS.barColor, barColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新柱状图颜色失败：${String(err)}`;
+    }
+  });
+  barWidthRange?.addEventListener("input", async (event) => {
+    const widthPercent = clampInt(event.target.value, 20, 100);
+    barWidthValue.textContent = String(widthPercent);
+    try {
+      await emit("waveform-bar-width", widthPercent);
+      window.localStorage.setItem(STORAGE_KEYS.barWidth, String(widthPercent));
+    } catch (err) {
+      statusEl.textContent = `更新柱体宽度失败：${String(err)}`;
+    }
+  });
+  barGapRange?.addEventListener("input", async (event) => {
+    const gapPercent = clampInt(event.target.value, 0, 70);
+    barGapValue.textContent = String(gapPercent);
+    try {
+      await emit("waveform-bar-gap", gapPercent);
+      window.localStorage.setItem(STORAGE_KEYS.barGap, String(gapPercent));
+    } catch (err) {
+      statusEl.textContent = `更新柱间距失败：${String(err)}`;
+    }
+  });
+  barHeadroomRange?.addEventListener("input", async (event) => {
+    const headroomPercent = clampInt(event.target.value, 0, 40);
+    barHeadroomValue.textContent = String(headroomPercent);
+    try {
+      await emit("waveform-bar-headroom", headroomPercent);
+      window.localStorage.setItem(STORAGE_KEYS.barHeadroom, String(headroomPercent));
+    } catch (err) {
+      statusEl.textContent = `更新顶部留白失败：${String(err)}`;
+    }
+  });
+  barMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      await emit("waveform-bar-mirror", enabled);
+      window.localStorage.setItem(STORAGE_KEYS.barMirror, String(enabled));
+    } catch (err) {
+      statusEl.textContent = `更新镜像模式失败：${String(err)}`;
+    }
+  });
+  barPeakHoldToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      await emit("waveform-bar-peak-hold", enabled);
+      window.localStorage.setItem(STORAGE_KEYS.barPeakHold, String(enabled));
+    } catch (err) {
+      statusEl.textContent = `更新峰值保持线开关失败：${String(err)}`;
+    }
+  });
+  barPeakFallSpeedRange?.addEventListener("input", async (event) => {
+    const speed = clampInt(event.target.value, 5, 120);
+    barPeakFallSpeedValue.textContent = String(speed);
+    try {
+      await emit("waveform-bar-peak-fall-speed", speed);
+      window.localStorage.setItem(STORAGE_KEYS.barPeakFallSpeed, String(speed));
+    } catch (err) {
+      statusEl.textContent = `更新峰值线回落速度失败：${String(err)}`;
+    }
+  });
+  barPeakThicknessRange?.addEventListener("input", async (event) => {
+    const thickness = clampInt(event.target.value, 1, 8);
+    barPeakThicknessValue.textContent = String(thickness);
+    try {
+      await emit("waveform-bar-peak-thickness", thickness);
+      window.localStorage.setItem(STORAGE_KEYS.barPeakThickness, String(thickness));
+    } catch (err) {
+      statusEl.textContent = `更新峰值线粗细失败：${String(err)}`;
+    }
+  });
+  barGainRange?.addEventListener("input", () => {
+    void syncBarShapeConfig();
+  });
+  barSmoothRange?.addEventListener("input", () => {
+    void syncBarShapeConfig();
+  });
+  barSoftClipRange?.addEventListener("input", () => {
+    void syncBarShapeConfig();
+  });
+  barFallEaseRange?.addEventListener("input", () => {
+    void syncBarShapeConfig();
+  });
+  displayModeSelect?.addEventListener("change", async (event) => {
+    const mode = String(event.target.value || "line");
+    applyDisplayModePanels(mode);
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.displayMode, displayMode);
+      await emit("visualization-display-mode", displayMode);
+    } catch (err) {
+      statusEl.textContent = `切换展示模式失败：${String(err)}`;
+    }
+  });
+  panelStyleModeSelect?.addEventListener("change", (event) => {
+    applyPanelStyleMode(String(event.target.value || "pro"));
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.panelStyleMode, panelStyleMode);
+    } catch {
+      // ignore storage failures
+    }
+  });
 
   bodyBgColor.addEventListener("input", () => {
     void syncMainBackgroundStyle();
@@ -478,10 +673,7 @@ async function init() {
   }
 
   const savedWaveShape = readWaveShapeConfig() ?? {
-    gainPercent: 50,
-    smoothPercent: 28,
-    softClipPercent: 22,
-    fallEasePercent: 68,
+    ...DEFAULT_CONFIG.line.shape,
   };
   waveformGainRange.value = String(savedWaveShape.gainPercent);
   waveformSmoothRange.value = String(savedWaveShape.smoothPercent);
@@ -492,6 +684,74 @@ async function init() {
   waveformSoftClipValue.textContent = String(savedWaveShape.softClipPercent);
   waveformFallEaseValue.textContent = String(savedWaveShape.fallEasePercent);
   await syncWaveShapeConfig();
+  const savedBarShape = readBarShapeConfig() ?? {
+    ...DEFAULT_CONFIG.bar.shape,
+  };
+  barGainRange.value = String(savedBarShape.gainPercent);
+  barSmoothRange.value = String(savedBarShape.smoothPercent);
+  barSoftClipRange.value = String(savedBarShape.softClipPercent);
+  barFallEaseRange.value = String(savedBarShape.fallEasePercent);
+  barGainValue.textContent = String(savedBarShape.gainPercent);
+  barSmoothValue.textContent = String(savedBarShape.smoothPercent);
+  barSoftClipValue.textContent = String(savedBarShape.softClipPercent);
+  barFallEaseValue.textContent = String(savedBarShape.fallEasePercent);
+  await syncBarShapeConfig();
+  try {
+    const savedMode = window.localStorage.getItem(STORAGE_KEYS.displayMode);
+    applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
+    const savedPanelStyle = window.localStorage.getItem(STORAGE_KEYS.panelStyleMode);
+    applyPanelStyleMode(savedPanelStyle === PANEL_STYLES.minimal ? PANEL_STYLES.minimal : PANEL_STYLES.pro);
+    const savedBarColor = window.localStorage.getItem(STORAGE_KEYS.barColor);
+    if (savedBarColor && /^#[0-9A-Fa-f]{6}$/.test(savedBarColor)) {
+      barColor.value = savedBarColor.toLowerCase();
+    }
+    const savedBarWidthPercent = window.localStorage.getItem(STORAGE_KEYS.barWidth);
+    if (savedBarWidthPercent) {
+      const widthPercent = clampInt(savedBarWidthPercent, 20, 100);
+      barWidthRange.value = String(widthPercent);
+      barWidthValue.textContent = String(widthPercent);
+    }
+    const savedBarGap = window.localStorage.getItem(STORAGE_KEYS.barGap);
+    if (savedBarGap) {
+      const gapPercent = clampInt(savedBarGap, 0, 70);
+      barGapRange.value = String(gapPercent);
+      barGapValue.textContent = String(gapPercent);
+    }
+    const savedBarHeadroom = window.localStorage.getItem(STORAGE_KEYS.barHeadroom);
+    if (savedBarHeadroom) {
+      const headroomPercent = clampInt(savedBarHeadroom, 0, 40);
+      barHeadroomRange.value = String(headroomPercent);
+      barHeadroomValue.textContent = String(headroomPercent);
+    }
+    const savedBarMirror = window.localStorage.getItem(STORAGE_KEYS.barMirror);
+    barMirrorToggle.checked = parseBoolean(savedBarMirror, DEFAULT_CONFIG.bar.mirrorEnabled);
+    const savedBarPeakHold = window.localStorage.getItem(STORAGE_KEYS.barPeakHold);
+    barPeakHoldToggle.checked = parseBoolean(savedBarPeakHold, DEFAULT_CONFIG.bar.peakHoldEnabled);
+    const savedPeakFallSpeed = window.localStorage.getItem(STORAGE_KEYS.barPeakFallSpeed);
+    if (savedPeakFallSpeed) {
+      const speed = clampInt(savedPeakFallSpeed, 5, 120);
+      barPeakFallSpeedRange.value = String(speed);
+      barPeakFallSpeedValue.textContent = String(speed);
+    }
+    const savedPeakThickness = window.localStorage.getItem(STORAGE_KEYS.barPeakThickness);
+    if (savedPeakThickness) {
+      const thickness = clampInt(savedPeakThickness, 1, 8);
+      barPeakThicknessRange.value = String(thickness);
+      barPeakThicknessValue.textContent = String(thickness);
+    }
+  } catch {
+    applyDisplayModePanels(DISPLAY_MODES.line);
+    applyPanelStyleMode(PANEL_STYLES.pro);
+  }
+  await emit("visualization-display-mode", displayMode);
+  await emit("waveform-bar-color", barColor.value);
+  await emit("waveform-bar-width", clampInt(barWidthRange.value, 20, 100));
+  await emit("waveform-bar-gap", clampInt(barGapRange.value, 0, 70));
+  await emit("waveform-bar-headroom", clampInt(barHeadroomRange.value, 0, 40));
+  await emit("waveform-bar-mirror", Boolean(barMirrorToggle.checked));
+  await emit("waveform-bar-peak-hold", Boolean(barPeakHoldToggle.checked));
+  await emit("waveform-bar-peak-fall-speed", clampInt(barPeakFallSpeedRange.value, 5, 120));
+  await emit("waveform-bar-peak-thickness", clampInt(barPeakThicknessRange.value, 1, 8));
 
   if (quitAppBtn) {
     quitAppBtn.addEventListener("click", async () => {
