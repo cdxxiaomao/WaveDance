@@ -10,7 +10,6 @@ import {
 
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const openLyricsSettingsBtn = document.querySelector("#openLyricsSettingsBtn");
-const newLyricsWindowBtn = document.querySelector("#newLyricsWindowBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 const lyricsRoot = document.querySelector("#nowPlayingLyrics");
 
@@ -145,15 +144,6 @@ async function init() {
     });
   }
 
-  if (newLyricsWindowBtn) {
-    newLyricsWindowBtn.addEventListener("click", async () => {
-      try {
-        await invoke("open_extra_lyrics_window", { anchor_label: windowLabel });
-      } catch (err) {
-        console.error("open_extra_lyrics_window failed:", err);
-      }
-    });
-  }
 }
 
 init().catch((error) => {

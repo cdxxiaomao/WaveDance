@@ -12,6 +12,10 @@ function toolbarTargetLabel() {
 
 const targetLabel = toolbarTargetLabel();
 
+if (targetLabel.startsWith("lyrics-")) {
+  document.body.classList.add("toolbar-floater-lyrics");
+}
+
 /** 浮动窗仅在穿透开启时出现，此处只关心「解锁」态的展示与快捷键同步 */
 function applyLockUi(locked) {
   const on = Boolean(locked);

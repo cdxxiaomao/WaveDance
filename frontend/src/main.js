@@ -14,7 +14,6 @@ import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
-const newSpectrumWindowBtn = document.querySelector("#newSpectrumWindowBtn");
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
@@ -513,18 +512,6 @@ async function init() {
       console.error("open_settings_window failed:", err);
     }
   });
-
-  const canOpenExtraSpectrum =
-    windowLabel === "main" || windowLabel.startsWith("spectrum-");
-  if (newSpectrumWindowBtn && canOpenExtraSpectrum) {
-    newSpectrumWindowBtn.addEventListener("click", async () => {
-      try {
-        await invoke("open_extra_spectrum_window", { anchor_label: windowLabel });
-      } catch (err) {
-        console.error("open_extra_spectrum_window failed:", err);
-      }
-    });
-  }
 
   if (windowLabel === "main" || windowLabel.startsWith("spectrum-")) {
     try {
