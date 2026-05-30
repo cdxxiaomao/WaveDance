@@ -31,6 +31,15 @@ pub struct NowPlayingPayload {
     pub artwork_revision: u64,
 }
 
+/// 轻量进度心跳，避免每秒克隆整份 NowPlayingPayload 经 IPC 下发。
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProgressTick {
+    elapsed_time: Option<f64>,
+    duration: Option<f64>,
+    is_playing: Option<bool>,
+}
+
 #[derive(Default)]
 struct LastFingerprint {
     key: String,
@@ -369,11 +378,11 @@ fn spawn_progress_ticker(
     thread::spawn(move || {
         loop {
             thread::sleep(Duration::from_secs(1));
-            let mut payload = match last_payload.lock() {
+            let payload = match last_payload.lock() {
                 Ok(guard) => guard.clone(),
                 Err(_) => continue,
             };
-            let Some(mut payload) = payload else { continue };
+            let Some(payload) = payload else { continue };
             if !payload.active || payload.is_playing != Some(true) {
                 continue;
             }
@@ -381,8 +390,14 @@ fn spawn_progress_ticker(
                 Ok(clock) => clock.current(),
                 Err(_) => continue,
             };
-            payload.elapsed_time = elapsed;
-            let _ = app.emit("now-playing-progress", payload);
+            let _ = app.emit(
+                "now-playing-progress",
+                ProgressTick {
+                    elapsed_time: elapsed,
+                    duration: payload.duration,
+                    is_playing: payload.is_playing,
+                },
+            );
         }
     });
 }

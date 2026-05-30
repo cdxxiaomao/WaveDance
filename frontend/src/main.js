@@ -88,6 +88,13 @@ let lyricsDisplayState = {
   lyricsSource: "",
 };
 
+/** 歌词略提前显示（毫秒），减轻「慢半拍」体感 */
+const LYRICS_LEAD_MS = 320;
+/** 歌词刷新间隔（勿用 rAF，避免与 WebGL 频谱争抢同一帧） */
+const LYRICS_TICK_MS = 120;
+let lastRenderedLyricText = "";
+let lyricsTickTimer = null;
+
 function getLiveElapsedSec() {
   if (!nowPlayingProgressSync) return 0;
   let elapsed = nowPlayingProgressSync.elapsedSec;
@@ -116,21 +123,29 @@ function renderNowPlayingSourceLine() {
     progress,
   ].filter(Boolean);
   nowPlayingSource.textContent = parts.join(" · ");
-  renderNowPlayingLyrics();
 }
 
 function pickCurrentLyricText(elapsedSec) {
-  const ms = Math.max(0, elapsedSec) * 1000;
+  const ms = Math.max(0, elapsedSec) * 1000 + LYRICS_LEAD_MS;
   const lines = lyricsDisplayState.lines;
   if (lines.length > 0) {
-    let current = "";
-    for (const line of lines) {
-      const t = typeof line.timeMs === "number" ? line.timeMs : 0;
-      const text = typeof line.text === "string" ? line.text : "";
-      if (t <= ms) current = text;
-      else break;
+    let lo = 0;
+    let hi = lines.length - 1;
+    let idx = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const t = typeof lines[mid].timeMs === "number" ? lines[mid].timeMs : 0;
+      if (t <= ms) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
     }
-    if (current) return current;
+    if (idx >= 0) {
+      const text = lines[idx].text;
+      if (text) return text;
+    }
   }
   if (lyricsDisplayState.plainLyrics) {
     const rows = lyricsDisplayState.plainLyrics.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -142,10 +157,36 @@ function pickCurrentLyricText(elapsedSec) {
   return "";
 }
 
+function shouldTickLyrics() {
+  return (
+    lyricsDisplayState.status === "hit" &&
+    !lyricsDisplayState.instrumental &&
+    (lyricsDisplayState.lines.length > 0 || Boolean(lyricsDisplayState.plainLyrics)) &&
+    nowPlayingProgressSync?.isPlaying !== false
+  );
+}
+
+function startLyricsTick() {
+  if (lyricsTickTimer != null) return;
+  lyricsTickTimer = setInterval(() => {
+    if (!shouldTickLyrics()) return;
+    renderNowPlayingLyrics();
+  }, LYRICS_TICK_MS);
+}
+
+function stopLyricsTick() {
+  if (lyricsTickTimer != null) {
+    clearInterval(lyricsTickTimer);
+    lyricsTickTimer = null;
+  }
+}
+
 function renderNowPlayingLyrics() {
   if (!nowPlayingLyrics) return;
   const { status, instrumental } = lyricsDisplayState;
   if (status === "idle" || status === "miss") {
+    stopLyricsTick();
+    lastRenderedLyricText = "";
     nowPlayingLyrics.hidden = true;
     nowPlayingLyrics.classList.remove("is-visible", "is-loading");
     nowPlayingLyrics.textContent = "";
@@ -153,12 +194,16 @@ function renderNowPlayingLyrics() {
   }
   nowPlayingLyrics.hidden = false;
   if (status === "loading") {
+    stopLyricsTick();
+    lastRenderedLyricText = "";
     nowPlayingLyrics.classList.add("is-loading", "is-visible");
     nowPlayingLyrics.classList.remove("is-idle");
     nowPlayingLyrics.textContent = "歌词加载中…";
     return;
   }
   if (instrumental) {
+    stopLyricsTick();
+    lastRenderedLyricText = "";
     nowPlayingLyrics.classList.add("is-visible");
     nowPlayingLyrics.classList.remove("is-loading");
     nowPlayingLyrics.textContent = "纯音乐";
@@ -166,13 +211,18 @@ function renderNowPlayingLyrics() {
   }
   const line = pickCurrentLyricText(getLiveElapsedSec());
   if (!line) {
+    lastRenderedLyricText = "";
     nowPlayingLyrics.hidden = true;
     nowPlayingLyrics.classList.remove("is-visible");
     return;
   }
+  nowPlayingLyrics.hidden = false;
   nowPlayingLyrics.classList.add("is-visible");
   nowPlayingLyrics.classList.remove("is-loading");
-  nowPlayingLyrics.textContent = line;
+  if (line !== lastRenderedLyricText) {
+    lastRenderedLyricText = line;
+    nowPlayingLyrics.textContent = line;
+  }
   if (lyricsDisplayState.lyricsSource) {
     nowPlayingLyrics.title = `歌词来源：${lyricsDisplayState.lyricsSource}`;
   } else {
@@ -198,12 +248,38 @@ function applyLyricsUpdate(payload) {
     lyricsSource: typeof p.lyricsSource === "string" ? p.lyricsSource : "",
   };
   renderNowPlayingLyrics();
+  if (shouldTickLyrics()) startLyricsTick();
+  else stopLyricsTick();
+}
+
+/** 仅更新播放时钟，不触发 DOM（避免与频谱争抢主线程） */
+function softSyncPlaybackClock(p) {
+  if (!p || !nowPlayingProgressSync) return;
+  const elapsedSec =
+    typeof p.elapsedTime === "number" && Number.isFinite(p.elapsedTime) ? p.elapsedTime : null;
+  if (elapsedSec == null) return;
+  const local = getLiveElapsedSec();
+  if (Math.abs(local - elapsedSec) >= 1.5) {
+    nowPlayingProgressSync.elapsedSec = elapsedSec;
+    nowPlayingProgressSync.syncedAt = performance.now();
+  }
+  if (typeof p.duration === "number" && Number.isFinite(p.duration) && p.duration > 0) {
+    nowPlayingProgressSync.durationSec = p.duration;
+  }
+  if (p.isPlaying === false) {
+    nowPlayingProgressSync.isPlaying = false;
+    stopLyricsTick();
+  } else if (p.isPlaying === true) {
+    nowPlayingProgressSync.isPlaying = true;
+    if (shouldTickLyrics()) startLyricsTick();
+  }
 }
 
 function syncNowPlayingProgressFromPayload(p) {
   const active = Boolean(p?.active);
   if (!active) {
     nowPlayingProgressSync = null;
+    stopLyricsTick();
     return;
   }
   const elapsedSec =
@@ -220,15 +296,29 @@ function syncNowPlayingProgressFromPayload(p) {
         : "";
   const playingLabel =
     p.isPlaying === false ? "已暂停" : p.isPlaying === true ? "播放中" : "";
+  const isPlaying = p.isPlaying !== false;
+
+  if (nowPlayingProgressSync && nowPlayingProgressSync.isPlaying && isPlaying) {
+    const localElapsed = getLiveElapsedSec();
+    if (Math.abs(localElapsed - elapsedSec) < 1.2) {
+      nowPlayingProgressSync.bundleName = bundleName;
+      nowPlayingProgressSync.playingLabel = playingLabel;
+      nowPlayingProgressSync.durationSec = durationSec;
+      nowPlayingProgressSync.isPlaying = true;
+      return;
+    }
+  }
+
   nowPlayingProgressSync = {
     bundleName,
     playingLabel,
     elapsedSec,
     durationSec,
     syncedAt: performance.now(),
-    isPlaying: p.isPlaying !== false,
+    isPlaying,
   };
-  renderNowPlayingSourceLine();
+  if (isPlaying) startLyricsTick();
+  else stopLyricsTick();
 }
 
 function applyNowPlaying(payload) {
@@ -246,6 +336,7 @@ function applyNowPlaying(payload) {
     if (nowPlayingArt) nowPlayingArt.removeAttribute("src");
     nowPlayingPanel?.classList.remove("has-artwork");
     nowPlayingProgressSync = null;
+    stopLyricsTick();
     lyricsDisplayState = {
       trackKey: "",
       status: "idle",
@@ -268,6 +359,7 @@ function applyNowPlaying(payload) {
   if (nowPlayingAlbum) nowPlayingAlbum.textContent = album;
 
   syncNowPlayingProgressFromPayload(p);
+  renderNowPlayingSourceLine();
 
   if (nowPlayingArt) {
     const path = typeof p.artworkPath === "string" ? p.artworkPath.trim() : "";
@@ -527,14 +619,14 @@ async function init() {
   });
 
   await listen("now-playing-progress", (event) => {
-    syncNowPlayingProgressFromPayload(event.payload);
+    softSyncPlaybackClock(event.payload);
   });
 
   await listen("lyrics-update", (event) => {
     applyLyricsUpdate(event.payload);
   });
 
-  setInterval(renderNowPlayingSourceLine, 500);
+  setInterval(renderNowPlayingSourceLine, 1000);
 
   async function syncNowPlayingSnapshot() {
     try {
