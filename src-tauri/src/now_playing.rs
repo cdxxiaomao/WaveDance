@@ -346,7 +346,19 @@ fn emit_if_changed(
             *cached = Some(payload.clone());
         }
     }
-    let _ = app.emit("now-playing-update", payload);
+    let _ = app.emit("now-playing-update", payload.clone());
+    if let Some(fetcher) = app.try_state::<crate::lyrics::LyricsFetcher>() {
+        fetcher.notify_track(
+            app,
+            &crate::lyrics::LyricTrackQuery {
+                active: payload.active,
+                title: payload.title.clone(),
+                artist: payload.artist.clone(),
+                album: payload.album.clone(),
+                duration: payload.duration,
+            },
+        );
+    }
 }
 
 fn spawn_progress_ticker(

@@ -8,6 +8,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+urlencoding = "2"
 tauri = { version = "2", features = ["macos-private-api", "tray-icon", "protocol-asset"] }
 tauri-plugin-global-shortcut = "2"
 wavedance = { path = ".." }

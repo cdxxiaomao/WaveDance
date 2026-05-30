@@ -21,6 +21,7 @@ const nowPlayingTitle = document.querySelector("#nowPlayingTitle");
 const nowPlayingArtist = document.querySelector("#nowPlayingArtist");
 const nowPlayingAlbum = document.querySelector("#nowPlayingAlbum");
 const nowPlayingSource = document.querySelector("#nowPlayingSource");
+const nowPlayingLyrics = document.querySelector("#nowPlayingLyrics");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -77,6 +78,16 @@ function formatPlaybackTime(seconds) {
 /** @type {null | { bundleName: string, playingLabel: string, elapsedSec: number, durationSec: number | null, syncedAt: number, isPlaying: boolean }} */
 let nowPlayingProgressSync = null;
 
+/** @type {{ trackKey: string, status: string, lines: { timeMs: number, text: string }[], plainLyrics: string, instrumental: boolean, lyricsSource: string }} */
+let lyricsDisplayState = {
+  trackKey: "",
+  status: "idle",
+  lines: [],
+  plainLyrics: "",
+  instrumental: false,
+  lyricsSource: "",
+};
+
 function getLiveElapsedSec() {
   if (!nowPlayingProgressSync) return 0;
   let elapsed = nowPlayingProgressSync.elapsedSec;
@@ -105,6 +116,88 @@ function renderNowPlayingSourceLine() {
     progress,
   ].filter(Boolean);
   nowPlayingSource.textContent = parts.join(" · ");
+  renderNowPlayingLyrics();
+}
+
+function pickCurrentLyricText(elapsedSec) {
+  const ms = Math.max(0, elapsedSec) * 1000;
+  const lines = lyricsDisplayState.lines;
+  if (lines.length > 0) {
+    let current = "";
+    for (const line of lines) {
+      const t = typeof line.timeMs === "number" ? line.timeMs : 0;
+      const text = typeof line.text === "string" ? line.text : "";
+      if (t <= ms) current = text;
+      else break;
+    }
+    if (current) return current;
+  }
+  if (lyricsDisplayState.plainLyrics) {
+    const rows = lyricsDisplayState.plainLyrics.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (rows.length > 0) {
+      const idx = Math.min(rows.length - 1, Math.floor(elapsedSec / 4));
+      return rows[idx];
+    }
+  }
+  return "";
+}
+
+function renderNowPlayingLyrics() {
+  if (!nowPlayingLyrics) return;
+  const { status, instrumental } = lyricsDisplayState;
+  if (status === "idle" || status === "miss") {
+    nowPlayingLyrics.hidden = true;
+    nowPlayingLyrics.classList.remove("is-visible", "is-loading");
+    nowPlayingLyrics.textContent = "";
+    return;
+  }
+  nowPlayingLyrics.hidden = false;
+  if (status === "loading") {
+    nowPlayingLyrics.classList.add("is-loading", "is-visible");
+    nowPlayingLyrics.classList.remove("is-idle");
+    nowPlayingLyrics.textContent = "歌词加载中…";
+    return;
+  }
+  if (instrumental) {
+    nowPlayingLyrics.classList.add("is-visible");
+    nowPlayingLyrics.classList.remove("is-loading");
+    nowPlayingLyrics.textContent = "纯音乐";
+    return;
+  }
+  const line = pickCurrentLyricText(getLiveElapsedSec());
+  if (!line) {
+    nowPlayingLyrics.hidden = true;
+    nowPlayingLyrics.classList.remove("is-visible");
+    return;
+  }
+  nowPlayingLyrics.classList.add("is-visible");
+  nowPlayingLyrics.classList.remove("is-loading");
+  nowPlayingLyrics.textContent = line;
+  if (lyricsDisplayState.lyricsSource) {
+    nowPlayingLyrics.title = `歌词来源：${lyricsDisplayState.lyricsSource}`;
+  } else {
+    nowPlayingLyrics.removeAttribute("title");
+  }
+}
+
+function applyLyricsUpdate(payload) {
+  const p = payload && typeof payload === "object" ? payload : {};
+  lyricsDisplayState = {
+    trackKey: typeof p.trackKey === "string" ? p.trackKey : "",
+    status: typeof p.status === "string" ? p.status : "idle",
+    lines: Array.isArray(p.lines)
+      ? p.lines
+          .map((line) => ({
+            timeMs: typeof line?.timeMs === "number" ? line.timeMs : 0,
+            text: typeof line?.text === "string" ? line.text : "",
+          }))
+          .filter((line) => line.text)
+      : [],
+    plainLyrics: typeof p.plainLyrics === "string" ? p.plainLyrics : "",
+    instrumental: Boolean(p.instrumental),
+    lyricsSource: typeof p.lyricsSource === "string" ? p.lyricsSource : "",
+  };
+  renderNowPlayingLyrics();
 }
 
 function syncNowPlayingProgressFromPayload(p) {
@@ -153,6 +246,15 @@ function applyNowPlaying(payload) {
     if (nowPlayingArt) nowPlayingArt.removeAttribute("src");
     nowPlayingPanel?.classList.remove("has-artwork");
     nowPlayingProgressSync = null;
+    lyricsDisplayState = {
+      trackKey: "",
+      status: "idle",
+      lines: [],
+      plainLyrics: "",
+      instrumental: false,
+      lyricsSource: "",
+    };
+    renderNowPlayingLyrics();
     return;
   }
 
@@ -428,7 +530,11 @@ async function init() {
     syncNowPlayingProgressFromPayload(event.payload);
   });
 
-  setInterval(renderNowPlayingSourceLine, 1000);
+  await listen("lyrics-update", (event) => {
+    applyLyricsUpdate(event.payload);
+  });
+
+  setInterval(renderNowPlayingSourceLine, 500);
 
   async function syncNowPlayingSnapshot() {
     try {
@@ -440,6 +546,11 @@ async function init() {
   }
 
   await syncNowPlayingSnapshot();
+  try {
+    await invoke("sync_lyrics_for_now_playing");
+  } catch {
+    // 非 macOS 或未启用 now playing 时忽略
+  }
 
   const thisWebviewTarget = { kind: "WebviewWindow", label: windowLabel };
 
@@ -684,6 +795,11 @@ async function init() {
       console.error("start_waveform_stream failed:", err);
     }
     await syncNowPlayingSnapshot();
+    try {
+      await invoke("sync_lyrics_for_now_playing");
+    } catch {
+      // ignore
+    }
   }
   loadMainBackgroundStyleFromStorage(windowLabel);
   renderWaveform();

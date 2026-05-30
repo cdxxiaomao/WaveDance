@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod lyrics;
+
 #[cfg(target_os = "macos")]
 mod now_playing;
 
@@ -1402,6 +1404,26 @@ fn get_now_playing_snapshot(
     monitor.snapshot()
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn sync_lyrics_for_now_playing(
+    app: tauri::AppHandle,
+    monitor: State<'_, now_playing::NowPlayingMonitor>,
+    fetcher: State<'_, lyrics::LyricsFetcher>,
+) {
+    let snap = monitor.snapshot();
+    fetcher.notify_track(
+        &app,
+        &lyrics::LyricTrackQuery {
+            active: snap.active,
+            title: snap.title,
+            artist: snap.artist,
+            album: snap.album,
+            duration: snap.duration,
+        },
+    );
+}
+
 fn open_extra_spectrum_window_impl(
     app: &tauri::AppHandle,
     anchor_label: Option<String>,
@@ -1777,6 +1799,7 @@ fn main() {
 
             #[cfg(target_os = "macos")]
             {
+                app.manage(lyrics::LyricsFetcher::default());
                 app.manage(now_playing::spawn_monitor(app.handle().clone()));
             }
 
@@ -1819,7 +1842,9 @@ fn main() {
             start_window_dragging,
             resize_window_by_delta,
             #[cfg(target_os = "macos")]
-            get_now_playing_snapshot
+            get_now_playing_snapshot,
+            #[cfg(target_os = "macos")]
+            sync_lyrics_for_now_playing
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

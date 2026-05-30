@@ -178,6 +178,39 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   z-index: 10;
 }
 
+.now-playing-lyrics {
+  position: fixed;
+  left: 16px;
+  bottom: 78px;
+  z-index: 9001;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.65);
+  border: 1px solid rgba(196, 165, 116, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(237, 214, 173, 0.95);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.now-playing-lyrics.is-visible {
+  opacity: 1;
+}
+
+.now-playing-lyrics.is-loading {
+  color: rgba(217, 225, 255, 0.55);
+  font-size: 11px;
+}
+
 .now-playing-panel {
   position: fixed;
   left: 16px;
