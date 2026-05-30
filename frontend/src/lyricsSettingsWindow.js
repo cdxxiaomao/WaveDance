@@ -6,6 +6,7 @@ import {
   LYRICS_ALIGN_V,
   LYRICS_FONT_PRESETS,
   LYRICS_LAYOUT,
+  LYRICS_TRANSITION_OPTIONS,
   buildLyricsStyleEventPayload,
   normalizeHexColor,
   normalizeLyricsWindowConfig,
@@ -30,6 +31,7 @@ const lineHeight = document.querySelector("#lyricsLineHeight");
 const lineHeightVal = document.querySelector("#lyricsLineHeightVal");
 const blockGap = document.querySelector("#lyricsBlockGap");
 const blockGapVal = document.querySelector("#lyricsBlockGapVal");
+const transitionEffect = document.querySelector("#lyricsTransitionEffect");
 
 let lyricsTargetLabel = "";
 /** @type {import("./lyricsSettingsSchema.js").LyricsWindowConfig} */
@@ -59,6 +61,7 @@ function syncFormFromConfig() {
   if (lineHeightVal) lineHeightVal.textContent = String(config.lineHeightPercent);
   if (blockGap) blockGap.value = String(config.blockGapPx);
   if (blockGapVal) blockGapVal.textContent = String(config.blockGapPx);
+  if (transitionEffect) transitionEffect.value = config.transitionEffect;
 }
 
 async function persistAndNotify() {
@@ -182,6 +185,15 @@ async function init() {
   };
   layoutHorizontal?.addEventListener("change", onLayoutChange);
   layoutVertical?.addEventListener("change", onLayoutChange);
+
+  if (transitionEffect) {
+    transitionEffect.addEventListener("change", async () => {
+      const allowed = new Set(LYRICS_TRANSITION_OPTIONS.map((item) => item.id));
+      const v = transitionEffect.value;
+      config.transitionEffect = allowed.has(v) ? v : DEFAULT_LYRICS_WINDOW_CONFIG.transitionEffect;
+      await persistAndNotify();
+    });
+  }
 
   if (closeLyricsSettingsBtn) {
     closeLyricsSettingsBtn.addEventListener("click", async () => {

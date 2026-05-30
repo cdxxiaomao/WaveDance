@@ -51,7 +51,10 @@
         </button>
       </div>
       <div id="nowPlayingLyrics" class="now-playing-lyrics lyrics-window-body" data-no-drag hidden>
-        <div id="nowPlayingLyricCurrent" class="now-playing-lyrics-line is-current"></div>
+        <div class="now-playing-lyrics-current-stage">
+          <div class="now-playing-lyrics-line is-current" data-lyric-slot="a"></div>
+          <div class="now-playing-lyrics-line is-current" data-lyric-slot="b" hidden aria-hidden="true"></div>
+        </div>
         <div id="nowPlayingLyricNext" class="now-playing-lyrics-line is-next"></div>
       </div>
     </div>

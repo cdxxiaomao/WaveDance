@@ -18,6 +18,24 @@ export const LYRICS_ALIGN_V = {
   bottom: "bottom",
 };
 
+export const LYRICS_TRANSITION = {
+  none: "none",
+  crossfade: "crossfade",
+  slideUp: "slideUp",
+  scaleFade: "scaleFade",
+  blur: "blur",
+  reveal: "reveal",
+};
+
+export const LYRICS_TRANSITION_OPTIONS = [
+  { id: LYRICS_TRANSITION.none, label: "无（即时切换）" },
+  { id: LYRICS_TRANSITION.crossfade, label: "交叉淡入淡出" },
+  { id: LYRICS_TRANSITION.slideUp, label: "上滑接力" },
+  { id: LYRICS_TRANSITION.scaleFade, label: "缩放强调" },
+  { id: LYRICS_TRANSITION.blur, label: "模糊过渡" },
+  { id: LYRICS_TRANSITION.reveal, label: "逐字显现" },
+];
+
 export const LYRICS_FONT_PRESETS = [
   { id: "system", label: "系统默认", value: 'system-ui, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif' },
   { id: "pingfang", label: "苹方", value: '"PingFang SC", "Microsoft YaHei", sans-serif' },
@@ -40,6 +58,7 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   layout: LYRICS_LAYOUT.horizontal,
   lineHeightPercent: 140,
   blockGapPx: 12,
+  transitionEffect: LYRICS_TRANSITION.none,
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -131,6 +150,10 @@ export function normalizeLyricsWindowConfig(raw) {
   base.lineHeightPercent = clampInt(o.lineHeightPercent, 100, 250);
   base.blockGapPx = clampInt(o.blockGapPx, 0, 48);
 
+  const transition = String(o.transitionEffect ?? "");
+  const allowed = new Set(LYRICS_TRANSITION_OPTIONS.map((item) => item.id));
+  base.transitionEffect = allowed.has(transition) ? transition : base.transitionEffect;
+
   return base;
 }
 
@@ -207,4 +230,7 @@ export function applyLyricsWindowStyle(root, config) {
 
   root.classList.toggle("layout-horizontal", c.layout === LYRICS_LAYOUT.horizontal);
   root.classList.toggle("layout-vertical", c.layout === LYRICS_LAYOUT.vertical);
+  root.classList.toggle("is-vertical-motion", c.layout === LYRICS_LAYOUT.vertical);
+  root.dataset.lyricsTransition = c.transitionEffect;
+  root.dataset.textAlign = c.alignHorizontal;
 }

@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { createLyricsLineTransition } from "./lyricsLineTransition.js";
 
 function formatPlaybackTime(seconds) {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
@@ -40,6 +41,8 @@ let nowPlayingLyrics = null;
 let nowPlayingLyricCurrent = null;
 let nowPlayingLyricNext = null;
 let lyricsOnlyMode = false;
+/** @type {ReturnType<typeof createLyricsLineTransition> | null} */
+let lyricsLineTransition = null;
 
 function getLiveElapsedSec() {
   if (!nowPlayingProgressSync) return 0;
@@ -114,7 +117,11 @@ function pickLyricPairAtTime(elapsedSec) {
   return { current: "", next: "" };
 }
 
-function setLyricsLines(current, next) {
+function setLyricsLines(current, next, options = {}) {
+  if (lyricsOnlyMode && lyricsLineTransition) {
+    lyricsLineTransition.apply(current, next, options);
+    return;
+  }
   if (nowPlayingLyricCurrent) {
     nowPlayingLyricCurrent.textContent = current;
     nowPlayingLyricCurrent.hidden = !current;
@@ -127,6 +134,10 @@ function setLyricsLines(current, next) {
 
 function clearLyricsLines() {
   lastRenderedLyrics = { current: "", next: "" };
+  if (lyricsLineTransition) {
+    lyricsLineTransition.reset();
+    return;
+  }
   setLyricsLines("", "");
 }
 
@@ -163,7 +174,7 @@ function renderNowPlayingLyrics() {
       nowPlayingLyrics.hidden = false;
       nowPlayingLyrics.classList.add("is-visible", "is-idle");
       nowPlayingLyrics.classList.remove("is-loading");
-      setLyricsLines("未检测到正在播放", "");
+      setLyricsLines("未检测到正在播放", "", { instant: true });
       lastRenderedLyrics = { current: "未检测到正在播放", next: "" };
       return;
     }
@@ -177,7 +188,7 @@ function renderNowPlayingLyrics() {
     stopLyricsTick();
     nowPlayingLyrics.classList.add("is-loading", "is-visible");
     nowPlayingLyrics.classList.remove("is-idle");
-    setLyricsLines("歌词加载中…", "");
+    setLyricsLines("歌词加载中…", "", { instant: true });
     lastRenderedLyrics = { current: "歌词加载中…", next: "" };
     return;
   }
@@ -185,7 +196,7 @@ function renderNowPlayingLyrics() {
     stopLyricsTick();
     nowPlayingLyrics.classList.add("is-visible");
     nowPlayingLyrics.classList.remove("is-loading");
-    setLyricsLines("纯音乐", "");
+    setLyricsLines("纯音乐", "", { instant: true });
     lastRenderedLyrics = { current: "纯音乐", next: "" };
     return;
   }
@@ -386,6 +397,9 @@ export async function initNowPlayingLyrics(options = {}) {
   nowPlayingLyrics = document.querySelector("#nowPlayingLyrics");
   nowPlayingLyricCurrent = document.querySelector("#nowPlayingLyricCurrent");
   nowPlayingLyricNext = document.querySelector("#nowPlayingLyricNext");
+  if (lyricsOnlyMode && nowPlayingLyrics?.querySelector(".now-playing-lyrics-current-stage")) {
+    lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
+  }
 
   await listen("now-playing-update", (event) => {
     applyNowPlaying(event.payload);

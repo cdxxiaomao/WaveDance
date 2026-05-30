@@ -336,13 +336,24 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .
 /* 纵向：竖排文字（右列→左列，与古籍一致；DOM 顺序为当前→预备） */
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical {
   flex-direction: row-reverse;
+  align-items: var(--lyrics-align-items, center);
   overflow-y: hidden;
   overflow-x: auto;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
   max-height: 100%;
+  letter-spacing: 0.02em;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line.is-next {
+  flex: 0 0 auto;
 }
 
 body.lyrics-dedicated .now-playing-lyrics-line {
@@ -361,18 +372,6 @@ body.lyrics-dedicated .now-playing-lyrics-line {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
 }
 
-body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
-  white-space: pre-wrap;
-  word-break: normal;
-  overflow-wrap: normal;
-  max-height: 100%;
-  overflow-y: hidden;
-  overflow-x: visible;
-  letter-spacing: 0.02em;
-}
-
 body.lyrics-dedicated .now-playing-lyrics-line.is-next {
   font-size: var(--lyrics-next-size, 14px);
   color: var(--lyrics-next-color, rgba(237, 214, 173, 0.52));
@@ -388,6 +387,255 @@ body.lyrics-dedicated .now-playing-lyrics.is-idle .now-playing-lyrics-line.is-cu
 body.lyrics-dedicated .now-playing-lyrics.is-loading .now-playing-lyrics-line.is-current {
   font-weight: 400;
   color: rgba(217, 225, 255, 0.55);
+}
+
+/* —— 歌词切换动画（独立歌词窗） —— */
+body.lyrics-dedicated .now-playing-lyrics {
+  --lyrics-transition-duration: 320ms;
+  --lyrics-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lyrics-transition-active-duration: var(--lyrics-transition-duration);
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="scaleFade"] {
+  --lyrics-transition-active-duration: var(--lyrics-transition-duration);
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"] {
+  --lyrics-transition-active-duration: 640ms;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage {
+  position: relative;
+  display: grid;
+  align-items: start;
+  justify-items: start;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  align-self: var(--lyrics-align-self, center);
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating {
+  animation: lyricsTransitionCycle var(--lyrics-transition-active-duration) linear forwards;
+}
+
+@keyframes lyricsTransitionCycle {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage > .now-playing-lyrics-line.is-current {
+  grid-area: 1 / 1;
+  min-width: 0;
+  align-self: start;
+  justify-self: start;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage {
+  flex: 0 0 auto;
+  width: fit-content;
+  overflow: hidden;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-current-stage {
+  flex: 0 0 auto;
+  min-width: fit-content;
+  width: fit-content;
+  max-width: none;
+  max-height: 100%;
+  justify-items: end;
+}
+
+/* 竖排常态：单槽位文档流，尺寸随换列自然撑开并顶开预备行 */
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical
+  .now-playing-lyrics-current-stage:not(.is-animating) {
+  display: block;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical
+  .now-playing-lyrics-current-stage.is-animating {
+  display: grid;
+  overflow: hidden;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical
+  .now-playing-lyrics-current-stage
+  > .now-playing-lyrics-line.is-current {
+  justify-self: end;
+  min-width: fit-content;
+  width: fit-content;
+  max-height: 100%;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current.is-exiting {
+  z-index: 1;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current.is-entering {
+  z-index: 2;
+}
+
+@keyframes lyricsCrossfadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes lyricsCrossfadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lyricsSlideOutY {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-0.85em); }
+}
+
+@keyframes lyricsSlideInY {
+  from { opacity: 0; transform: translateY(0.65em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lyricsSlideOutX {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-0.85em); }
+}
+
+@keyframes lyricsSlideInX {
+  from { opacity: 0; transform: translateX(0.65em); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes lyricsScaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1); }
+}
+
+@keyframes lyricsScaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lyricsBlurOut {
+  from { opacity: 1; filter: blur(0); }
+  to { opacity: 0; filter: blur(4px); }
+}
+
+@keyframes lyricsBlurIn {
+  from { opacity: 0; filter: blur(6px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+@keyframes lyricsNextFadeIn {
+  from { opacity: 0.2; }
+  to { opacity: 1; }
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="crossfade"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsCrossfadeOut var(--lyrics-transition-duration) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="crossfade"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsCrossfadeIn var(--lyrics-transition-duration) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="slideUp"]:not(.is-vertical-motion)
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsSlideOutY var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="slideUp"]:not(.is-vertical-motion)
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsSlideInY var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="slideUp"].is-vertical-motion
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsSlideOutX var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="slideUp"].is-vertical-motion
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsSlideInX var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="scaleFade"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsScaleOut calc(var(--lyrics-transition-duration) * 0.65) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="scaleFade"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsScaleIn var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="blur"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsBlurOut var(--lyrics-transition-duration) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="blur"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsBlurIn var(--lyrics-transition-duration) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-exiting {
+  animation: lyricsCrossfadeOut calc(var(--lyrics-transition-active-duration) * 0.45) ease forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"][data-text-align="left"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsRevealInFromLeft var(--lyrics-transition-active-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"][data-text-align="right"]
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsRevealInFromRight var(--lyrics-transition-active-duration) var(--lyrics-transition-ease) forwards;
+}
+
+body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"]:not([data-text-align="left"]):not([data-text-align="right"])
+  .now-playing-lyrics-current-stage.is-animating
+  .is-entering {
+  animation: lyricsRevealInFromCenter var(--lyrics-transition-active-duration) var(--lyrics-transition-ease) forwards;
+}
+
+@keyframes lyricsRevealInFromLeft {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes lyricsRevealInFromRight {
+  from { opacity: 0; clip-path: inset(0 0 0 100%); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes lyricsRevealInFromCenter {
+  from { opacity: 0; clip-path: inset(0 50% 0 50%); }
+  to { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics-current-stage.is-animating
+  ~ .now-playing-lyrics-line.is-next:not([hidden]) {
+  animation: lyricsNextFadeIn var(--lyrics-transition-duration) ease;
 }
 
 .now-playing-panel {
