@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { createLineRenderer } from "./renderers/lineRenderer.js";
@@ -15,6 +15,12 @@ const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const newSpectrumWindowBtn = document.querySelector("#newSpectrumWindowBtn");
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
+const nowPlayingPanel = document.querySelector("#nowPlayingPanel");
+const nowPlayingArt = document.querySelector("#nowPlayingArt");
+const nowPlayingTitle = document.querySelector("#nowPlayingTitle");
+const nowPlayingArtist = document.querySelector("#nowPlayingArtist");
+const nowPlayingAlbum = document.querySelector("#nowPlayingAlbum");
+const nowPlayingSource = document.querySelector("#nowPlayingSource");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -55,6 +61,135 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (barRaw) applyBarShapeConfig(JSON.parse(barRaw));
   } catch {
     // ignore storage failures and keep defaults
+  }
+}
+
+function formatPlaybackTime(seconds) {
+  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
+    return "";
+  }
+  const total = Math.floor(seconds);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** @type {null | { bundleName: string, playingLabel: string, elapsedSec: number, durationSec: number | null, syncedAt: number, isPlaying: boolean }} */
+let nowPlayingProgressSync = null;
+
+function getLiveElapsedSec() {
+  if (!nowPlayingProgressSync) return 0;
+  let elapsed = nowPlayingProgressSync.elapsedSec;
+  if (nowPlayingProgressSync.isPlaying) {
+    elapsed += (performance.now() - nowPlayingProgressSync.syncedAt) / 1000;
+  }
+  const duration = nowPlayingProgressSync.durationSec;
+  if (typeof duration === "number" && duration > 0) {
+    elapsed = Math.min(elapsed, duration);
+  }
+  return Math.max(0, elapsed);
+}
+
+function renderNowPlayingSourceLine() {
+  if (!nowPlayingSource || !nowPlayingProgressSync) return;
+  const elapsed = formatPlaybackTime(getLiveElapsedSec());
+  const duration =
+    nowPlayingProgressSync.durationSec != null
+      ? formatPlaybackTime(nowPlayingProgressSync.durationSec)
+      : "";
+  const progress =
+    elapsed && duration ? `${elapsed} / ${duration}` : elapsed || duration || "";
+  const parts = [
+    nowPlayingProgressSync.bundleName,
+    nowPlayingProgressSync.playingLabel,
+    progress,
+  ].filter(Boolean);
+  nowPlayingSource.textContent = parts.join(" · ");
+}
+
+function syncNowPlayingProgressFromPayload(p) {
+  const active = Boolean(p?.active);
+  if (!active) {
+    nowPlayingProgressSync = null;
+    return;
+  }
+  const elapsedSec =
+    typeof p.elapsedTime === "number" && Number.isFinite(p.elapsedTime) ? p.elapsedTime : 0;
+  const durationSec =
+    typeof p.duration === "number" && Number.isFinite(p.duration) && p.duration > 0
+      ? p.duration
+      : null;
+  const bundleName =
+    typeof p.bundleName === "string" && p.bundleName.trim()
+      ? p.bundleName.trim()
+      : typeof p.bundleId === "string"
+        ? p.bundleId
+        : "";
+  const playingLabel =
+    p.isPlaying === false ? "已暂停" : p.isPlaying === true ? "播放中" : "";
+  nowPlayingProgressSync = {
+    bundleName,
+    playingLabel,
+    elapsedSec,
+    durationSec,
+    syncedAt: performance.now(),
+    isPlaying: p.isPlaying !== false,
+  };
+  renderNowPlayingSourceLine();
+}
+
+function applyNowPlaying(payload) {
+  if (!nowPlayingPanel) return;
+  const p = payload && typeof payload === "object" ? payload : {};
+  const active = Boolean(p.active);
+
+  if (!active) {
+    nowPlayingPanel.hidden = false;
+    nowPlayingPanel.classList.add("is-idle");
+    if (nowPlayingTitle) nowPlayingTitle.textContent = "未检测到正在播放";
+    if (nowPlayingArtist) nowPlayingArtist.textContent = "";
+    if (nowPlayingAlbum) nowPlayingAlbum.textContent = "";
+    if (nowPlayingSource) nowPlayingSource.textContent = "";
+    if (nowPlayingArt) nowPlayingArt.removeAttribute("src");
+    nowPlayingPanel?.classList.remove("has-artwork");
+    nowPlayingProgressSync = null;
+    return;
+  }
+
+  nowPlayingPanel.hidden = false;
+  nowPlayingPanel.classList.remove("is-idle");
+  const title = typeof p.title === "string" && p.title.trim() ? p.title.trim() : "未知曲目";
+  const artist = typeof p.artist === "string" ? p.artist.trim() : "";
+  const album = typeof p.album === "string" ? p.album.trim() : "";
+  if (nowPlayingTitle) nowPlayingTitle.textContent = title;
+  if (nowPlayingArtist) nowPlayingArtist.textContent = artist;
+  if (nowPlayingAlbum) nowPlayingAlbum.textContent = album;
+
+  syncNowPlayingProgressFromPayload(p);
+
+  if (nowPlayingArt) {
+    const path = typeof p.artworkPath === "string" ? p.artworkPath.trim() : "";
+    const revision =
+      typeof p.artworkRevision === "number" && Number.isFinite(p.artworkRevision)
+        ? p.artworkRevision
+        : 0;
+    let art = "";
+    if (path) {
+      const base = convertFileSrc(path);
+      art = `${base}${base.includes("?") ? "&" : "?"}v=${revision}`;
+    } else if (
+      typeof p.artworkDataUrl === "string" &&
+      p.artworkDataUrl.startsWith("data:")
+    ) {
+      art = p.artworkDataUrl;
+    }
+    if (art) {
+      nowPlayingArt.src = art;
+      nowPlayingPanel?.classList.add("has-artwork");
+    } else {
+      nowPlayingArt.removeAttribute("src");
+      nowPlayingPanel?.classList.remove("has-artwork");
+    }
   }
 }
 
@@ -284,6 +419,27 @@ async function init() {
   await listen("waveform-status", (event) => {
     console.info("waveform-status:", event.payload);
   });
+
+  await listen("now-playing-update", (event) => {
+    applyNowPlaying(event.payload);
+  });
+
+  await listen("now-playing-progress", (event) => {
+    syncNowPlayingProgressFromPayload(event.payload);
+  });
+
+  setInterval(renderNowPlayingSourceLine, 1000);
+
+  async function syncNowPlayingSnapshot() {
+    try {
+      const snap = await invoke("get_now_playing_snapshot");
+      applyNowPlaying(snap);
+    } catch (err) {
+      console.warn("get_now_playing_snapshot failed:", err);
+    }
+  }
+
+  await syncNowPlayingSnapshot();
 
   const thisWebviewTarget = { kind: "WebviewWindow", label: windowLabel };
 
@@ -527,6 +683,7 @@ async function init() {
     } catch (err) {
       console.error("start_waveform_stream failed:", err);
     }
+    await syncNowPlayingSnapshot();
   }
   loadMainBackgroundStyleFromStorage(windowLabel);
   renderWaveform();

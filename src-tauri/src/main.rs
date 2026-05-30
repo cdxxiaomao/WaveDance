@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(target_os = "macos")]
+mod now_playing;
+
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
@@ -1391,6 +1394,14 @@ fn get_mouse_passthrough_locked(state: State<'_, StreamState>, label: String) ->
     label_passthrough_locked(&state, label.trim())
 }
 
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn get_now_playing_snapshot(
+    monitor: State<'_, now_playing::NowPlayingMonitor>,
+) -> now_playing::NowPlayingPayload {
+    monitor.snapshot()
+}
+
 fn open_extra_spectrum_window_impl(
     app: &tauri::AppHandle,
     anchor_label: Option<String>,
@@ -1484,6 +1495,13 @@ fn open_extra_spectrum_window_impl(
     if !overlay_mode {
         let _ = win.set_focus();
     }
+
+    #[cfg(target_os = "macos")]
+    {
+        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let _ = app.emit_to(&label, "now-playing-update", payload);
+    }
+
     Ok(())
 }
 
@@ -1757,6 +1775,11 @@ fn main() {
                     .build(app.handle())?;
             }
 
+            #[cfg(target_os = "macos")]
+            {
+                app.manage(now_playing::spawn_monitor(app.handle().clone()));
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1794,7 +1817,9 @@ fn main() {
             get_spectrum_window_overlay_mode,
             quit_app,
             start_window_dragging,
-            resize_window_by_delta
+            resize_window_by_delta,
+            #[cfg(target_os = "macos")]
+            get_now_playing_snapshot
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

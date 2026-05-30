@@ -8,11 +8,14 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
+tauri = { version = "2", features = ["macos-private-api", "tray-icon", "protocol-asset"] }
 tauri-plugin-global-shortcut = "2"
 wavedance = { path = ".." }
 rustfft = "6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
+base64 = "0.22"
+image = "0.25"
+media-remote = "0.3.8"
 objc2-app-kit = "0.3"
 window-vibrancy = "0.6"
