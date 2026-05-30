@@ -26,10 +26,12 @@ let lyricsDisplayState = {
 };
 
 const LYRICS_LEAD_MS = 320;
-const LYRICS_TICK_MS = 120;
-/** @type {{ current: string, next: string }} */
-let lastRenderedLyrics = { current: "", next: "" };
-let lyricsTickTimer = null;
+/** @type {{ current: string, next: string, lineIndex: number }} */
+let lastRenderedLyrics = { current: "", next: "", lineIndex: -1 };
+/** @type {number | null} */
+let lyricsRafId = null;
+let nowPlayingTrackTitle = "";
+let nowPlayingTrackArtist = "";
 
 let nowPlayingPanel = null;
 let nowPlayingArt = null;
@@ -93,7 +95,7 @@ function pickLyricLineIndexAtMs(ms) {
   return idx;
 }
 
-/** @returns {{ current: string, next: string }} */
+/** @returns {{ current: string, next: string, lineIndex: number }} */
 function pickLyricPairAtTime(elapsedSec) {
   const ms = Math.max(0, elapsedSec) * 1000 + LYRICS_LEAD_MS;
   const lines = lyricsDisplayState.lines;
@@ -102,7 +104,7 @@ function pickLyricPairAtTime(elapsedSec) {
     const current = idx >= 0 ? (lines[idx].text || "") : "";
     const nextRaw = idx + 1 < lines.length ? (lines[idx + 1].text || "") : "";
     const next = nextRaw && nextRaw !== current ? nextRaw : "";
-    return { current, next };
+    return { current, next, lineIndex: idx };
   }
   if (lyricsDisplayState.plainLyrics) {
     const rows = lyricsDisplayState.plainLyrics.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -111,10 +113,18 @@ function pickLyricPairAtTime(elapsedSec) {
       const current = rows[idx] || "";
       const nextRaw = idx + 1 < rows.length ? rows[idx + 1] : "";
       const next = nextRaw && nextRaw !== current ? nextRaw : "";
-      return { current, next };
+      return { current, next, lineIndex: idx };
     }
   }
-  return { current: "", next: "" };
+  return { current: "", next: "", lineIndex: -1 };
+}
+
+/** @returns {{ current: string, next: string }} */
+function getTrackMetaLyricLines() {
+  return {
+    current: nowPlayingTrackTitle || "未知曲目",
+    next: nowPlayingTrackArtist,
+  };
 }
 
 function setLyricsLines(current, next, options = {}) {
@@ -133,12 +143,35 @@ function setLyricsLines(current, next, options = {}) {
 }
 
 function clearLyricsLines() {
-  lastRenderedLyrics = { current: "", next: "" };
+  lastRenderedLyrics = { current: "", next: "", lineIndex: -1 };
   if (lyricsLineTransition) {
     lyricsLineTransition.reset();
     return;
   }
   setLyricsLines("", "");
+}
+
+function stopLyricsRaf() {
+  if (lyricsRafId != null) {
+    cancelAnimationFrame(lyricsRafId);
+    lyricsRafId = null;
+  }
+}
+
+function lyricsRafTick() {
+  lyricsRafId = null;
+  if (!shouldTickLyrics()) return;
+  renderNowPlayingLyrics(false);
+  lyricsRafId = requestAnimationFrame(lyricsRafTick);
+}
+
+function startLyricsRaf() {
+  if (lyricsRafId != null) return;
+  lyricsRafId = requestAnimationFrame(lyricsRafTick);
+}
+
+function stopLyricsTick() {
+  stopLyricsRaf();
 }
 
 function shouldTickLyrics() {
@@ -150,22 +183,10 @@ function shouldTickLyrics() {
   );
 }
 
-function startLyricsTick() {
-  if (lyricsTickTimer != null) return;
-  lyricsTickTimer = setInterval(() => {
-    if (!shouldTickLyrics()) return;
-    renderNowPlayingLyrics();
-  }, LYRICS_TICK_MS);
-}
-
-function stopLyricsTick() {
-  if (lyricsTickTimer != null) {
-    clearInterval(lyricsTickTimer);
-    lyricsTickTimer = null;
-  }
-}
-
-function renderNowPlayingLyrics() {
+/**
+ * @param {boolean} [force]
+ */
+function renderNowPlayingLyrics(force = true) {
   if (!nowPlayingLyrics) return;
   const { status, instrumental } = lyricsDisplayState;
   if (status === "idle" || status === "miss") {
@@ -175,7 +196,7 @@ function renderNowPlayingLyrics() {
       nowPlayingLyrics.classList.add("is-visible", "is-idle");
       nowPlayingLyrics.classList.remove("is-loading");
       setLyricsLines("未检测到正在播放", "", { instant: true });
-      lastRenderedLyrics = { current: "未检测到正在播放", next: "" };
+      lastRenderedLyrics = { current: "未检测到正在播放", next: "", lineIndex: -1 };
       return;
     }
     nowPlayingLyrics.hidden = true;
@@ -186,10 +207,13 @@ function renderNowPlayingLyrics() {
   nowPlayingLyrics.hidden = false;
   if (status === "loading") {
     stopLyricsTick();
-    nowPlayingLyrics.classList.add("is-loading", "is-visible");
-    nowPlayingLyrics.classList.remove("is-idle");
-    setLyricsLines("歌词加载中…", "", { instant: true });
-    lastRenderedLyrics = { current: "歌词加载中…", next: "" };
+    nowPlayingLyrics.classList.add("is-visible");
+    nowPlayingLyrics.classList.remove("is-idle", "is-loading");
+    const { current, next } = getTrackMetaLyricLines();
+    if (current !== lastRenderedLyrics.current || next !== lastRenderedLyrics.next) {
+      lastRenderedLyrics = { current, next, lineIndex: -1 };
+      setLyricsLines(current, next, { instant: true });
+    }
     return;
   }
   if (instrumental) {
@@ -197,10 +221,10 @@ function renderNowPlayingLyrics() {
     nowPlayingLyrics.classList.add("is-visible");
     nowPlayingLyrics.classList.remove("is-loading");
     setLyricsLines("纯音乐", "", { instant: true });
-    lastRenderedLyrics = { current: "纯音乐", next: "" };
+    lastRenderedLyrics = { current: "纯音乐", next: "", lineIndex: -1 };
     return;
   }
-  const { current, next } = pickLyricPairAtTime(getLiveElapsedSec());
+  const { current, next, lineIndex } = pickLyricPairAtTime(getLiveElapsedSec());
   if (!current && !next) {
     clearLyricsLines();
     nowPlayingLyrics.hidden = true;
@@ -210,8 +234,10 @@ function renderNowPlayingLyrics() {
   nowPlayingLyrics.hidden = false;
   nowPlayingLyrics.classList.add("is-visible");
   nowPlayingLyrics.classList.remove("is-loading");
-  if (current !== lastRenderedLyrics.current || next !== lastRenderedLyrics.next) {
-    lastRenderedLyrics = { current, next };
+  const lineChanged = lineIndex !== lastRenderedLyrics.lineIndex;
+  const nextChanged = next !== lastRenderedLyrics.next;
+  if (force || lineChanged || nextChanged) {
+    lastRenderedLyrics = { current, next, lineIndex };
     setLyricsLines(current, next);
   }
   if (lyricsDisplayState.lyricsSource) {
@@ -239,7 +265,7 @@ function applyLyricsUpdate(payload) {
     lyricsSource: typeof p.lyricsSource === "string" ? p.lyricsSource : "",
   };
   renderNowPlayingLyrics();
-  if (shouldTickLyrics()) startLyricsTick();
+  if (shouldTickLyrics()) startLyricsRaf();
   else stopLyricsTick();
 }
 
@@ -261,7 +287,7 @@ function softSyncPlaybackClock(p) {
     stopLyricsTick();
   } else if (p.isPlaying === true) {
     nowPlayingProgressSync.isPlaying = true;
-    if (shouldTickLyrics()) startLyricsTick();
+    if (shouldTickLyrics()) startLyricsRaf();
   }
 }
 
@@ -307,7 +333,7 @@ function syncNowPlayingProgressFromPayload(p) {
     syncedAt: performance.now(),
     isPlaying,
   };
-  if (isPlaying) startLyricsTick();
+  if (isPlaying) startLyricsRaf();
   else stopLyricsTick();
 }
 
@@ -316,6 +342,8 @@ function applyNowPlaying(payload) {
   const active = Boolean(p.active);
 
   if (!active) {
+    nowPlayingTrackTitle = "";
+    nowPlayingTrackArtist = "";
     if (nowPlayingPanel) {
       nowPlayingPanel.hidden = false;
       nowPlayingPanel.classList.add("is-idle");
@@ -340,11 +368,14 @@ function applyNowPlaying(payload) {
     return;
   }
 
+  const title = typeof p.title === "string" && p.title.trim() ? p.title.trim() : "未知曲目";
+  const artist = typeof p.artist === "string" ? p.artist.trim() : "";
+  nowPlayingTrackTitle = title;
+  nowPlayingTrackArtist = artist;
+
   if (nowPlayingPanel) {
     nowPlayingPanel.hidden = false;
     nowPlayingPanel.classList.remove("is-idle");
-    const title = typeof p.title === "string" && p.title.trim() ? p.title.trim() : "未知曲目";
-    const artist = typeof p.artist === "string" ? p.artist.trim() : "";
     const album = typeof p.album === "string" ? p.album.trim() : "";
     if (nowPlayingTitle) nowPlayingTitle.textContent = title;
     if (nowPlayingArtist) nowPlayingArtist.textContent = artist;
@@ -378,6 +409,7 @@ function applyNowPlaying(payload) {
 
   syncNowPlayingProgressFromPayload(p);
   if (nowPlayingSource) renderNowPlayingSourceLine();
+  if (lyricsDisplayState.status === "loading") renderNowPlayingLyrics();
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
- * 独立歌词窗：双槽位切换。
- * JS 仅负责文本内容与 class 切换；动画、时长、收尾均由 CSS 驱动。
+ * 独立歌词窗双槽位切换。
+ * 驱动方式参考 AMLL / am-lyrics：JS 只同步文本与状态 class，动画与时长全部由 CSS 完成。
  * @param {HTMLElement} root
  * @param {HTMLElement | null} nextEl
  */
@@ -17,7 +17,7 @@ export function createLyricsLineTransition(root, nextEl) {
   let animating = false;
   let animGen = 0;
   /** @type {((event: AnimationEvent) => void) | null} */
-  let onAnimEnd = null;
+  let onEnterEnd = null;
 
   function activeSlot() {
     return activeSlotId === "a" ? slotA : slotB;
@@ -50,10 +50,11 @@ export function createLyricsLineTransition(root, nextEl) {
     clearSlotMotion(slotB);
   }
 
-  function detachAnimEnd() {
-    if (!onAnimEnd) return;
-    stage.removeEventListener("animationend", onAnimEnd);
-    onAnimEnd = null;
+  function detachEnterEnd() {
+    if (!onEnterEnd) return;
+    slotA.removeEventListener("animationend", onEnterEnd);
+    slotB.removeEventListener("animationend", onEnterEnd);
+    onEnterEnd = null;
   }
 
   function showSlot(el, visible) {
@@ -75,12 +76,12 @@ export function createLyricsLineTransition(root, nextEl) {
     clearAnimClasses();
     showSlot(activeSlot(), Boolean(displayedCurrent));
     animating = false;
-    detachAnimEnd();
+    detachEnterEnd();
   }
 
   function abortAnimation() {
     animGen++;
-    detachAnimEnd();
+    detachEnterEnd();
     animating = false;
     deactivateSlot(inactiveSlot());
     clearAnimClasses();
@@ -109,16 +110,16 @@ export function createLyricsLineTransition(root, nextEl) {
   }
 
   /** @param {HTMLElement} outgoing @param {HTMLElement} incoming @param {string} current */
-  function watchTransitionEnd(outgoing, incoming, current) {
-    detachAnimEnd();
+  function watchEnterAnimationEnd(outgoing, incoming, current) {
+    detachEnterEnd();
     const gen = animGen;
-    onAnimEnd = (event) => {
+    onEnterEnd = (event) => {
       if (gen !== animGen) return;
-      if (event.target !== stage) return;
-      if (event.animationName !== "lyricsTransitionCycle") return;
+      if (event.target !== incoming) return;
+      if (!incoming.classList.contains("is-entering")) return;
       completeTransition(outgoing, incoming, current);
     };
-    stage.addEventListener("animationend", onAnimEnd);
+    incoming.addEventListener("animationend", onEnterEnd);
   }
 
   /** @param {string} current */
@@ -135,7 +136,7 @@ export function createLyricsLineTransition(root, nextEl) {
     outgoing.classList.add("is-exiting");
     incoming.classList.add("is-entering");
     animating = true;
-    watchTransitionEnd(outgoing, incoming, current);
+    watchEnterAnimationEnd(outgoing, incoming, current);
   }
 
   /**

@@ -58,7 +58,7 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   layout: LYRICS_LAYOUT.horizontal,
   lineHeightPercent: 140,
   blockGapPx: 12,
-  transitionEffect: LYRICS_TRANSITION.none,
+  transitionEffect: LYRICS_TRANSITION.crossfade,
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -95,6 +95,13 @@ function alignVerticalToFlex(value) {
   if (value === LYRICS_ALIGN_V.top) return FLEX_START;
   if (value === LYRICS_ALIGN_V.bottom) return FLEX_END;
   return FLEX_CENTER;
+}
+
+/** flex 对齐值 → grid 的 start / center / end（切换槽位 grid 与外层 flex 同锚点） */
+function flexToGridAlign(flexValue) {
+  if (flexValue === FLEX_END) return "end";
+  if (flexValue === FLEX_START) return "start";
+  return "center";
 }
 
 export function normalizeLyricsWindowLabel(label) {
@@ -227,6 +234,8 @@ export function applyLyricsWindowStyle(root, config) {
     root.style.setProperty("--lyrics-align-items", vFlex);
     root.style.setProperty("--lyrics-align-self", "auto");
   }
+  root.style.setProperty("--lyrics-stage-align", flexToGridAlign(vFlex));
+  root.style.setProperty("--lyrics-stage-justify", flexToGridAlign(hFlex));
 
   root.classList.toggle("layout-horizontal", c.layout === LYRICS_LAYOUT.horizontal);
   root.classList.toggle("layout-vertical", c.layout === LYRICS_LAYOUT.vertical);

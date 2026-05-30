@@ -377,6 +377,9 @@ body.lyrics-dedicated .now-playing-lyrics-line.is-next {
   color: var(--lyrics-next-color, rgba(237, 214, 173, 0.52));
   font-weight: 400;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  transition:
+    opacity var(--lyrics-transition-duration) var(--lyrics-transition-ease),
+    color var(--lyrics-transition-duration) ease;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.layout-vertical .now-playing-lyrics-line.is-next {
@@ -391,8 +394,8 @@ body.lyrics-dedicated .now-playing-lyrics.is-loading .now-playing-lyrics-line.is
 
 /* —— 歌词切换动画（独立歌词窗） —— */
 body.lyrics-dedicated .now-playing-lyrics {
-  --lyrics-transition-duration: 320ms;
-  --lyrics-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --lyrics-transition-duration: 380ms;
+  --lyrics-transition-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
   --lyrics-transition-active-duration: var(--lyrics-transition-duration);
 }
 
@@ -407,64 +410,46 @@ body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"] {
 body.lyrics-dedicated .now-playing-lyrics-current-stage {
   position: relative;
   display: grid;
-  align-items: start;
-  justify-items: start;
-  flex: 0 1 auto;
+  align-items: var(--lyrics-stage-align, start);
+  justify-items: var(--lyrics-stage-justify, start);
+  flex: 0 0 auto;
   min-width: 0;
   max-width: 100%;
   align-self: var(--lyrics-align-self, center);
-}
-
-body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating {
-  animation: lyricsTransitionCycle var(--lyrics-transition-active-duration) linear forwards;
-}
-
-@keyframes lyricsTransitionCycle {
-  from { opacity: 1; }
-  to { opacity: 1; }
+  contain: layout style;
 }
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage > .now-playing-lyrics-line.is-current {
   grid-area: 1 / 1;
   min-width: 0;
-  align-self: start;
-  justify-self: start;
+  align-self: var(--lyrics-stage-align, start);
+  justify-self: var(--lyrics-stage-justify, start);
+  backface-visibility: hidden;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current {
+  will-change: opacity, transform, filter, clip-path;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage {
-  flex: 0 0 auto;
   width: fit-content;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage.is-animating {
   overflow: hidden;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-current-stage {
-  flex: 0 0 auto;
   min-width: fit-content;
   width: fit-content;
   max-width: none;
   max-height: 100%;
-  justify-items: end;
-}
-
-/* 竖排常态：单槽位文档流，尺寸随换列自然撑开并顶开预备行 */
-body.lyrics-dedicated
-  .now-playing-lyrics.lyrics-window-body.layout-vertical
-  .now-playing-lyrics-current-stage:not(.is-animating) {
-  display: block;
-}
-
-body.lyrics-dedicated
-  .now-playing-lyrics.lyrics-window-body.layout-vertical
-  .now-playing-lyrics-current-stage.is-animating {
-  display: grid;
-  overflow: hidden;
 }
 
 body.lyrics-dedicated
   .now-playing-lyrics.lyrics-window-body.layout-vertical
   .now-playing-lyrics-current-stage
   > .now-playing-lyrics-line.is-current {
-  justify-self: end;
   min-width: fit-content;
   width: fit-content;
   max-height: 100%;
@@ -472,6 +457,7 @@ body.lyrics-dedicated
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current.is-exiting {
   z-index: 1;
+  pointer-events: none;
 }
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current.is-entering {
@@ -528,21 +514,16 @@ body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-play
   to { opacity: 1; filter: blur(0); }
 }
 
-@keyframes lyricsNextFadeIn {
-  from { opacity: 0.2; }
-  to { opacity: 1; }
-}
-
 body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="crossfade"]
   .now-playing-lyrics-current-stage.is-animating
   .is-exiting {
-  animation: lyricsCrossfadeOut var(--lyrics-transition-duration) ease forwards;
+  animation: lyricsCrossfadeOut var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
 }
 
 body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="crossfade"]
   .now-playing-lyrics-current-stage.is-animating
   .is-entering {
-  animation: lyricsCrossfadeIn var(--lyrics-transition-duration) ease forwards;
+  animation: lyricsCrossfadeIn var(--lyrics-transition-duration) var(--lyrics-transition-ease) forwards;
 }
 
 body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="slideUp"]:not(.is-vertical-motion)
@@ -630,12 +611,6 @@ body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"]:not([
 @keyframes lyricsRevealInFromCenter {
   from { opacity: 0; clip-path: inset(0 50% 0 50%); }
   to { opacity: 1; clip-path: inset(0 0 0 0); }
-}
-
-body.lyrics-dedicated
-  .now-playing-lyrics-current-stage.is-animating
-  ~ .now-playing-lyrics-line.is-next:not([hidden]) {
-  animation: lyricsNextFadeIn var(--lyrics-transition-duration) ease;
 }
 
 .now-playing-panel {
