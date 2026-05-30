@@ -6,6 +6,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        lyrics: resolve(__dirname, "lyrics.html"),
+        lyricsSettings: resolve(__dirname, "lyrics-settings.html"),
         settings: resolve(__dirname, "settings.html"),
         toolbar: resolve(__dirname, "toolbar.html"),
       },

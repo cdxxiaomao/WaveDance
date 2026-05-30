@@ -1,4 +1,4 @@
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { createLineRenderer } from "./renderers/lineRenderer.js";
@@ -10,18 +10,12 @@ import {
   parseBoolean,
   readWindowStorageString,
 } from "./visualizationSchema.js";
+import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const newSpectrumWindowBtn = document.querySelector("#newSpectrumWindowBtn");
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
-const nowPlayingPanel = document.querySelector("#nowPlayingPanel");
-const nowPlayingArt = document.querySelector("#nowPlayingArt");
-const nowPlayingTitle = document.querySelector("#nowPlayingTitle");
-const nowPlayingArtist = document.querySelector("#nowPlayingArtist");
-const nowPlayingAlbum = document.querySelector("#nowPlayingAlbum");
-const nowPlayingSource = document.querySelector("#nowPlayingSource");
-const nowPlayingLyrics = document.querySelector("#nowPlayingLyrics");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
 const gl = canvas.getContext("webgl");
@@ -62,328 +56,6 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (barRaw) applyBarShapeConfig(JSON.parse(barRaw));
   } catch {
     // ignore storage failures and keep defaults
-  }
-}
-
-function formatPlaybackTime(seconds) {
-  if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
-    return "";
-  }
-  const total = Math.floor(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-/** @type {null | { bundleName: string, playingLabel: string, elapsedSec: number, durationSec: number | null, syncedAt: number, isPlaying: boolean }} */
-let nowPlayingProgressSync = null;
-
-/** @type {{ trackKey: string, status: string, lines: { timeMs: number, text: string }[], plainLyrics: string, instrumental: boolean, lyricsSource: string }} */
-let lyricsDisplayState = {
-  trackKey: "",
-  status: "idle",
-  lines: [],
-  plainLyrics: "",
-  instrumental: false,
-  lyricsSource: "",
-};
-
-/** 歌词略提前显示（毫秒），减轻「慢半拍」体感 */
-const LYRICS_LEAD_MS = 320;
-/** 歌词刷新间隔（勿用 rAF，避免与 WebGL 频谱争抢同一帧） */
-const LYRICS_TICK_MS = 120;
-let lastRenderedLyricText = "";
-let lyricsTickTimer = null;
-
-function getLiveElapsedSec() {
-  if (!nowPlayingProgressSync) return 0;
-  let elapsed = nowPlayingProgressSync.elapsedSec;
-  if (nowPlayingProgressSync.isPlaying) {
-    elapsed += (performance.now() - nowPlayingProgressSync.syncedAt) / 1000;
-  }
-  const duration = nowPlayingProgressSync.durationSec;
-  if (typeof duration === "number" && duration > 0) {
-    elapsed = Math.min(elapsed, duration);
-  }
-  return Math.max(0, elapsed);
-}
-
-function renderNowPlayingSourceLine() {
-  if (!nowPlayingSource || !nowPlayingProgressSync) return;
-  const elapsed = formatPlaybackTime(getLiveElapsedSec());
-  const duration =
-    nowPlayingProgressSync.durationSec != null
-      ? formatPlaybackTime(nowPlayingProgressSync.durationSec)
-      : "";
-  const progress =
-    elapsed && duration ? `${elapsed} / ${duration}` : elapsed || duration || "";
-  const parts = [
-    nowPlayingProgressSync.bundleName,
-    nowPlayingProgressSync.playingLabel,
-    progress,
-  ].filter(Boolean);
-  nowPlayingSource.textContent = parts.join(" · ");
-}
-
-function pickCurrentLyricText(elapsedSec) {
-  const ms = Math.max(0, elapsedSec) * 1000 + LYRICS_LEAD_MS;
-  const lines = lyricsDisplayState.lines;
-  if (lines.length > 0) {
-    let lo = 0;
-    let hi = lines.length - 1;
-    let idx = -1;
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1;
-      const t = typeof lines[mid].timeMs === "number" ? lines[mid].timeMs : 0;
-      if (t <= ms) {
-        idx = mid;
-        lo = mid + 1;
-      } else {
-        hi = mid - 1;
-      }
-    }
-    if (idx >= 0) {
-      const text = lines[idx].text;
-      if (text) return text;
-    }
-  }
-  if (lyricsDisplayState.plainLyrics) {
-    const rows = lyricsDisplayState.plainLyrics.split("\n").map((s) => s.trim()).filter(Boolean);
-    if (rows.length > 0) {
-      const idx = Math.min(rows.length - 1, Math.floor(elapsedSec / 4));
-      return rows[idx];
-    }
-  }
-  return "";
-}
-
-function shouldTickLyrics() {
-  return (
-    lyricsDisplayState.status === "hit" &&
-    !lyricsDisplayState.instrumental &&
-    (lyricsDisplayState.lines.length > 0 || Boolean(lyricsDisplayState.plainLyrics)) &&
-    nowPlayingProgressSync?.isPlaying !== false
-  );
-}
-
-function startLyricsTick() {
-  if (lyricsTickTimer != null) return;
-  lyricsTickTimer = setInterval(() => {
-    if (!shouldTickLyrics()) return;
-    renderNowPlayingLyrics();
-  }, LYRICS_TICK_MS);
-}
-
-function stopLyricsTick() {
-  if (lyricsTickTimer != null) {
-    clearInterval(lyricsTickTimer);
-    lyricsTickTimer = null;
-  }
-}
-
-function renderNowPlayingLyrics() {
-  if (!nowPlayingLyrics) return;
-  const { status, instrumental } = lyricsDisplayState;
-  if (status === "idle" || status === "miss") {
-    stopLyricsTick();
-    lastRenderedLyricText = "";
-    nowPlayingLyrics.hidden = true;
-    nowPlayingLyrics.classList.remove("is-visible", "is-loading");
-    nowPlayingLyrics.textContent = "";
-    return;
-  }
-  nowPlayingLyrics.hidden = false;
-  if (status === "loading") {
-    stopLyricsTick();
-    lastRenderedLyricText = "";
-    nowPlayingLyrics.classList.add("is-loading", "is-visible");
-    nowPlayingLyrics.classList.remove("is-idle");
-    nowPlayingLyrics.textContent = "歌词加载中…";
-    return;
-  }
-  if (instrumental) {
-    stopLyricsTick();
-    lastRenderedLyricText = "";
-    nowPlayingLyrics.classList.add("is-visible");
-    nowPlayingLyrics.classList.remove("is-loading");
-    nowPlayingLyrics.textContent = "纯音乐";
-    return;
-  }
-  const line = pickCurrentLyricText(getLiveElapsedSec());
-  if (!line) {
-    lastRenderedLyricText = "";
-    nowPlayingLyrics.hidden = true;
-    nowPlayingLyrics.classList.remove("is-visible");
-    return;
-  }
-  nowPlayingLyrics.hidden = false;
-  nowPlayingLyrics.classList.add("is-visible");
-  nowPlayingLyrics.classList.remove("is-loading");
-  if (line !== lastRenderedLyricText) {
-    lastRenderedLyricText = line;
-    nowPlayingLyrics.textContent = line;
-  }
-  if (lyricsDisplayState.lyricsSource) {
-    nowPlayingLyrics.title = `歌词来源：${lyricsDisplayState.lyricsSource}`;
-  } else {
-    nowPlayingLyrics.removeAttribute("title");
-  }
-}
-
-function applyLyricsUpdate(payload) {
-  const p = payload && typeof payload === "object" ? payload : {};
-  lyricsDisplayState = {
-    trackKey: typeof p.trackKey === "string" ? p.trackKey : "",
-    status: typeof p.status === "string" ? p.status : "idle",
-    lines: Array.isArray(p.lines)
-      ? p.lines
-          .map((line) => ({
-            timeMs: typeof line?.timeMs === "number" ? line.timeMs : 0,
-            text: typeof line?.text === "string" ? line.text : "",
-          }))
-          .filter((line) => line.text)
-      : [],
-    plainLyrics: typeof p.plainLyrics === "string" ? p.plainLyrics : "",
-    instrumental: Boolean(p.instrumental),
-    lyricsSource: typeof p.lyricsSource === "string" ? p.lyricsSource : "",
-  };
-  renderNowPlayingLyrics();
-  if (shouldTickLyrics()) startLyricsTick();
-  else stopLyricsTick();
-}
-
-/** 仅更新播放时钟，不触发 DOM（避免与频谱争抢主线程） */
-function softSyncPlaybackClock(p) {
-  if (!p || !nowPlayingProgressSync) return;
-  const elapsedSec =
-    typeof p.elapsedTime === "number" && Number.isFinite(p.elapsedTime) ? p.elapsedTime : null;
-  if (elapsedSec == null) return;
-  const local = getLiveElapsedSec();
-  if (Math.abs(local - elapsedSec) >= 1.5) {
-    nowPlayingProgressSync.elapsedSec = elapsedSec;
-    nowPlayingProgressSync.syncedAt = performance.now();
-  }
-  if (typeof p.duration === "number" && Number.isFinite(p.duration) && p.duration > 0) {
-    nowPlayingProgressSync.durationSec = p.duration;
-  }
-  if (p.isPlaying === false) {
-    nowPlayingProgressSync.isPlaying = false;
-    stopLyricsTick();
-  } else if (p.isPlaying === true) {
-    nowPlayingProgressSync.isPlaying = true;
-    if (shouldTickLyrics()) startLyricsTick();
-  }
-}
-
-function syncNowPlayingProgressFromPayload(p) {
-  const active = Boolean(p?.active);
-  if (!active) {
-    nowPlayingProgressSync = null;
-    stopLyricsTick();
-    return;
-  }
-  const elapsedSec =
-    typeof p.elapsedTime === "number" && Number.isFinite(p.elapsedTime) ? p.elapsedTime : 0;
-  const durationSec =
-    typeof p.duration === "number" && Number.isFinite(p.duration) && p.duration > 0
-      ? p.duration
-      : null;
-  const bundleName =
-    typeof p.bundleName === "string" && p.bundleName.trim()
-      ? p.bundleName.trim()
-      : typeof p.bundleId === "string"
-        ? p.bundleId
-        : "";
-  const playingLabel =
-    p.isPlaying === false ? "已暂停" : p.isPlaying === true ? "播放中" : "";
-  const isPlaying = p.isPlaying !== false;
-
-  if (nowPlayingProgressSync && nowPlayingProgressSync.isPlaying && isPlaying) {
-    const localElapsed = getLiveElapsedSec();
-    if (Math.abs(localElapsed - elapsedSec) < 1.2) {
-      nowPlayingProgressSync.bundleName = bundleName;
-      nowPlayingProgressSync.playingLabel = playingLabel;
-      nowPlayingProgressSync.durationSec = durationSec;
-      nowPlayingProgressSync.isPlaying = true;
-      return;
-    }
-  }
-
-  nowPlayingProgressSync = {
-    bundleName,
-    playingLabel,
-    elapsedSec,
-    durationSec,
-    syncedAt: performance.now(),
-    isPlaying,
-  };
-  if (isPlaying) startLyricsTick();
-  else stopLyricsTick();
-}
-
-function applyNowPlaying(payload) {
-  if (!nowPlayingPanel) return;
-  const p = payload && typeof payload === "object" ? payload : {};
-  const active = Boolean(p.active);
-
-  if (!active) {
-    nowPlayingPanel.hidden = false;
-    nowPlayingPanel.classList.add("is-idle");
-    if (nowPlayingTitle) nowPlayingTitle.textContent = "未检测到正在播放";
-    if (nowPlayingArtist) nowPlayingArtist.textContent = "";
-    if (nowPlayingAlbum) nowPlayingAlbum.textContent = "";
-    if (nowPlayingSource) nowPlayingSource.textContent = "";
-    if (nowPlayingArt) nowPlayingArt.removeAttribute("src");
-    nowPlayingPanel?.classList.remove("has-artwork");
-    nowPlayingProgressSync = null;
-    stopLyricsTick();
-    lyricsDisplayState = {
-      trackKey: "",
-      status: "idle",
-      lines: [],
-      plainLyrics: "",
-      instrumental: false,
-      lyricsSource: "",
-    };
-    renderNowPlayingLyrics();
-    return;
-  }
-
-  nowPlayingPanel.hidden = false;
-  nowPlayingPanel.classList.remove("is-idle");
-  const title = typeof p.title === "string" && p.title.trim() ? p.title.trim() : "未知曲目";
-  const artist = typeof p.artist === "string" ? p.artist.trim() : "";
-  const album = typeof p.album === "string" ? p.album.trim() : "";
-  if (nowPlayingTitle) nowPlayingTitle.textContent = title;
-  if (nowPlayingArtist) nowPlayingArtist.textContent = artist;
-  if (nowPlayingAlbum) nowPlayingAlbum.textContent = album;
-
-  syncNowPlayingProgressFromPayload(p);
-  renderNowPlayingSourceLine();
-
-  if (nowPlayingArt) {
-    const path = typeof p.artworkPath === "string" ? p.artworkPath.trim() : "";
-    const revision =
-      typeof p.artworkRevision === "number" && Number.isFinite(p.artworkRevision)
-        ? p.artworkRevision
-        : 0;
-    let art = "";
-    if (path) {
-      const base = convertFileSrc(path);
-      art = `${base}${base.includes("?") ? "&" : "?"}v=${revision}`;
-    } else if (
-      typeof p.artworkDataUrl === "string" &&
-      p.artworkDataUrl.startsWith("data:")
-    ) {
-      art = p.artworkDataUrl;
-    }
-    if (art) {
-      nowPlayingArt.src = art;
-      nowPlayingPanel?.classList.add("has-artwork");
-    } else {
-      nowPlayingArt.removeAttribute("src");
-      nowPlayingPanel?.classList.remove("has-artwork");
-    }
   }
 }
 
@@ -614,34 +286,8 @@ async function init() {
     console.info("waveform-status:", event.payload);
   });
 
-  await listen("now-playing-update", (event) => {
-    applyNowPlaying(event.payload);
-  });
-
-  await listen("now-playing-progress", (event) => {
-    softSyncPlaybackClock(event.payload);
-  });
-
-  await listen("lyrics-update", (event) => {
-    applyLyricsUpdate(event.payload);
-  });
-
-  setInterval(renderNowPlayingSourceLine, 1000);
-
-  async function syncNowPlayingSnapshot() {
-    try {
-      const snap = await invoke("get_now_playing_snapshot");
-      applyNowPlaying(snap);
-    } catch (err) {
-      console.warn("get_now_playing_snapshot failed:", err);
-    }
-  }
-
-  await syncNowPlayingSnapshot();
-  try {
-    await invoke("sync_lyrics_for_now_playing");
-  } catch {
-    // 非 macOS 或未启用 now playing 时忽略
+  if (windowLabel === "main" || windowLabel.startsWith("spectrum-")) {
+    await initNowPlayingLyrics();
   }
 
   const thisWebviewTarget = { kind: "WebviewWindow", label: windowLabel };
@@ -885,12 +531,6 @@ async function init() {
       await invoke("start_waveform_stream");
     } catch (err) {
       console.error("start_waveform_stream failed:", err);
-    }
-    await syncNowPlayingSnapshot();
-    try {
-      await invoke("sync_lyrics_for_now_playing");
-    } catch {
-      // ignore
     }
   }
   loadMainBackgroundStyleFromStorage(windowLabel);

@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WaveDance</title>
+    <title>WaveDance 歌词</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body class="lyrics-clone">
     <div class="resize-handle edge top" data-resize-dir="north"></div>
     <div class="resize-handle edge right" data-resize-dir="east"></div>
     <div class="resize-handle edge bottom" data-resize-dir="south"></div>
@@ -15,12 +15,12 @@
     <div class="resize-handle corner top-right" data-resize-dir="northeast"></div>
     <div class="resize-handle corner bottom-right" data-resize-dir="southeast"></div>
     <div class="resize-handle corner bottom-left" data-resize-dir="southwest"></div>
-    <div class="app main-only">
-      <div class="main-toolbar" data-no-drag>
+    <div class="app lyrics-only">
+      <div class="lyrics-toolbar" data-no-drag>
         <button
           type="button"
           id="mousePassthroughLockBtn"
-          title="开启后主窗口鼠标穿透到下层；按钮会移到右上角浮动条，也可用 ⌘⇧⌥L 切换。"
+          title="开启后本窗口鼠标穿透到下层"
           aria-pressed="false"
           aria-label="穿透锁定"
         >
@@ -36,13 +36,10 @@
         </button>
         <button
           type="button"
-          id="newSpectrumWindowBtn"
-          title="在当前窗口旁再开一个频谱窗口（共用同一路音频与设置）"
-          aria-label="新建频谱窗口"
+          id="openLyricsSettingsBtn"
+          title="打开歌词窗口设置（独立窗口）"
+          aria-label="歌词设置"
         >
-          <span class="toolbar-plus" aria-hidden="true">+</span>
-        </button>
-        <button type="button" id="openSettingsBtn" title="设置" aria-label="设置">
           <img
             class="toolbar-icon"
             src="/icons/settings.svg"
@@ -52,22 +49,20 @@
             decoding="async"
           />
         </button>
+        <button
+          type="button"
+          id="newLyricsWindowBtn"
+          title="再开一个歌词浮层窗口"
+          aria-label="新建歌词窗口"
+        >
+          <span class="toolbar-plus" aria-hidden="true">+</span>
+        </button>
       </div>
-      <div id="nowPlayingLyrics" class="now-playing-lyrics" data-no-drag hidden>
+      <div id="nowPlayingLyrics" class="now-playing-lyrics lyrics-window-body" data-no-drag hidden>
         <div id="nowPlayingLyricCurrent" class="now-playing-lyrics-line is-current"></div>
         <div id="nowPlayingLyricNext" class="now-playing-lyrics-line is-next"></div>
       </div>
-      <div id="nowPlayingPanel" class="now-playing-panel is-idle" data-no-drag>
-        <img id="nowPlayingArt" class="now-playing-art" alt="" width="48" height="48" decoding="async" />
-        <div class="now-playing-meta">
-          <div id="nowPlayingTitle" class="now-playing-title">未检测到正在播放</div>
-          <div id="nowPlayingArtist" class="now-playing-artist"></div>
-          <div id="nowPlayingAlbum" class="now-playing-album"></div>
-          <div id="nowPlayingSource" class="now-playing-source"></div>
-        </div>
-      </div>
-      <canvas id="waveCanvas"></canvas>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="/src/lyricsWindow.js"></script>
   </body>
 </html>

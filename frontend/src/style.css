@@ -183,6 +183,9 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   left: 16px;
   bottom: 78px;
   z-index: 9001;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   max-width: min(420px, calc(100vw - 32px));
   padding: 6px 12px;
   border-radius: 8px;
@@ -190,25 +193,192 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   border: 1px solid rgba(196, 165, 116, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  font-size: 12px;
-  line-height: 1.45;
-  color: rgba(237, 214, 173, 0.95);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s ease;
+}
+
+.now-playing-lyrics-line {
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.now-playing-lyrics-line.is-current {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(237, 214, 173, 0.98);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+.now-playing-lyrics-line.is-next {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(237, 214, 173, 0.52);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
 }
 
 .now-playing-lyrics.is-visible {
   opacity: 1;
 }
 
-.now-playing-lyrics.is-loading {
+.now-playing-lyrics.is-loading .now-playing-lyrics-line.is-current {
   color: rgba(217, 225, 255, 0.55);
   font-size: 11px;
+  font-weight: 400;
+}
+
+/* —— 独立歌词浮层窗 —— */
+body.lyrics-clone {
+  overflow: hidden;
+}
+
+body.lyrics-dedicated .app.lyrics-only {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  z-index: 10;
+  padding: 36px 14px 14px;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.lyrics-dedicated .lyrics-toolbar {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 9002;
+  display: flex;
+  gap: 4px;
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+}
+
+body.lyrics-dedicated .lyrics-toolbar:hover {
+  opacity: 1;
+}
+
+body.lyrics-dedicated .lyrics-toolbar button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(196, 165, 116, 0.25);
+  border-radius: 6px;
+  background: rgba(8, 10, 18, 0.72);
+  color: rgba(237, 214, 173, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: var(--lyrics-justify-content, center);
+  align-items: var(--lyrics-align-items, center);
+  gap: var(--lyrics-block-gap, 12px);
+  max-width: none;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  opacity: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: var(
+    --lyrics-font-family,
+    system-ui,
+    -apple-system,
+    "PingFang SC",
+    "Helvetica Neue",
+    sans-serif
+  );
+}
+
+/* 横向：两段歌词上下排列 */
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal {
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-line {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  align-self: var(--lyrics-align-self, center);
+}
+
+/* 纵向：竖排文字（右列→左列，与古籍一致；DOM 顺序为当前→预备） */
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical {
+  flex-direction: row-reverse;
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line {
+  flex: 0 1 auto;
+  max-height: 100%;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-line {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--lyrics-current-size, 18px);
+  color: var(--lyrics-current-color, rgba(237, 214, 173, 0.98));
+  text-align: var(--lyrics-text-align, center);
+  line-height: var(--lyrics-line-height, 1.4);
+  font-weight: 600;
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  overflow: visible;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  max-height: 100%;
+  overflow-y: hidden;
+  overflow-x: visible;
+  letter-spacing: 0.02em;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-line.is-next {
+  font-size: var(--lyrics-next-size, 14px);
+  color: var(--lyrics-next-color, rgba(237, 214, 173, 0.52));
+  font-weight: 400;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+body.lyrics-dedicated .now-playing-lyrics.layout-vertical .now-playing-lyrics-line.is-next {
+  opacity: 0.95;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.is-idle .now-playing-lyrics-line.is-current,
+body.lyrics-dedicated .now-playing-lyrics.is-loading .now-playing-lyrics-line.is-current {
+  font-weight: 400;
+  color: rgba(217, 225, 255, 0.55);
 }
 
 .now-playing-panel {

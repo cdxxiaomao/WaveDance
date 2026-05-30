@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "default permissions for WaveDance desktop",
-  "windows": ["main", "settings", "main-toolbar", "spectrum-*", "ptb-*"],
+  "windows": ["main", "settings", "lyrics-settings", "main-toolbar", "spectrum-*", "lyrics-*", "ptb-*"],
   "permissions": [
     "core:default",
     "core:event:default",

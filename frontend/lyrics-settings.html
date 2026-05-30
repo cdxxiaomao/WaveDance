@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 歌词设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">歌词窗口</h1>
+            <p class="settings-header__subtitle">样式与排版</p>
+            <p id="lyricsTargetBanner" class="settings-visual-target"></p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-lyrics-style">
+        <h2 id="sec-lyrics-style" class="settings-card__title">歌词样式</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsFontPreset" class="settings-label">字体</label>
+            <select id="lyricsFontPreset" class="settings-select">
+              <option value="system">系统默认</option>
+              <option value="pingfang">苹方</option>
+              <option value="songti">宋体</option>
+              <option value="heiti">黑体</option>
+              <option value="kaiti">楷体</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="lyricsCurrentSize" class="settings-label">
+              正在播放 · 字号 <span class="settings-value" id="lyricsCurrentSizeVal">18</span>px
+            </label>
+            <input id="lyricsCurrentSize" type="range" min="10" max="48" value="18" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsCurrentColor" class="settings-label">正在播放 · 颜色</label>
+            <input id="lyricsCurrentColor" type="color" value="#edd6ad" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="lyricsNextSize" class="settings-label">
+              预备歌词 · 字号 <span class="settings-value" id="lyricsNextSizeVal">14</span>px
+            </label>
+            <input id="lyricsNextSize" type="range" min="8" max="36" value="14" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsNextColor" class="settings-label">预备歌词 · 颜色</label>
+            <input id="lyricsNextColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="lyricsLineHeight" class="settings-label">
+              行距（行高） <span class="settings-value" id="lyricsLineHeightVal">140</span>%
+            </label>
+            <input id="lyricsLineHeight" type="range" min="100" max="250" step="5" value="140" />
+          </div>
+          <div class="settings-field">
+            <label for="lyricsBlockGap" class="settings-label">
+              双行间距 <span class="settings-value" id="lyricsBlockGapVal">12</span>px
+            </label>
+            <input id="lyricsBlockGap" type="range" min="0" max="48" step="2" value="12" />
+          </div>
+          <fieldset class="settings-field">
+            <legend class="settings-label">排列方式</legend>
+            <div class="settings-actions settings-actions--wrap">
+              <label class="settings-toggle">
+                <input type="radio" name="lyricsLayout" id="lyricsLayoutHorizontal" value="horizontal" checked />
+                <span>横向：上下排列（默认）</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="radio" name="lyricsLayout" id="lyricsLayoutVertical" value="vertical" />
+                <span>纵向：竖排文字</span>
+              </label>
+            </div>
+          </fieldset>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAlignHorizontal" class="settings-label">左右对齐</label>
+            <select id="lyricsAlignHorizontal" class="settings-select">
+              <option value="left">左对齐</option>
+              <option value="center" selected>左右居中</option>
+              <option value="right">右对齐</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAlignVertical" class="settings-label">上下对齐</label>
+            <select id="lyricsAlignVertical" class="settings-select">
+              <option value="top">上对齐</option>
+              <option value="center" selected>上下居中</option>
+              <option value="bottom">下对齐</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-lyrics-app">
+        <h2 id="sec-lyrics-app" class="settings-card__title">窗口</h2>
+        <div class="settings-card__body">
+          <p class="settings-muted">
+            以上选项仅作用于当前所对应的歌词浮层窗。下方按钮将关闭该歌词窗与本设置面板。
+          </p>
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="closeLyricsSettingsBtn" class="settings-btn settings-btn--ghost">
+              关闭歌词与设置
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/lyricsSettingsWindow.js"></script>
+  </body>
+</html>
