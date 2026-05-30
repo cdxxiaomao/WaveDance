@@ -250,8 +250,8 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let freq_max_hz = Arc::clone(&state.freq_max_hz);
     thread::spawn(move || {
         const FFT_SIZE: usize = 2048;
-        const SILENCE_RMS_GATE: f32 = 0.003;
-        const SILENCE_PEAK_GATE: f32 = 0.008;
+        const SILENCE_RMS_GATE: f32 = 0.001;
+        const SILENCE_PEAK_GATE: f32 = 0.003;
         let source_mode = capture_source_mode.load(Ordering::Relaxed);
         let preferred = if source_mode == 1 {
             None
