@@ -199,8 +199,8 @@ body:focus-within .main-toolbar {
   pointer-events: auto;
 }
 
-/* 穿透时主窗整窗忽略鼠标，避免与右上角浮动子窗工具栏重复显示（额外频谱窗仍保留工具栏） */
-body.mouse-passthrough-locked:not(.spectrum-clone) .main-toolbar {
+/* 穿透时整窗忽略鼠标，内嵌工具栏隐藏，仅保留独立浮动解锁条可点 */
+body.mouse-passthrough-locked .main-toolbar {
   visibility: hidden;
 }
 
@@ -261,11 +261,6 @@ body.toolbar-floater #mousePassthroughLockBtn {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;
-}
-
-/* 额外频谱窗口：不显示「仅主窗」的穿透锁；「+」仍可用，便于在当前屏继续开新窗 */
-body.spectrum-clone #mousePassthroughLockBtn {
-  display: none !important;
 }
 
 /* 主窗口与浮动工具栏：圆形图标按钮，纯色无描边（约原尺寸 2/3） */

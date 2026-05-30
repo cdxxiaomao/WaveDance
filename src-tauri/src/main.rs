@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
 use std::sync::{
@@ -33,8 +34,10 @@ struct StreamState {
     capture_source_mode: Arc<AtomicU8>,
     overlay_pinned: Arc<AtomicBool>,
     overlay_blur_enabled: Arc<AtomicBool>,
-    /// 为 true 时主窗口整窗忽略鼠标（穿透）；可交互控件放在子窗口 `main-toolbar`。
-    mouse_passthrough_locked: Arc<AtomicBool>,
+    /// 各图形窗（`main` / `spectrum-*`）整窗鼠标穿透是否开启；键存在且为 true 表示锁定。
+    mouse_passthrough_by_label: Arc<Mutex<HashMap<String, bool>>>,
+    /// 已为对应 `spectrum-*` 注册过「移动/缩放时重贴浮动解锁条」监听，避免重复绑定。
+    spectrum_toolbar_follow_wired: Arc<Mutex<HashSet<String>>>,
     bucket_count: Arc<AtomicUsize>,
     bucket_mode: Arc<AtomicU8>,
     high_tilt_percent: Arc<AtomicUsize>,
@@ -56,7 +59,8 @@ impl Default for StreamState {
             capture_source_mode: Arc::new(AtomicU8::new(0)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
             overlay_blur_enabled: Arc::new(AtomicBool::new(false)),
-            mouse_passthrough_locked: Arc::new(AtomicBool::new(false)),
+            mouse_passthrough_by_label: Arc::new(Mutex::new(HashMap::new())),
+            spectrum_toolbar_follow_wired: Arc::new(Mutex::new(HashSet::new())),
             bucket_count: Arc::new(AtomicUsize::new(256)),
             bucket_mode: Arc::new(AtomicU8::new(1)),
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
@@ -72,19 +76,40 @@ impl Default for StreamState {
 
 const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
 
-/// 额外频谱窗口：跟随置顶/模糊等叠加层参数，但不参与主窗整窗鼠标穿透。
+#[derive(Clone, serde::Serialize)]
+struct MousePassthroughChangedPayload {
+    label: String,
+    locked: bool,
+}
+
+fn label_passthrough_locked(state: &StreamState, label: &str) -> bool {
+    state
+        .mouse_passthrough_by_label
+        .lock()
+        .ok()
+        .map(|m| m.contains_key(label))
+        .unwrap_or(false)
+}
+
+/// 频谱窗 `spectrum-N` 对应的穿透解锁浮动子窗标签（与 `main-toolbar` 区分）。
+fn toolbar_webview_label_for_spectrum(spectrum_label: &str) -> String {
+    format!("ptb-{spectrum_label}")
+}
+
+/// 额外频谱窗口：跟随置顶/模糊与**本窗**穿透状态。
 fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
         if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            let locked = label_passthrough_locked(&state, &label);
             #[cfg(target_os = "macos")]
-            configure_overlay_window(win, pinned, blur_enabled, false)?;
+            configure_overlay_window(win, pinned, blur_enabled, locked)?;
             #[cfg(not(target_os = "macos"))]
             {
                 win.set_always_on_top(pinned)?;
-                let _ = win.set_ignore_cursor_events(false);
+                let _ = win.set_ignore_cursor_events(locked);
             }
         }
     }
@@ -725,9 +750,7 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
-    let ignore_mouse = state
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst);
+    let ignore_mouse = label_passthrough_locked(&state, "main");
     configure_overlay_window(window, pinned, blur_enabled, ignore_mouse)
 }
 
@@ -738,38 +761,40 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     };
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let ignore_mouse = state
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst);
+    let ignore_mouse = label_passthrough_locked(&state, "main");
     window.set_always_on_top(pinned)?;
     window.set_ignore_cursor_events(ignore_mouse)?;
     Ok(())
 }
 
-/// 将 `main-toolbar` 子窗口贴到主窗口右上角。
+/// 将浮动解锁条（`main-toolbar` / `ptb-spectrum-*`）贴到父图形窗 Web 视口右上。
 ///
 /// 使用**逻辑坐标（点）**设置位置与尺寸：在 Retina / 4K 等多倍缩放下，子窗若用物理像素
-/// `set_position`，部分环境下会与主窗 `inner_*` 的换算或子窗自身 DPI 不一致；与 CSS 中
+/// `set_position`，部分环境下会与父窗 `inner_*` 的换算或子窗自身 DPI 不一致；与 CSS 中
 /// `top/right` 语义一致，交给各窗口按当前屏 `scale_factor` 换算为物理像素。
-fn position_main_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let Some(toolbar) = app.get_webview_window("main-toolbar") else {
+fn position_floating_toolbar_near_parent(
+    app: &tauri::AppHandle,
+    parent_label: &str,
+    toolbar_label: &str,
+) -> tauri::Result<()> {
+    let Some(toolbar) = app.get_webview_window(toolbar_label) else {
         return Ok(());
     };
-    let Some(main) = app.get_webview_window("main") else {
+    let Some(parent) = app.get_webview_window(parent_label) else {
         return Ok(());
     };
-    let (pos, sz) = match (main.inner_position(), main.inner_size()) {
+    let (pos, sz) = match (parent.inner_position(), parent.inner_size()) {
         (Ok(p), Ok(s)) => (p, s),
-        _ => (main.outer_position()?, main.outer_size()?),
+        _ => (parent.outer_position()?, parent.outer_size()?),
     };
-    let scale = main.scale_factor().unwrap_or(1.0);
+    let scale = parent.scale_factor().unwrap_or(1.0);
     let pos_l: LogicalPosition<f64> = pos.to_logical(scale);
     let sz_l: LogicalSize<f64> = sz.to_logical(scale);
 
     const TOOLBAR_W_PT: f64 = 52.0;
     const TOOLBAR_H_PT: f64 = 58.0;
     const MARGIN_PT: f64 = 16.0;
-    /// 相对主窗锁定按钮上移若干**设备像素**（逻辑量 = px / scale），与主工具栏视觉对齐。
+    /// 相对锁定按钮上移若干**设备像素**（逻辑量 = px / scale），与主工具栏视觉对齐。
     const NUDGE_UP_DEVICE_PX: f64 = 4.0;
 
     let x = pos_l.x + sz_l.width - TOOLBAR_W_PT - MARGIN_PT;
@@ -783,13 +808,14 @@ fn position_main_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+fn position_main_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    position_floating_toolbar_near_parent(app, "main", "main-toolbar")
+}
+
 /// 主窗移动、缩放或跨显示器导致 DPI 变化时，将浮动工具栏重新贴到主窗视口右上。
 fn reposition_main_toolbar_if_passthrough_locked(app: &tauri::AppHandle) {
-    if !app
-        .state::<StreamState>()
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst)
-    {
+    let state = app.state::<StreamState>();
+    if !label_passthrough_locked(&state, "main") {
         return;
     }
     // macOS：跨屏瞬间 `inner_position` / scale 可能尚未与当前屏一致，放到主线程与系统布局对齐后再算。
@@ -802,6 +828,25 @@ fn reposition_main_toolbar_if_passthrough_locked(app: &tauri::AppHandle) {
         return;
     }
     let _ = position_main_toolbar_window(app);
+}
+
+fn reposition_spectrum_toolbar_if_locked(app: &tauri::AppHandle, spectrum_label: &str) {
+    let state = app.state::<StreamState>();
+    if !label_passthrough_locked(&state, spectrum_label) {
+        return;
+    }
+    let tb_label = toolbar_webview_label_for_spectrum(spectrum_label);
+    #[cfg(target_os = "macos")]
+    if let Some(spec) = app.get_webview_window(spectrum_label) {
+        let app_h = app.clone();
+        let sl = spectrum_label.to_string();
+        let tbl = tb_label.clone();
+        let _ = spec.run_on_main_thread(move || {
+            let _ = position_floating_toolbar_near_parent(&app_h, &sl, &tbl);
+        });
+        return;
+    }
+    let _ = position_floating_toolbar_near_parent(app, spectrum_label, &tb_label);
 }
 
 /// `main-toolbar`（toolbar.html）：仅当主窗开启鼠标穿透锁定时显示，并贴在主窗 Web 视口右上。
@@ -850,23 +895,168 @@ fn sync_main_toolbar_for_passthrough_locked(
     }
 }
 
-/// 按当前穿透状态同步浮动工具栏（置顶/模糊等路径也会调用）。
-fn sync_floating_toolbar_window(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let locked = app
-        .state::<StreamState>()
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst);
-    sync_main_toolbar_for_passthrough_locked(app, locked)
+/// 频谱窗穿透开启时按需创建 `ptb-spectrum-*`，并注册父窗移动时重贴浮动条（仅注册一次）。
+fn ensure_spectrum_pass_through_toolbar_created(
+    app: &tauri::AppHandle,
+    spectrum_label: &str,
+) -> Result<(), String> {
+    let tb_label = toolbar_webview_label_for_spectrum(spectrum_label);
+    if app.get_webview_window(&tb_label).is_some() {
+        wire_spectrum_toolbar_follow_if_needed(app, spectrum_label)?;
+        return Ok(());
+    }
+    let parent = app
+        .get_webview_window(spectrum_label)
+        .ok_or_else(|| "频谱窗口不存在".to_string())?;
+    let url_path = format!("toolbar.html#{spectrum_label}");
+    let toolbar = WebviewWindowBuilder::new(app, &tb_label, WebviewUrl::App(url_path.into()))
+        .parent(&parent)
+        .map_err(|e| e.to_string())?
+        .title("")
+        .inner_size(52.0, 58.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .closable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .skip_taskbar(true)
+        .visible(false)
+        .build()
+        .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    attach_toolbar_window_to_parent_space(&parent, &toolbar).map_err(|e| e.to_string())?;
+    toolbar.hide().map_err(|e| e.to_string())?;
+    let _ = position_floating_toolbar_near_parent(app, spectrum_label, &tb_label);
+    wire_spectrum_toolbar_follow_if_needed(app, spectrum_label)?;
+    Ok(())
 }
 
-/// 刷新主窗鼠标穿透（整窗忽略鼠标）后，同步子工具栏（供主屏按钮、快捷键、命令调用）。
-fn sync_mouse_passthrough_stack(app: &tauri::AppHandle) -> tauri::Result<()> {
-    let locked = app
-        .state::<StreamState>()
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst);
-    refresh_main_overlay_window(app)?;
-    sync_main_toolbar_for_passthrough_locked(app, locked)
+fn wire_spectrum_toolbar_follow_if_needed(
+    app: &tauri::AppHandle,
+    spectrum_label: &str,
+) -> Result<(), String> {
+    let Some(spec) = app.get_webview_window(spectrum_label) else {
+        return Ok(());
+    };
+    {
+        let state = app.state::<StreamState>();
+        let mut wired = state
+            .spectrum_toolbar_follow_wired
+            .lock()
+            .map_err(|e| e.to_string())?;
+        if wired.contains(spectrum_label) {
+            return Ok(());
+        }
+        wired.insert(spectrum_label.to_string());
+    }
+    let h = app.clone();
+    let sl = spectrum_label.to_string();
+    spec.on_window_event(move |event| {
+        if matches!(
+            event,
+            WindowEvent::Moved(_)
+                | WindowEvent::Resized(_)
+                | WindowEvent::ScaleFactorChanged { .. }
+        ) {
+            reposition_spectrum_toolbar_if_locked(&h, &sl);
+        }
+    });
+    Ok(())
+}
+
+/// `ptb-spectrum-*`（toolbar.html）：仅当对应频谱窗开启穿透时显示。
+fn sync_spectrum_floating_toolbar(
+    app: &tauri::AppHandle,
+    spectrum_label: &str,
+    locked: bool,
+) -> Result<(), String> {
+    let tb_label = toolbar_webview_label_for_spectrum(spectrum_label);
+    if !locked {
+        if let Some(tb) = app.get_webview_window(&tb_label) {
+            tb.hide().map_err(|e| e.to_string())?;
+        }
+        return Ok(());
+    }
+    ensure_spectrum_pass_through_toolbar_created(app, spectrum_label)?;
+
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(spec) = app.get_webview_window(spectrum_label) {
+            let app_handle = app.clone();
+            let sl = spectrum_label.to_string();
+            let tbl = tb_label.clone();
+            spec.run_on_main_thread(move || {
+                let _ = position_floating_toolbar_near_parent(&app_handle, &sl, &tbl);
+                if let Some(tb) = app_handle.get_webview_window(&tbl) {
+                    let _ = tb.show();
+                }
+            })
+            .map_err(|e| e.to_string())?;
+        } else {
+            position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
+                .map_err(|e| e.to_string())?;
+            if let Some(tb) = app.get_webview_window(&tb_label) {
+                tb.show().map_err(|e| e.to_string())?;
+            }
+        }
+        return Ok(());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
+            .map_err(|e| e.to_string())?;
+        if let Some(tb) = app.get_webview_window(&tb_label) {
+            tb.show().map_err(|e| e.to_string())?;
+        }
+        Ok(())
+    }
+}
+
+/// 按当前穿透状态同步主窗与所有频谱窗的浮动解锁条（置顶/模糊等路径也会调用）。
+fn sync_floating_toolbar_window(app: &tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<StreamState>();
+    let main_locked = label_passthrough_locked(&state, "main");
+    sync_main_toolbar_for_passthrough_locked(app, main_locked).map_err(|e| e.to_string())?;
+    for (label, _) in app.webview_windows() {
+        if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            let locked = label_passthrough_locked(&state, &label);
+            sync_spectrum_floating_toolbar(app, &label, locked)?;
+        }
+    }
+    Ok(())
+}
+
+fn apply_mouse_passthrough_locked_change(
+    app: &tauri::AppHandle,
+    label: &str,
+    locked: bool,
+) -> Result<(), String> {
+    let state = app.state::<StreamState>();
+    {
+        let mut m = state
+            .mouse_passthrough_by_label
+            .lock()
+            .map_err(|e| format!("穿透状态锁异常: {e}"))?;
+        if locked {
+            m.insert(label.to_string(), true);
+        } else {
+            m.remove(label);
+        }
+    }
+    let _ = app.emit(
+        "mouse-passthrough-changed",
+        MousePassthroughChangedPayload {
+            label: label.to_string(),
+            locked,
+        },
+    );
+    refresh_main_overlay_window(app).map_err(|e| e.to_string())?;
+    refresh_spectrum_clone_windows(app).map_err(|e| e.to_string())?;
+    sync_floating_toolbar_window(app).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn wire_main_window_toolbar_follow(handle: tauri::AppHandle) {
@@ -907,63 +1097,100 @@ fn create_main_toolbar_window(app: &tauri::AppHandle) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
     #[cfg(target_os = "macos")]
-    attach_toolbar_window_to_main_space(&main, &toolbar).map_err(|e| e.to_string())?;
+    attach_toolbar_window_to_parent_space(&main, &toolbar).map_err(|e| e.to_string())?;
     toolbar.hide().map_err(|e| e.to_string())?;
     let _ = position_main_toolbar_window(app);
     Ok(())
 }
 
-/// 将设置窗口挂到主窗口子窗口链上，使其随主窗口出现在同一 Space（解决多桌面残留问题）。
+/// 将设置窗口挂到父图形窗子窗口链上，使其随父窗出现在同一 Space（解决多桌面残留问题）。
 #[cfg(target_os = "macos")]
-fn attach_settings_window_to_main_space(
-    main_window: &tauri::WebviewWindow,
+fn attach_settings_window_to_parent_space(
+    parent_window: &tauri::WebviewWindow,
     settings_window: &tauri::WebviewWindow,
 ) -> tauri::Result<()> {
-    let main_clone = main_window.clone();
+    let parent_clone = parent_window.clone();
     let settings_clone = settings_window.clone();
-    main_window.run_on_main_thread(move || unsafe {
-        let main_ns = main_clone
+    parent_window.run_on_main_thread(move || unsafe {
+        let parent_ns = parent_clone
             .ns_window()
-            .expect("无法获取主窗口 NSWindow 句柄")
+            .expect("无法获取父窗口 NSWindow 句柄")
             .cast::<NSWindow>();
         let settings_ns = settings_clone
             .ns_window()
             .expect("无法获取设置窗口 NSWindow 句柄")
             .cast::<NSWindow>();
-        let main_ref: &NSWindow = &*main_ns;
+        let parent_ref: &NSWindow = &*parent_ns;
         let settings_ref: &NSWindow = &*settings_ns;
 
         if let Some(old_parent) = settings_ref.parentWindow() {
             old_parent.removeChildWindow(settings_ref);
         }
-        main_ref.addChildWindow_ordered(settings_ref, NSWindowOrderingMode::Above);
+        parent_ref.addChildWindow_ordered(settings_ref, NSWindowOrderingMode::Above);
     })
 }
 
-/// 将浮动工具栏挂到主窗口子窗口链（与设置窗一致，避免多 Space 行为异常）。
+/// 解析设置窗应挂接的父图形窗：优先 `main`，否则任一 `spectrum-*`；`preferred` 存在且仍打开时优先用它。
+fn resolve_settings_parent_window(
+    app: &tauri::AppHandle,
+    preferred: Option<&str>,
+) -> Result<(String, tauri::WebviewWindow), String> {
+    if let Some(label) = preferred.map(str::trim).filter(|s| !s.is_empty()) {
+        if label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            if let Some(w) = app.get_webview_window(label) {
+                return Ok((label.to_string(), w));
+            }
+        }
+    }
+    if let Some(main) = app.get_webview_window("main") {
+        return Ok(("main".to_string(), main));
+    }
+    let spectrum: Vec<(String, tauri::WebviewWindow)> = app
+        .webview_windows()
+        .into_iter()
+        .filter(|(label, _)| label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX))
+        .collect();
+    if spectrum.is_empty() {
+        return Err("没有可用的频谱窗口，请先新建窗口".to_string());
+    }
+    if let Some((_, w)) = spectrum
+        .iter()
+        .find(|(_, w)| w.is_focused().unwrap_or(false))
+    {
+        let label = w.label().to_string();
+        return Ok((label, w.clone()));
+    }
+    spectrum
+        .into_iter()
+        .next()
+        .map(|(label, w)| (label, w))
+        .ok_or_else(|| "没有可用的频谱窗口，请先新建窗口".to_string())
+}
+
+/// 将浮动解锁条挂到父图形窗子窗口链（与设置窗一致，避免多 Space 行为异常）。
 #[cfg(target_os = "macos")]
-fn attach_toolbar_window_to_main_space(
-    main_window: &tauri::WebviewWindow,
+fn attach_toolbar_window_to_parent_space(
+    parent_window: &tauri::WebviewWindow,
     toolbar_window: &tauri::WebviewWindow,
 ) -> tauri::Result<()> {
-    let main_clone = main_window.clone();
+    let parent_clone = parent_window.clone();
     let toolbar_clone = toolbar_window.clone();
-    main_window.run_on_main_thread(move || unsafe {
-        let main_ns = main_clone
+    parent_window.run_on_main_thread(move || unsafe {
+        let parent_ns = parent_clone
             .ns_window()
-            .expect("无法获取主窗口 NSWindow 句柄")
+            .expect("无法获取父窗口 NSWindow 句柄")
             .cast::<NSWindow>();
         let toolbar_ns = toolbar_clone
             .ns_window()
             .expect("无法获取工具栏 NSWindow 句柄")
             .cast::<NSWindow>();
-        let main_ref: &NSWindow = &*main_ns;
+        let parent_ref: &NSWindow = &*parent_ns;
         let toolbar_ref: &NSWindow = &*toolbar_ns;
 
         if let Some(old_parent) = toolbar_ref.parentWindow() {
             old_parent.removeChildWindow(toolbar_ref);
         }
-        main_ref.addChildWindow_ordered(toolbar_ref, NSWindowOrderingMode::Above);
+        parent_ref.addChildWindow_ordered(toolbar_ref, NSWindowOrderingMode::Above);
         // 可见性由 Tauri hide/show 控制；此处不再 orderOut，避免部分环境下子窗 WebView 重显后不绘制内容
     })
 }
@@ -973,7 +1200,7 @@ fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         window.show()?;
         window.set_focus()?;
         refresh_main_overlay_window(app)?;
-        sync_floating_toolbar_window(app)?;
+        let _ = sync_floating_toolbar_window(app);
     }
     for (label, w) in app.webview_windows() {
         if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
@@ -1029,24 +1256,24 @@ fn get_overlay_blur_enabled(state: State<'_, StreamState>) -> bool {
 }
 
 #[tauri::command]
-fn set_main_mouse_passthrough_locked(
+fn set_mouse_passthrough_locked(
     app: tauri::AppHandle,
-    state: State<'_, StreamState>,
+    label: String,
     locked: bool,
 ) -> Result<(), String> {
-    state
-        .mouse_passthrough_locked
-        .store(locked, Ordering::SeqCst);
-    let _ = app.emit("mouse-passthrough-changed", locked);
-    sync_mouse_passthrough_stack(&app).map_err(|e| e.to_string())?;
-    Ok(())
+    let label = label.trim().to_string();
+    if label != "main" && !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        return Err("仅主窗口与频谱窗口支持穿透锁定".to_string());
+    }
+    if locked && app.get_webview_window(&label).is_none() {
+        return Err("窗口不存在或已关闭".to_string());
+    }
+    apply_mouse_passthrough_locked_change(&app, &label, locked)
 }
 
 #[tauri::command]
-fn get_main_mouse_passthrough_locked(state: State<'_, StreamState>) -> bool {
-    state
-        .mouse_passthrough_locked
-        .load(Ordering::SeqCst)
+fn get_mouse_passthrough_locked(state: State<'_, StreamState>, label: String) -> bool {
+    label_passthrough_locked(&state, label.trim())
 }
 
 fn open_extra_spectrum_window_impl(
@@ -1138,10 +1365,11 @@ fn notify_settings_visual_target(app: &tauri::AppHandle) {
     let _ = app.emit_to("settings", "visual-settings-target", label);
 }
 
-/// 托盘「设置」：目标窗固定为主窗。
+/// 托盘「设置」：父窗与视觉目标对齐到当前仍打开的图形窗（主窗或频谱窗）。
 fn open_settings_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let (parent_label, _) = resolve_settings_parent_window(app, None)?;
     if let Ok(mut g) = app.state::<StreamState>().visual_settings_target.lock() {
-        *g = "main".to_string();
+        *g = parent_label;
     }
     open_settings_window_impl(app)?;
     notify_settings_visual_target(app);
@@ -1155,16 +1383,26 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
         .overlay_pinned
         .load(Ordering::SeqCst);
 
-    let main = app
-        .get_webview_window("main")
-        .ok_or_else(|| "未找到主窗口".to_string())?;
+    let preferred = app
+        .state::<StreamState>()
+        .visual_settings_target
+        .lock()
+        .ok()
+        .map(|g| g.clone());
+    let (parent_label, parent) =
+        resolve_settings_parent_window(app, preferred.as_deref())?;
+    if preferred.as_deref() != Some(parent_label.as_str()) {
+        if let Ok(mut g) = app.state::<StreamState>().visual_settings_target.lock() {
+            *g = parent_label.clone();
+        }
+    }
 
-    // 先激活主窗口，确保当前 Space 与主窗口一致，再挂接/显示设置窗。
-    main.set_focus().map_err(|e| e.to_string())?;
+    // 先激活父图形窗，确保当前 Space 一致，再挂接/显示设置窗。
+    parent.set_focus().map_err(|e| e.to_string())?;
 
     if let Some(settings) = app.get_webview_window("settings") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_main_space(&main, &settings).map_err(|e| e.to_string())?;
+        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
         settings
             .set_always_on_top(pinned)
@@ -1181,7 +1419,7 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     )
     .title("WaveDance 设置")
     .inner_size(620.0, 760.0)
-    .parent(&main)
+    .parent(&parent)
     .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
@@ -1313,15 +1551,12 @@ fn main() {
                     if shortcut == &recall_shortcut_for_handler {
                         let _ = recall_overlay_window(app);
                     } else if shortcut == &passthrough_shortcut_for_handler {
+                        if app.get_webview_window("main").is_none() {
+                            return;
+                        }
                         let state = app.state::<StreamState>();
-                        let next = !state
-                            .mouse_passthrough_locked
-                            .load(Ordering::SeqCst);
-                        state
-                            .mouse_passthrough_locked
-                            .store(next, Ordering::SeqCst);
-                        let _ = app.emit("mouse-passthrough-changed", next);
-                        let _ = sync_mouse_passthrough_stack(app);
+                        let cur = label_passthrough_locked(&state, "main");
+                        let _ = apply_mouse_passthrough_locked_change(app, "main", !cur);
                     }
                 })
                 .build(),
@@ -1336,7 +1571,9 @@ fn main() {
             create_main_toolbar_window(app.handle()).map_err(|e| -> Box<dyn std::error::Error> {
                 e.into()
             })?;
-            sync_floating_toolbar_window(app.handle())?;
+            sync_floating_toolbar_window(app.handle()).map_err(|e| -> Box<dyn std::error::Error> {
+                e.into()
+            })?;
             wire_main_window_toolbar_follow(app.handle().clone());
             app.global_shortcut().register(recall_shortcut_for_setup)?;
             app.global_shortcut()
@@ -1403,8 +1640,8 @@ fn main() {
             get_overlay_pinned,
             set_overlay_blur_enabled,
             get_overlay_blur_enabled,
-            set_main_mouse_passthrough_locked,
-            get_main_mouse_passthrough_locked,
+            set_mouse_passthrough_locked,
+            get_mouse_passthrough_locked,
             open_settings_window,
             close_settings_window,
             get_visual_settings_target,

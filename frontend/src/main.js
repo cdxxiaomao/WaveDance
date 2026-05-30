@@ -384,9 +384,14 @@ async function init() {
     if (!mousePassthroughLockBtn) return;
     mousePassthroughLockBtn.setAttribute("aria-pressed", on ? "true" : "false");
     mousePassthroughLockBtn.classList.toggle("is-locked", on);
+    const isMain = windowLabel === "main";
     mousePassthroughLockBtn.title = on
-      ? "已穿透：点击关闭穿透，或按 ⌘⇧⌥L"
-      : "开启后主窗口鼠标穿透到下层；也可用 ⌘⇧⌥L";
+      ? isMain
+        ? "已穿透：点击关闭穿透，或按 ⌘⇧⌥L"
+        : "已穿透（本窗）：点击关闭，主窗仍可用 ⌘⇧⌥L 切换主窗穿透"
+      : isMain
+        ? "开启后主窗口鼠标穿透到下层；也可用 ⌘⇧⌥L"
+        : "开启后本窗口鼠标穿透到下层";
     const lockImg = mousePassthroughLockBtn.querySelector("img[data-lock-icon]");
     if (lockImg) {
       lockImg.src = on ? "/icons/passthrough-active.svg" : "/icons/passthrough-idle.svg";
@@ -394,8 +399,15 @@ async function init() {
   };
 
   await listen("mouse-passthrough-changed", (event) => {
-    if (isSpectrumClone) return;
-    applyMousePassthroughLockUi(event.payload);
+    const p = event.payload;
+    const lbl =
+      p && typeof p === "object" && p.label != null ? String(p.label) : "main";
+    const locked =
+      p && typeof p === "object" && typeof p.locked === "boolean"
+        ? p.locked
+        : Boolean(p);
+    if (lbl !== windowLabel) return;
+    applyMousePassthroughLockUi(locked);
   });
 
   try {
@@ -453,21 +465,19 @@ async function init() {
 
   loadShapeConfigsFromStorage(windowLabel);
 
-  if (!isSpectrumClone) {
-    try {
-      const locked = await invoke("get_main_mouse_passthrough_locked");
-      applyMousePassthroughLockUi(locked);
-    } catch {
-      applyMousePassthroughLockUi(false);
-    }
+  try {
+    const locked = await invoke("get_mouse_passthrough_locked", { label: windowLabel });
+    applyMousePassthroughLockUi(locked);
+  } catch {
+    applyMousePassthroughLockUi(false);
   }
 
   if (mousePassthroughLockBtn) {
     mousePassthroughLockBtn.addEventListener("click", async () => {
       try {
-        const cur = await invoke("get_main_mouse_passthrough_locked");
+        const cur = await invoke("get_mouse_passthrough_locked", { label: windowLabel });
         const next = !cur;
-        await invoke("set_main_mouse_passthrough_locked", { locked: next });
+        await invoke("set_mouse_passthrough_locked", { label: windowLabel, locked: next });
         applyMousePassthroughLockUi(next);
       } catch (err) {
         console.error("mouse passthrough toggle failed:", err);
