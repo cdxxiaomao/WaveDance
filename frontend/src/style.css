@@ -178,6 +178,23 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   z-index: 10;
 }
 
+body.spectrum-traditional .resize-handle {
+  display: none;
+}
+
+body.spectrum-traditional .app.main-only {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+}
+
+body.spectrum-traditional .main-toolbar {
+  top: 8px;
+  right: 12px;
+}
+
 .main-toolbar {
   position: fixed;
   top: 16px;

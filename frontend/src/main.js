@@ -199,8 +199,20 @@ function renderWaveform() {
 async function init() {
   const windowLabel = getCurrentWebviewWindow().label;
   const isSpectrumClone = windowLabel.startsWith("spectrum-");
+  let isSpectrumTraditional = false;
   if (isSpectrumClone) {
     document.body.classList.add("spectrum-clone");
+    try {
+      const overlayMode = await invoke("get_spectrum_window_overlay_mode", {
+        label: windowLabel,
+      });
+      if (!overlayMode) {
+        isSpectrumTraditional = true;
+        document.body.classList.add("spectrum-traditional");
+      }
+    } catch (err) {
+      console.error("get_spectrum_window_overlay_mode failed:", err);
+    }
   }
 
   const triggerNativeDrag = async (event) => {
@@ -214,7 +226,9 @@ async function init() {
     }
   };
 
-  document.body.addEventListener("mousedown", triggerNativeDrag);
+  if (!isSpectrumTraditional) {
+    document.body.addEventListener("mousedown", triggerNativeDrag);
+  }
 
   const triggerNativeResize = (event) => {
     if (event.button !== 0) return;
@@ -250,9 +264,11 @@ async function init() {
     window.addEventListener("mouseup", stopResize);
     window.addEventListener("mouseleave", stopResize);
   };
-  resizeHandles.forEach((handle) => {
-    handle.addEventListener("mousedown", triggerNativeResize);
-  });
+  if (!isSpectrumTraditional) {
+    resizeHandles.forEach((handle) => {
+      handle.addEventListener("mousedown", triggerNativeResize);
+    });
+  }
 
   await listen("waveform-frame", (event) => {
     const payload = event.payload;

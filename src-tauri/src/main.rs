@@ -48,6 +48,8 @@ struct StreamState {
     waveform_line_width_px: Arc<AtomicUsize>,
     /// 用于生成额外频谱窗口标签 `spectrum-{n}`（与主窗共用采集与 `waveform-frame` 广播）。
     spectrum_window_counter: Arc<AtomicU64>,
+    /// 额外频谱窗是否为浮层模式（可覆盖全屏应用）；false 为传统窗口（可正常全屏）。
+    spectrum_overlay_by_label: Arc<Mutex<HashMap<String, bool>>>,
     /// 设置页当前编辑的频谱窗口 label（`main` 或 `spectrum-*`）；外观类事件只发往该窗。
     visual_settings_target: Arc<Mutex<String>>,
 }
@@ -69,6 +71,7 @@ impl Default for StreamState {
             waveform_color_hex: Arc::new(Mutex::new("#c4a574".to_string())),
             waveform_line_width_px: Arc::new(AtomicUsize::new(2)),
             spectrum_window_counter: Arc::new(AtomicU64::new(0)),
+            spectrum_overlay_by_label: Arc::new(Mutex::new(HashMap::new())),
             visual_settings_target: Arc::new(Mutex::new("main".to_string())),
         }
     }
@@ -96,19 +99,73 @@ fn toolbar_webview_label_for_spectrum(spectrum_label: &str) -> String {
     format!("ptb-{spectrum_label}")
 }
 
-/// 额外频谱窗口：跟随置顶/模糊与**本窗**穿透状态。
+fn spectrum_is_overlay_mode(state: &StreamState, label: &str) -> bool {
+    state
+        .spectrum_overlay_by_label
+        .lock()
+        .ok()
+        .and_then(|m| m.get(label).copied())
+        .unwrap_or(true)
+}
+
+fn app_has_open_traditional_spectrum_window(app: &tauri::AppHandle) -> bool {
+    let state = app.state::<StreamState>();
+    app.webview_windows().keys().any(|label| {
+        label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+            && !spectrum_is_overlay_mode(&state, label)
+    })
+}
+
+/// 传统频谱窗需要 Regular 激活策略，否则 macOS 只会放大窗口而不会进入独占 Space 全屏。
+#[cfg(target_os = "macos")]
+fn sync_app_activation_policy(app: &tauri::AppHandle) {
+    let policy = if app_has_open_traditional_spectrum_window(app) {
+        ActivationPolicy::Regular
+    } else {
+        ActivationPolicy::Accessory
+    };
+    let _ = app.set_activation_policy(policy);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn sync_app_activation_policy(_app: &tauri::AppHandle) {}
+
+fn wire_spectrum_window_activation_policy(app: &tauri::AppHandle, label: &str) {
+    let Some(win) = app.get_webview_window(label) else {
+        return;
+    };
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+}
+
+/// 额外频谱窗口：浮层窗跟随置顶/模糊；传统窗仅跟随模糊与**本窗**穿透状态。
 fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
-        if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
-            let locked = label_passthrough_locked(&state, &label);
+        if !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+            continue;
+        }
+        let locked = label_passthrough_locked(&state, &label);
+        if spectrum_is_overlay_mode(&state, &label) {
             #[cfg(target_os = "macos")]
             configure_overlay_window(win, pinned, blur_enabled, locked)?;
             #[cfg(not(target_os = "macos"))]
             {
                 win.set_always_on_top(pinned)?;
+                let _ = win.set_ignore_cursor_events(locked);
+            }
+        } else {
+            #[cfg(target_os = "macos")]
+            configure_traditional_window(win, blur_enabled, locked)?;
+            #[cfg(not(target_os = "macos"))]
+            {
+                win.set_always_on_top(false)?;
                 let _ = win.set_ignore_cursor_events(locked);
             }
         }
@@ -682,22 +739,9 @@ fn configure_overlay_window(
     blur_enabled: bool,
     main_ignores_mouse_events: bool,
 ) -> tauri::Result<()> {
-    const OVERLAY_EFFECT: Effect = Effect::HudWindow;
-    const OVERLAY_BLUR_RADIUS: f64 = 14.0;
     window.set_always_on_top(pinned)?;
     window.set_shadow(false)?;
-    // 先清理旧效果，再按当前开关重建，避免频繁切换时出现偶发状态残留。
-    let _ = window.set_effects(None);
-    let _ = clear_vibrancy(&window);
-    if blur_enabled {
-        window.set_effects(
-            EffectsBuilder::new()
-                .effect(OVERLAY_EFFECT)
-                .state(EffectState::Active)
-                .radius(OVERLAY_BLUR_RADIUS)
-                .build(),
-        )?;
-    }
+    apply_window_blur_effect(&window, blur_enabled)?;
 
     let overlay_window = window.clone();
     window.run_on_main_thread(move || unsafe {
@@ -740,6 +784,77 @@ fn configure_overlay_window(
             ns_window.orderFrontRegardless();
         }
     })
+}
+
+#[cfg(target_os = "macos")]
+fn apply_window_blur_effect(window: &tauri::WebviewWindow, blur_enabled: bool) -> tauri::Result<()> {
+    const OVERLAY_EFFECT: Effect = Effect::HudWindow;
+    const OVERLAY_BLUR_RADIUS: f64 = 14.0;
+    let _ = window.set_effects(None);
+    let _ = clear_vibrancy(window);
+    if blur_enabled {
+        window.set_effects(
+            EffectsBuilder::new()
+                .effect(OVERLAY_EFFECT)
+                .state(EffectState::Active)
+                .radius(OVERLAY_BLUR_RADIUS)
+                .build(),
+        )?;
+    }
+    Ok(())
+}
+
+/// 传统频谱窗：带系统标题栏，不参与全屏 Space 浮层，可像普通窗口一样全屏/切换 Space。
+#[cfg(target_os = "macos")]
+fn configure_traditional_window(
+    window: tauri::WebviewWindow,
+    _blur_enabled: bool,
+    ignores_mouse_events: bool,
+) -> tauri::Result<()> {
+    window.set_always_on_top(false)?;
+    window.set_shadow(true)?;
+    let _ = window.set_effects(None);
+    let _ = clear_vibrancy(&window);
+
+    let traditional_window = window.clone();
+    window.run_on_main_thread(move || unsafe {
+        let ns_window: &NSWindow = &*traditional_window
+            .ns_window()
+            .expect("无法获取 macOS 窗口句柄")
+            .cast();
+        ns_window.setLevel(0);
+        ns_window.setHasShadow(true);
+        ns_window.setHidesOnDeactivate(false);
+        ns_window.setCanHide(true);
+        ns_window.setMovableByWindowBackground(false);
+        ns_window.setIgnoresMouseEvents(ignores_mouse_events);
+        ns_window.setReleasedWhenClosed(false);
+
+        let behavior = ns_window.collectionBehavior()
+            & !NSWindowCollectionBehavior::CanJoinAllSpaces
+            & !NSWindowCollectionBehavior::CanJoinAllApplications
+            & !NSWindowCollectionBehavior::Stationary
+            & !NSWindowCollectionBehavior::FullScreenAuxiliary
+            & !NSWindowCollectionBehavior::IgnoresCycle
+            | NSWindowCollectionBehavior::FullScreenPrimary;
+        ns_window.setCollectionBehavior(behavior);
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_traditional_window(
+    window: tauri::WebviewWindow,
+    _blur_enabled: bool,
+    ignores_mouse_events: bool,
+) -> tauri::Result<()> {
+    window.set_always_on_top(false)?;
+    window.set_shadow(true)?;
+    window.set_ignore_cursor_events(ignores_mouse_events)
+}
+
+#[tauri::command]
+fn get_spectrum_window_overlay_mode(state: State<'_, StreamState>, label: String) -> bool {
+    spectrum_is_overlay_mode(&state, label.trim())
 }
 
 #[cfg(target_os = "macos")]
@@ -1279,6 +1394,7 @@ fn get_mouse_passthrough_locked(state: State<'_, StreamState>, label: String) ->
 fn open_extra_spectrum_window_impl(
     app: &tauri::AppHandle,
     anchor_label: Option<String>,
+    overlay_mode: bool,
 ) -> Result<(), String> {
     let anchor_key = anchor_label
         .as_deref()
@@ -1299,6 +1415,9 @@ fn open_extra_spectrum_window_impl(
         .fetch_add(1, Ordering::SeqCst)
         .saturating_add(1);
     let label = format!("{SPECTRUM_WINDOW_LABEL_PREFIX}{n}");
+    if let Ok(mut modes) = state.spectrum_overlay_by_label.lock() {
+        modes.insert(label.clone(), overlay_mode);
+    }
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
 
@@ -1318,16 +1437,27 @@ fn open_extra_spectrum_window_impl(
         (0, 0)
     };
 
-    let win = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
-        .title("WaveDance 频谱")
-        .inner_size(1080.0, 680.0)
-        .resizable(true)
-        .transparent(true)
-        .decorations(false)
-        .shadow(false)
-        .always_on_top(pinned)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let win = {
+        let builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+            .title("WaveDance 频谱")
+            .inner_size(1080.0, 680.0)
+            .resizable(true);
+        if overlay_mode {
+            builder
+                .transparent(true)
+                .decorations(false)
+                .shadow(false)
+                .always_on_top(pinned)
+                .build()
+        } else {
+            builder
+                .decorations(true)
+                .shadow(true)
+                .always_on_top(false)
+                .build()
+        }
+    }
+    .map_err(|e| e.to_string())?;
     if use_center {
         win.center().map_err(|e| e.to_string())?;
     } else {
@@ -1335,15 +1465,25 @@ fn open_extra_spectrum_window_impl(
             .map_err(|e| e.to_string())?;
     }
 
-    #[cfg(target_os = "macos")]
-    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
-    #[cfg(not(target_os = "macos"))]
-    {
-        win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
-        let _ = win.set_ignore_cursor_events(false);
+    if overlay_mode {
+        #[cfg(target_os = "macos")]
+        configure_overlay_window(win.clone(), pinned, blur_enabled, false)
+            .map_err(|e| e.to_string())?;
+        #[cfg(not(target_os = "macos"))]
+        {
+            win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
+            let _ = win.set_ignore_cursor_events(false);
+        }
+    } else {
+        configure_traditional_window(win.clone(), blur_enabled, false).map_err(|e| e.to_string())?;
+        wire_spectrum_window_activation_policy(app, &label);
+        sync_app_activation_policy(app);
     }
 
     win.show().map_err(|e| e.to_string())?;
+    if !overlay_mode {
+        let _ = win.set_focus();
+    }
     Ok(())
 }
 
@@ -1351,8 +1491,9 @@ fn open_extra_spectrum_window_impl(
 fn open_extra_spectrum_window(
     app: tauri::AppHandle,
     anchor_label: Option<String>,
+    overlay_mode: Option<bool>,
 ) -> Result<(), String> {
-    open_extra_spectrum_window_impl(&app, anchor_label)
+    open_extra_spectrum_window_impl(&app, anchor_label, overlay_mode.unwrap_or(true))
 }
 
 fn notify_settings_visual_target(app: &tauri::AppHandle) {
@@ -1583,6 +1724,7 @@ fn main() {
             {
                 const TRAY_MENU_SETTINGS: &str = "tray_settings";
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
+                const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
                 const TRAY_MENU_QUIT: &str = "tray_quit";
 
                 let Some(icon) = app.default_window_icon().cloned() else {
@@ -1590,7 +1732,8 @@ fn main() {
                 };
                 let menu = MenuBuilder::new(app.handle())
                     .text(TRAY_MENU_SETTINGS, "设置…")
-                    .text(TRAY_MENU_NEW_SPECTRUM, "新建频谱窗口")
+                    .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
+                    .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
                     .separator()
                     .text(TRAY_MENU_QUIT, "退出 WaveDance")
                     .build()?;
@@ -1604,7 +1747,9 @@ fn main() {
                         if event.id() == TRAY_MENU_SETTINGS {
                             let _ = open_settings_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
-                            let _ = open_extra_spectrum_window_impl(app, None);
+                            let _ = open_extra_spectrum_window_impl(app, None, true);
+                        } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
+                            let _ = open_extra_spectrum_window_impl(app, None, false);
                         } else if event.id() == TRAY_MENU_QUIT {
                             app.exit(0);
                         }
@@ -1646,6 +1791,7 @@ fn main() {
             close_settings_window,
             get_visual_settings_target,
             open_extra_spectrum_window,
+            get_spectrum_window_overlay_mode,
             quit_app,
             start_window_dragging,
             resize_window_by_delta
