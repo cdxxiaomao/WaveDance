@@ -326,8 +326,13 @@ fn info_to_payload(
 }
 
 fn fingerprint(payload: &NowPlayingPayload) -> String {
+    let duration_key = payload
+        .duration
+        .filter(|d| *d >= 1.0)
+        .map(|d| d.round() as i64)
+        .unwrap_or(0);
     format!(
-        "{}|{}|{}|{}|{:?}|{}|{}",
+        "{}|{}|{}|{}|{:?}|{}|{}|{duration_key}",
         payload.active,
         payload.title.as_deref().unwrap_or(""),
         payload.artist.as_deref().unwrap_or(""),

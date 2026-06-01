@@ -46,8 +46,15 @@ pub struct LyricsFetcher {
     cache: Arc<Mutex<HashMap<String, LyricsUpdatePayload>>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct LrclibRecord {
+    #[serde(rename = "trackName")]
+    track_name: Option<String>,
+    #[serde(rename = "artistName")]
+    artist_name: Option<String>,
+    #[serde(rename = "albumName")]
+    album_name: Option<String>,
+    duration: Option<f64>,
     instrumental: Option<bool>,
     #[serde(rename = "plainLyrics")]
     plain_lyrics: Option<String>,
@@ -217,13 +224,25 @@ async fn fetch_lyrics_multi_source(
         "{title}|{artist}|{album}|{}",
         duration_secs.unwrap_or(0.0).round() as i64
     );
+    let target_dur = duration_secs.filter(|d| *d >= 1.0);
 
-    if let Ok(payload) = fetch_lrc_cx_lyrics(title, artist, album).await {
+    // 已知时长时优先走 jsonapi 多结果 + 时长评分，避免 `/lyrics` 单条误命中。
+    if target_dur.is_some() {
+        if let Ok(payload) = fetch_lrc_cx_jsonapi(title, artist, album, duration_secs, &key).await {
+            return Ok(payload);
+        }
+    }
+
+    if let Ok(payload) = fetch_lrc_cx_lyrics(title, artist, album, target_dur).await {
         return Ok(payload);
     }
-    if let Ok(payload) = fetch_lrc_cx_jsonapi(title, artist, album, duration_secs, &key).await {
-        return Ok(payload);
+
+    if target_dur.is_none() {
+        if let Ok(payload) = fetch_lrc_cx_jsonapi(title, artist, album, duration_secs, &key).await {
+            return Ok(payload);
+        }
     }
+
     fetch_lrclib(title, artist, album, duration_secs, &key).await
 }
 
@@ -232,6 +251,7 @@ async fn fetch_lrc_cx_lyrics(
     title: &str,
     artist: &str,
     album: &str,
+    target_dur: Option<f64>,
 ) -> Result<LyricsUpdatePayload, String> {
     let base = lrc_cx_base();
     let url = format!(
@@ -249,6 +269,11 @@ async fn fetch_lrc_cx_lyrics(
         return Err("lrc.cx lyrics http error".into());
     }
     let body = resp.text().await.map_err(|e| e.to_string())?;
+    if let Some(td) = target_dur {
+        if !lrc_duration_compatible(&body, td) {
+            return Err("lrc.cx lyrics duration mismatch".into());
+        }
+    }
     lrc_text_to_payload(&body, "lrc.cx")
 }
 
@@ -276,7 +301,7 @@ async fn fetch_lrc_cx_jsonapi(
         return Err("lrc.cx jsonapi http error".into());
     }
     let list: Vec<LrcCxJsonItem> = resp.json().await.map_err(|e| e.to_string())?;
-    let best = pick_best_lrc_cx_item(&list, title, artist, duration_secs);
+    let best = pick_best_lrc_cx_item(&list, title, artist, album, duration_secs);
     let Some(item) = best else {
         return Err("lrc.cx jsonapi no match".into());
     };
@@ -293,17 +318,19 @@ fn pick_best_lrc_cx_item<'a>(
     list: &'a [LrcCxJsonItem],
     title: &str,
     artist: &str,
+    album: &str,
     duration_secs: Option<f64>,
 ) -> Option<&'a LrcCxJsonItem> {
     let title_l = title.to_lowercase();
     let artist_l = artist.to_lowercase();
+    let album_l = album.to_lowercase();
     let target_dur = duration_secs.filter(|d| *d >= 1.0);
 
     list.iter()
         .filter(|i| i.lrc.as_ref().is_some_and(|s| !s.trim().is_empty()))
         .max_by(|a, b| {
-            let sa = score_lrc_cx_item(a, &title_l, &artist_l, target_dur);
-            let sb = score_lrc_cx_item(b, &title_l, &artist_l, target_dur);
+            let sa = score_lrc_cx_item(a, &title_l, &artist_l, &album_l, target_dur);
+            let sb = score_lrc_cx_item(b, &title_l, &artist_l, &album_l, target_dur);
             sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
         })
 }
@@ -312,13 +339,15 @@ fn score_lrc_cx_item(
     item: &LrcCxJsonItem,
     title_l: &str,
     artist_l: &str,
+    album_l: &str,
     target_dur: Option<f64>,
 ) -> f64 {
     let mut score = item.score.unwrap_or(0.0);
     if let Some(t) = item.title.as_deref() {
-        if t.to_lowercase() == title_l {
+        let tl = t.to_lowercase();
+        if tl == title_l {
             score += 30.0;
-        } else if t.to_lowercase().contains(title_l) {
+        } else if tl.contains(title_l) || title_l.contains(&tl) {
             score += 10.0;
         }
     }
@@ -332,15 +361,57 @@ fn score_lrc_cx_item(
             }
         }
     }
-    if let (Some(td), Some(d)) = (target_dur, item.duration) {
-        let diff = (td - d).abs();
-        if diff <= 2.0 {
-            score += 40.0;
-        } else if diff <= 8.0 {
-            score += 15.0;
+    if !album_l.is_empty() {
+        if let Some(a) = item.album.as_deref() {
+            let al = a.to_lowercase();
+            if al == album_l {
+                score += 15.0;
+            } else if al.contains(album_l) || album_l.contains(&al) {
+                score += 6.0;
+            }
+        }
+    }
+    if let Some(td) = target_dur {
+        let candidate = item
+            .duration
+            .or_else(|| item.lrc.as_deref().and_then(lrc_end_time_secs));
+        if let Some(d) = candidate {
+            score += duration_match_score(td, d);
         }
     }
     score
+}
+
+/// 根据时长差给候选歌词打分；LRCLIB 建议 ±2s 内视为同一版本。
+fn duration_match_score(target_secs: f64, candidate_secs: f64) -> f64 {
+    let diff = (target_secs - candidate_secs).abs();
+    if diff <= 2.0 {
+        50.0
+    } else if diff <= 5.0 {
+        35.0
+    } else if diff <= 8.0 {
+        20.0
+    } else if diff <= 15.0 {
+        5.0
+    } else if diff <= 30.0 {
+        -15.0
+    } else {
+        -40.0
+    }
+}
+
+fn lrc_end_time_secs(lrc: &str) -> Option<f64> {
+    let lines = parse_lrc(lrc);
+    lines
+        .last()
+        .map(|l| l.time_ms as f64 / 1000.0)
+        .filter(|d| *d >= 1.0)
+}
+
+fn lrc_duration_compatible(lrc: &str, target_secs: f64) -> bool {
+    lrc_end_time_secs(lrc)
+        .map(|end| (target_secs - end).abs() <= 30.0)
+        .unwrap_or(true)
 }
 
 fn lrc_text_to_payload(lrc: &str, source: &str) -> Result<LyricsUpdatePayload, String> {
@@ -396,7 +467,7 @@ async fn fetch_lrclib(
         }
     }
 
-    if let Some(rec) = search_lrclib(&client, title, artist).await? {
+    if let Some(rec) = search_lrclib(&client, title, artist, album, duration_secs).await? {
         return record_to_payload(track_key, rec);
     }
 
@@ -432,6 +503,8 @@ async fn search_lrclib(
     client: &reqwest::Client,
     title: &str,
     artist: &str,
+    album: &str,
+    duration_secs: Option<f64>,
 ) -> Result<Option<LrclibRecord>, String> {
     let mut url = format!(
         "{LRCLIB_BASE}/search?track_name={}",
@@ -440,12 +513,97 @@ async fn search_lrclib(
     if !artist.is_empty() {
         url.push_str(&format!("&artist_name={}", urlencoding::encode(artist)));
     }
+    if !album.is_empty() {
+        url.push_str(&format!("&album_name={}", urlencoding::encode(album)));
+    }
     let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
     if !resp.status().is_success() {
         return Ok(None);
     }
     let list: Vec<LrclibRecord> = resp.json().await.map_err(|e| e.to_string())?;
-    Ok(list.into_iter().next())
+    Ok(pick_best_lrclib_record(&list, title, artist, album, duration_secs))
+}
+
+fn pick_best_lrclib_record(
+    list: &[LrclibRecord],
+    title: &str,
+    artist: &str,
+    album: &str,
+    duration_secs: Option<f64>,
+) -> Option<LrclibRecord> {
+    let title_l = title.to_lowercase();
+    let artist_l = artist.to_lowercase();
+    let album_l = album.to_lowercase();
+    let target_dur = duration_secs.filter(|d| *d >= 1.0);
+
+    list.iter()
+        .filter(|rec| has_usable_lyrics(rec))
+        .max_by(|a, b| {
+            let sa = score_lrclib_record(a, &title_l, &artist_l, &album_l, target_dur);
+            let sb = score_lrclib_record(b, &title_l, &artist_l, &album_l, target_dur);
+            sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .cloned()
+}
+
+fn has_usable_lyrics(rec: &LrclibRecord) -> bool {
+    rec.synced_lyrics
+        .as_ref()
+        .is_some_and(|s| !s.trim().is_empty())
+        || rec
+            .plain_lyrics
+            .as_ref()
+            .is_some_and(|s| !s.trim().is_empty())
+}
+
+fn score_lrclib_record(
+    rec: &LrclibRecord,
+    title_l: &str,
+    artist_l: &str,
+    album_l: &str,
+    target_dur: Option<f64>,
+) -> f64 {
+    let mut score = 0.0;
+    if let Some(t) = rec.track_name.as_deref() {
+        let tl = t.to_lowercase();
+        if tl == title_l {
+            score += 30.0;
+        } else if tl.contains(title_l) || title_l.contains(&tl) {
+            score += 10.0;
+        }
+    }
+    if !artist_l.is_empty() {
+        if let Some(a) = rec.artist_name.as_deref() {
+            let al = a.to_lowercase();
+            if al == artist_l {
+                score += 25.0;
+            } else if al.contains(artist_l) || artist_l.contains(&al) {
+                score += 12.0;
+            }
+        }
+    }
+    if !album_l.is_empty() {
+        if let Some(a) = rec.album_name.as_deref() {
+            let al = a.to_lowercase();
+            if al == album_l {
+                score += 15.0;
+            } else if al.contains(album_l) || album_l.contains(&al) {
+                score += 6.0;
+            }
+        }
+    }
+    if rec.synced_lyrics.as_ref().is_some_and(|s| !s.trim().is_empty()) {
+        score += 8.0;
+    }
+    if let Some(td) = target_dur {
+        let candidate = rec
+            .duration
+            .or_else(|| rec.synced_lyrics.as_deref().and_then(lrc_end_time_secs));
+        if let Some(d) = candidate {
+            score += duration_match_score(td, d);
+        }
+    }
+    score
 }
 
 fn record_to_payload(track_key: &str, rec: LrclibRecord) -> Result<LyricsUpdatePayload, String> {
@@ -543,5 +701,53 @@ fn fractional_to_ms(frac: &str) -> u64 {
             let pow = 10u64.saturating_pow(n.saturating_sub(3) as u32);
             val.saturating_mul(pow)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn duration_match_score_prefers_close_match() {
+        assert!(duration_match_score(240.0, 241.0) > duration_match_score(240.0, 260.0));
+        assert!(duration_match_score(240.0, 260.0) > duration_match_score(240.0, 300.0));
+    }
+
+    #[test]
+    fn lrc_end_time_reads_last_timestamp() {
+        let lrc = "[00:10.00] first\n[03:52.50] last line\n";
+        assert!((lrc_end_time_secs(lrc).unwrap() - 232.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn lrc_duration_compatible_allows_reasonable_drift() {
+        let lrc = "[00:10.00] line\n[03:58.00] end\n";
+        assert!(lrc_duration_compatible(lrc, 240.0));
+        assert!(!lrc_duration_compatible(lrc, 120.0));
+    }
+
+    #[test]
+    fn pick_best_lrc_cx_item_uses_duration() {
+        let list = vec![
+            LrcCxJsonItem {
+                title: Some("Song".into()),
+                artist: Some("Artist".into()),
+                album: None,
+                duration: Some(180.0),
+                lrc: Some("[00:01.00] wrong version\n".into()),
+                score: Some(80.0),
+            },
+            LrcCxJsonItem {
+                title: Some("Song".into()),
+                artist: Some("Artist".into()),
+                album: None,
+                duration: Some(240.0),
+                lrc: Some("[00:01.00] right version\n".into()),
+                score: Some(80.0),
+            },
+        ];
+        let best = pick_best_lrc_cx_item(&list, "Song", "Artist", "", Some(241.0));
+        assert_eq!(best.and_then(|i| i.duration), Some(240.0));
     }
 }
