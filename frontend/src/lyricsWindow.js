@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { cursorPosition } from "@tauri-apps/api/window";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
 import {
@@ -9,9 +10,94 @@ import {
 } from "./lyricsSettingsSchema.js";
 
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
-const openLyricsSettingsBtn = document.querySelector("#openLyricsSettingsBtn");
-const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
+const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const lyricsRoot = document.querySelector("#nowPlayingLyrics");
+
+const WINDOW_EDGE_HINT_HIDE_MS = 1500;
+const WINDOW_EDGE_BAND_LOGICAL = 10;
+const WINDOW_EDGE_HINT_POLL_MS = 80;
+let windowEdgeHintHideTimer = null;
+let windowEdgeActive = false;
+
+function revealWindowEdges() {
+  document.body.classList.add("show-window-edges");
+  if (document.body.classList.contains("mouse-passthrough-locked")) {
+    invoke("reveal_lyrics_unlock_toolbar", {
+      label: getCurrentWebviewWindow().label,
+    }).catch(() => {});
+  }
+  if (windowEdgeHintHideTimer != null) {
+    clearTimeout(windowEdgeHintHideTimer);
+  }
+  windowEdgeHintHideTimer = window.setTimeout(() => {
+    document.body.classList.remove("show-window-edges");
+    windowEdgeHintHideTimer = null;
+  }, WINDOW_EDGE_HINT_HIDE_MS);
+}
+
+/** 检测光标是否进入窗口边缘带（兼容 cursor 为逻辑/物理坐标两种平台行为） */
+function cursorInWindowEdgeBand(cursor, pos, size, scale, bandLogical) {
+  const inEdgeBand = (cx, cy, left, top, right, bottom, band) => {
+    if (cx < left || cx > right || cy < top || cy > bottom) {
+      return false;
+    }
+    return (
+      cx - left <= band ||
+      right - cx <= band ||
+      cy - top <= band ||
+      bottom - cy <= band
+    );
+  };
+
+  const left = pos.x;
+  const top = pos.y;
+  const right = pos.x + size.width;
+  const bottom = pos.y + size.height;
+  const bandPhysical = bandLogical * scale;
+
+  // macOS：cursorPosition 常为逻辑坐标，outer* 为物理像素
+  if (
+    inEdgeBand(
+      cursor.x * scale,
+      cursor.y * scale,
+      left,
+      top,
+      right,
+      bottom,
+      bandPhysical,
+    )
+  ) {
+    return true;
+  }
+
+  // 其他平台或已统一为物理坐标
+  return inEdgeBand(cursor.x, cursor.y, left, top, right, bottom, bandPhysical);
+}
+
+async function pollWindowEdgeHint() {
+  try {
+    const win = getCurrentWebviewWindow();
+    const scale = await win.scaleFactor();
+    const [cursor, pos, size] = await Promise.all([
+      cursorPosition(),
+      win.outerPosition(),
+      win.outerSize(),
+    ]);
+    const inEdge = cursorInWindowEdgeBand(
+      cursor,
+      pos,
+      size,
+      scale,
+      WINDOW_EDGE_BAND_LOGICAL,
+    );
+    if (inEdge && !windowEdgeActive) {
+      revealWindowEdges();
+    }
+    windowEdgeActive = inEdge;
+  } catch {
+    // ignore
+  }
+}
 
 function applyLocalLyricsStyle(windowLabel) {
   if (!lyricsRoot) return;
@@ -44,45 +130,6 @@ async function init() {
   };
   document.body.addEventListener("mousedown", triggerNativeDrag);
 
-  const triggerNativeResize = (event) => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    const direction = event.currentTarget.dataset.resizeDir;
-    if (!direction) return;
-    document.body.classList.add("is-resizing-window");
-    let lastX = event.screenX;
-    let lastY = event.screenY;
-
-    const onMouseMove = async (moveEvent) => {
-      moveEvent.preventDefault();
-      const deltaX = moveEvent.screenX - lastX;
-      const deltaY = moveEvent.screenY - lastY;
-      if (deltaX === 0 && deltaY === 0) return;
-      lastX = moveEvent.screenX;
-      lastY = moveEvent.screenY;
-      try {
-        await invoke("resize_window_by_delta", { direction, deltaX, deltaY });
-      } catch {
-        // ignore
-      }
-    };
-
-    const stopResize = () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", stopResize);
-      window.removeEventListener("mouseleave", stopResize);
-      document.body.classList.remove("is-resizing-window");
-    };
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", stopResize);
-    window.addEventListener("mouseleave", stopResize);
-  };
-
-  resizeHandles.forEach((handle) => {
-    handle.addEventListener("mousedown", triggerNativeResize);
-  });
-
   applyLocalLyricsStyle(windowLabel);
 
   if (lyricsRoot) {
@@ -92,6 +139,7 @@ async function init() {
   }
 
   const lyricsStyleTarget = { kind: "WebviewWindow", label: windowLabel };
+  window.setInterval(pollWindowEdgeHint, WINDOW_EDGE_HINT_POLL_MS);
   await listen(
     "lyrics-window-style",
     (event) => {
@@ -153,8 +201,8 @@ async function init() {
     });
   }
 
-  if (openLyricsSettingsBtn) {
-    openLyricsSettingsBtn.addEventListener("click", async () => {
+  if (openSettingsBtn) {
+    openSettingsBtn.addEventListener("click", async () => {
       try {
         await invoke("open_lyrics_settings_window");
       } catch (err) {

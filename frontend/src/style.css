@@ -164,6 +164,77 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
   background: rgba(196, 165, 116, 0.24);
 }
 
+body.lyrics-dedicated::before,
+body.lyrics-dedicated::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  --ants-dash: 3px;
+  --ants-period: 6px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      var(--ants-a) 0 var(--ants-dash),
+      var(--ants-b) var(--ants-dash) var(--ants-period)
+    )
+    top left / var(--ants-period) 1px repeat-x,
+    repeating-linear-gradient(
+      90deg,
+      var(--ants-a) 0 var(--ants-dash),
+      var(--ants-b) var(--ants-dash) var(--ants-period)
+    )
+    bottom left / var(--ants-period) 1px repeat-x,
+    repeating-linear-gradient(
+      0deg,
+      var(--ants-a) 0 var(--ants-dash),
+      var(--ants-b) var(--ants-dash) var(--ants-period)
+    )
+    top left / 1px var(--ants-period) repeat-y,
+    repeating-linear-gradient(
+      0deg,
+      var(--ants-a) 0 var(--ants-dash),
+      var(--ants-b) var(--ants-dash) var(--ants-period)
+    )
+    top right / 1px var(--ants-period) repeat-y;
+  animation: none;
+}
+
+body.lyrics-dedicated::before {
+  z-index: 19999;
+  --ants-a: rgba(237, 214, 173, 0.95);
+  --ants-b: transparent;
+}
+
+body.lyrics-dedicated::after {
+  z-index: 19998;
+  --ants-a: rgba(88, 70, 42, 0.9);
+  --ants-b: transparent;
+  background-position:
+    3px 0,
+    -3px 100%,
+    0 3px,
+    100% -3px;
+}
+
+body.lyrics-dedicated.show-window-edges::before,
+body.lyrics-dedicated.show-window-edges::after {
+  opacity: 1;
+  animation: lyrics-window-edge-march 0.35s linear infinite;
+}
+
+@keyframes lyrics-window-edge-march {
+  to {
+    background-position:
+      6px 0,
+      -6px 100%,
+      0 6px,
+      100% -6px;
+  }
+}
+
 .app {
   width: min(1100px, 92vw);
   margin: 28px auto;
@@ -259,7 +330,8 @@ body.lyrics-dedicated .lyrics-toolbar {
   right: 8px;
   z-index: 9002;
   display: flex;
-  gap: 4px;
+  gap: 6px;
+  align-items: center;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-6px);
@@ -275,20 +347,6 @@ body.lyrics-dedicated:focus-within .lyrics-toolbar {
 
 body.lyrics-dedicated.mouse-passthrough-locked .lyrics-toolbar {
   visibility: hidden;
-}
-
-body.lyrics-dedicated .lyrics-toolbar button {
-  width: 28px;
-  height: 28px;
-  border: 1px solid rgba(196, 165, 116, 0.25);
-  border-radius: 6px;
-  background: rgba(8, 10, 18, 0.72);
-  color: rgba(237, 214, 173, 0.9);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
@@ -875,7 +933,7 @@ body.toolbar-floater #mousePassthroughLockBtn {
   pointer-events: auto !important;
 }
 
-/* 歌词穿透浮动条：保留空白命中区，移入后才显示解锁按钮 */
+/* 歌词穿透浮动条：默认隐藏，仅边缘触发边框时临时显示解锁按钮 */
 body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone {
   display: flex;
   align-items: flex-start;
@@ -883,7 +941,7 @@ body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone {
   box-sizing: border-box;
   min-width: 40px;
   min-height: 40px;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 body.toolbar-floater.toolbar-floater-lyrics #mousePassthroughLockBtn {
@@ -893,8 +951,11 @@ body.toolbar-floater.toolbar-floater-lyrics #mousePassthroughLockBtn {
   transition: opacity 0.16s ease, visibility 0.16s ease;
 }
 
-body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone:hover #mousePassthroughLockBtn,
-body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone:focus-within #mousePassthroughLockBtn {
+body.toolbar-floater.toolbar-floater-lyrics.show-unlock-button .toolbar-unlock-hitzone {
+  pointer-events: auto;
+}
+
+body.toolbar-floater.toolbar-floater-lyrics.show-unlock-button #mousePassthroughLockBtn {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;

@@ -7,14 +7,6 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body class="lyrics-clone">
-    <div class="resize-handle edge top" data-resize-dir="north"></div>
-    <div class="resize-handle edge right" data-resize-dir="east"></div>
-    <div class="resize-handle edge bottom" data-resize-dir="south"></div>
-    <div class="resize-handle edge left" data-resize-dir="west"></div>
-    <div class="resize-handle corner top-left" data-resize-dir="northwest"></div>
-    <div class="resize-handle corner top-right" data-resize-dir="northeast"></div>
-    <div class="resize-handle corner bottom-right" data-resize-dir="southeast"></div>
-    <div class="resize-handle corner bottom-left" data-resize-dir="southwest"></div>
     <div class="app lyrics-only">
       <div class="lyrics-toolbar" data-no-drag>
         <button
@@ -34,12 +26,7 @@
             decoding="async"
           />
         </button>
-        <button
-          type="button"
-          id="openLyricsSettingsBtn"
-          title="打开歌词窗口设置（独立窗口）"
-          aria-label="歌词设置"
-        >
+        <button type="button" id="openSettingsBtn" title="设置" aria-label="设置">
           <img
             class="toolbar-icon"
             src="/icons/settings.svg"

@@ -1134,6 +1134,7 @@ fn sync_spectrum_floating_toolbar(
         return Ok(());
     }
     ensure_spectrum_pass_through_toolbar_created(app, spectrum_label)?;
+    let lyrics_locked_only = spectrum_label.starts_with(LYRICS_WINDOW_LABEL_PREFIX);
 
     #[cfg(target_os = "macos")]
     {
@@ -1144,7 +1145,11 @@ fn sync_spectrum_floating_toolbar(
             spec.run_on_main_thread(move || {
                 let _ = position_floating_toolbar_near_parent(&app_handle, &sl, &tbl);
                 if let Some(tb) = app_handle.get_webview_window(&tbl) {
-                    let _ = tb.show();
+                    if lyrics_locked_only {
+                        let _ = tb.hide();
+                    } else {
+                        let _ = tb.show();
+                    }
                 }
             })
             .map_err(|e| e.to_string())?;
@@ -1152,7 +1157,11 @@ fn sync_spectrum_floating_toolbar(
             position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
                 .map_err(|e| e.to_string())?;
             if let Some(tb) = app.get_webview_window(&tb_label) {
-                tb.show().map_err(|e| e.to_string())?;
+                if lyrics_locked_only {
+                    tb.hide().map_err(|e| e.to_string())?;
+                } else {
+                    tb.show().map_err(|e| e.to_string())?;
+                }
             }
         }
         return Ok(());
@@ -1163,7 +1172,11 @@ fn sync_spectrum_floating_toolbar(
         position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
             .map_err(|e| e.to_string())?;
         if let Some(tb) = app.get_webview_window(&tb_label) {
-            tb.show().map_err(|e| e.to_string())?;
+            if lyrics_locked_only {
+                tb.hide().map_err(|e| e.to_string())?;
+            } else {
+                tb.show().map_err(|e| e.to_string())?;
+            }
         }
         Ok(())
     }
@@ -1886,6 +1899,50 @@ fn start_window_dragging(window: tauri::WebviewWindow) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())
 }
 
+/// 歌词窗边缘提示：显示穿透解锁浮动条并通知其前端展示按钮（3s 后由 toolbar.js 自行隐藏）。
+#[tauri::command]
+fn reveal_lyrics_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    let label = label.trim().to_string();
+    if !label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
+        return Err("仅歌词窗口支持临时解锁条".to_string());
+    }
+    let state = app.state::<StreamState>();
+    if !label_passthrough_locked(&state, &label) {
+        return Ok(());
+    }
+    let tb_label = toolbar_webview_label_for_spectrum(&label);
+    ensure_spectrum_pass_through_toolbar_created(&app, &label)?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let Some(parent) = app.get_webview_window(&label) else {
+            return Err("歌词窗口不存在".to_string());
+        };
+        let app_h = app.clone();
+        let pl = label.clone();
+        let tbl = tb_label.clone();
+        return parent
+            .run_on_main_thread(move || {
+                let _ = position_floating_toolbar_near_parent(&app_h, &pl, &tbl);
+                if let Some(tb) = app_h.get_webview_window(&tbl) {
+                    let _ = tb.show();
+                    let _ = app_h.emit_to(&tbl, "lyrics-unlock-toolbar-reveal", ());
+                }
+            })
+            .map_err(|e| e.to_string());
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        position_floating_toolbar_near_parent(&app, &label, &tb_label)?;
+        if let Some(tb) = app.get_webview_window(&tb_label) {
+            tb.show().map_err(|e| e.to_string())?;
+            let _ = app.emit_to(&tb_label, "lyrics-unlock-toolbar-reveal", ());
+        }
+        Ok(())
+    }
+}
+
 #[tauri::command]
 fn resize_window_by_delta(
     window: tauri::WebviewWindow,
@@ -2092,6 +2149,7 @@ fn main() {
             get_spectrum_window_overlay_mode,
             quit_app,
             start_window_dragging,
+            reveal_lyrics_unlock_toolbar,
             resize_window_by_delta,
             #[cfg(target_os = "macos")]
             get_now_playing_snapshot,

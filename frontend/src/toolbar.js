@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 const lockBtn = document.querySelector("#mousePassthroughLockBtn");
 
@@ -11,9 +12,40 @@ function toolbarTargetLabel() {
 }
 
 const targetLabel = toolbarTargetLabel();
+const UNLOCK_REVEAL_MS = 3000;
+let unlockRevealTimer = null;
+const isLyricsFloater = targetLabel.startsWith("lyrics-");
 
-if (targetLabel.startsWith("lyrics-")) {
+if (isLyricsFloater) {
   document.body.classList.add("toolbar-floater-lyrics");
+}
+
+async function hideLyricsFloaterIfNeeded() {
+  if (!isLyricsFloater) return;
+  document.body.classList.remove("show-unlock-button");
+  try {
+    await getCurrentWebviewWindow().hide();
+  } catch {
+    // ignore
+  }
+}
+
+async function revealUnlockButtonTemporarily() {
+  if (isLyricsFloater) {
+    try {
+      await getCurrentWebviewWindow().show();
+    } catch {
+      // ignore
+    }
+  }
+  document.body.classList.add("show-unlock-button");
+  if (unlockRevealTimer != null) {
+    clearTimeout(unlockRevealTimer);
+  }
+  unlockRevealTimer = window.setTimeout(() => {
+    unlockRevealTimer = null;
+    hideLyricsFloaterIfNeeded();
+  }, UNLOCK_REVEAL_MS);
 }
 
 /** 浮动窗仅在穿透开启时出现，此处只关心「解锁」态的展示与快捷键同步 */
@@ -29,9 +61,22 @@ function applyLockUi(locked) {
   if (lockImg) {
     lockImg.src = on ? "/icons/passthrough-active.svg" : "/icons/passthrough-idle.svg";
   }
+  if (!on && isLyricsFloater) {
+    if (unlockRevealTimer != null) {
+      clearTimeout(unlockRevealTimer);
+      unlockRevealTimer = null;
+    }
+    hideLyricsFloaterIfNeeded();
+  }
 }
 
 async function init() {
+  if (isLyricsFloater) {
+    await listen("lyrics-unlock-toolbar-reveal", () => {
+      revealUnlockButtonTemporarily();
+    });
+  }
+
   await listen("mouse-passthrough-changed", (event) => {
     const p = event.payload;
     const lbl =
@@ -64,6 +109,15 @@ async function init() {
     });
   }
 
+  if (isLyricsFloater) {
+    try {
+      if (await getCurrentWebviewWindow().isVisible()) {
+        revealUnlockButtonTemporarily();
+      }
+    } catch {
+      // ignore
+    }
+  }
 }
 
 init().catch((err) => {
