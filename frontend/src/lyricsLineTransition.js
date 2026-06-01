@@ -37,11 +37,39 @@ export function createLyricsLineTransition(root, nextEl) {
     el.classList.remove("is-entering", "is-exiting");
   }
 
+  /** @param {HTMLElement} el */
+  function getVtextEl(el) {
+    let v = el.querySelector(".now-playing-lyrics-vtext");
+    if (!v) {
+      v = document.createElement("span");
+      v.className = "now-playing-lyrics-vtext";
+      el.replaceChildren(v);
+    }
+    return v;
+  }
+
   /** @param {HTMLElement} el @param {string} text */
   function setSlotText(el, text) {
     clearSlotMotion(el);
-    el.replaceChildren();
-    if (text) el.textContent = text;
+    const v = getVtextEl(el);
+    v.replaceChildren();
+    if (text) v.textContent = text;
+  }
+
+  /** 竖排 vertical-rl 在 grid 重排后宽度偶发塌陷，用实测宽度兜底 */
+  function syncVerticalStageMinWidth() {
+    if (!root.classList.contains("layout-vertical")) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        let maxW = 0;
+        for (const el of [slotA, slotB]) {
+          if (el.hidden) continue;
+          maxW = Math.max(maxW, el.scrollWidth, el.offsetWidth);
+        }
+        if (maxW > 0) stage.style.minWidth = `${maxW}px`;
+        else stage.style.removeProperty("min-width");
+      });
+    });
   }
 
   function clearAnimClasses() {
@@ -77,6 +105,7 @@ export function createLyricsLineTransition(root, nextEl) {
     showSlot(activeSlot(), Boolean(displayedCurrent));
     animating = false;
     detachEnterEnd();
+    syncVerticalStageMinWidth();
   }
 
   function abortAnimation() {
@@ -93,7 +122,8 @@ export function createLyricsLineTransition(root, nextEl) {
   function updateNextLine(next) {
     if (!nextEl || next === displayedNext) return;
     displayedNext = next;
-    nextEl.textContent = next;
+    const v = nextEl.querySelector(".now-playing-lyrics-vtext") ?? nextEl;
+    v.textContent = next;
     nextEl.hidden = !next;
   }
 
@@ -107,6 +137,7 @@ export function createLyricsLineTransition(root, nextEl) {
     showSlot(slotB, false);
     displayedCurrent = current;
     updateNextLine(next);
+    syncVerticalStageMinWidth();
   }
 
   /** @param {HTMLElement} outgoing @param {HTMLElement} incoming @param {string} current */
@@ -130,12 +161,13 @@ export function createLyricsLineTransition(root, nextEl) {
     const incoming = inactiveSlot();
     animGen++;
 
-    setSlotText(incoming, current);
-    showSlot(incoming, true);
     stage.classList.add("is-animating");
+    setSlotText(incoming, current);
     outgoing.classList.add("is-exiting");
     incoming.classList.add("is-entering");
+    showSlot(incoming, true);
     animating = true;
+    syncVerticalStageMinWidth();
     watchEnterAnimationEnd(outgoing, incoming, current);
   }
 
@@ -160,6 +192,7 @@ export function createLyricsLineTransition(root, nextEl) {
   }
 
   function reset() {
+    stage.style.removeProperty("min-width");
     commitInstant("", "");
   }
 

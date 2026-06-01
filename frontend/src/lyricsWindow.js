@@ -16,6 +16,16 @@ const lyricsRoot = document.querySelector("#nowPlayingLyrics");
 function applyLocalLyricsStyle(windowLabel) {
   if (!lyricsRoot) return;
   applyLyricsWindowStyle(lyricsRoot, readLyricsWindowConfig(window.localStorage, windowLabel));
+  syncVerticalColumnMaxHeight();
+}
+
+/** 竖排列高上限：用容器像素高度，避免 vertical-rl + height:100% 链导致 stage 宽度算窄 */
+function syncVerticalColumnMaxHeight() {
+  if (!lyricsRoot) return;
+  const h = lyricsRoot.clientHeight;
+  if (h > 0) {
+    lyricsRoot.style.setProperty("--lyrics-column-max-height", `${h}px`);
+  }
 }
 
 async function init() {
@@ -75,12 +85,21 @@ async function init() {
 
   applyLocalLyricsStyle(windowLabel);
 
+  if (lyricsRoot) {
+    const columnHeightObserver = new ResizeObserver(() => syncVerticalColumnMaxHeight());
+    columnHeightObserver.observe(lyricsRoot);
+    syncVerticalColumnMaxHeight();
+  }
+
   const lyricsStyleTarget = { kind: "WebviewWindow", label: windowLabel };
   await listen(
     "lyrics-window-style",
     (event) => {
       const cfg = parseLyricsStyleEventPayload(event.payload, windowLabel);
-      if (cfg && lyricsRoot) applyLyricsWindowStyle(lyricsRoot, cfg);
+      if (cfg && lyricsRoot) {
+        applyLyricsWindowStyle(lyricsRoot, cfg);
+        syncVerticalColumnMaxHeight();
+      }
     },
     { target: lyricsStyleTarget },
   );

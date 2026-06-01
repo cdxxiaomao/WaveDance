@@ -234,6 +234,10 @@ body.lyrics-clone {
   overflow: hidden;
 }
 
+body.lyrics-dedicated.lyrics-clone {
+  overflow: visible;
+}
+
 body.lyrics-dedicated .app.lyrics-only {
   position: fixed;
   inset: 0;
@@ -246,7 +250,7 @@ body.lyrics-dedicated .app.lyrics-only {
   padding: 36px 14px 14px;
   box-sizing: border-box;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 body.lyrics-dedicated .lyrics-toolbar {
@@ -307,8 +311,7 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   opacity: 1;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: visible;
   font-family: var(
     --lyrics-font-family,
     system-ui,
@@ -322,8 +325,6 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
 /* 横向：两段歌词上下排列 */
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal {
   flex-direction: column;
-  overflow-y: auto;
-  overflow-x: hidden;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-line {
@@ -337,19 +338,77 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical {
   flex-direction: row-reverse;
   align-items: var(--lyrics-align-items, center);
-  overflow-y: hidden;
-  overflow-x: auto;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line {
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: max-content;
+  overflow: visible;
+  padding-block-start: max(0.25em, 10px);
+  box-sizing: border-box;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-vtext {
   writing-mode: vertical-rl;
   text-orientation: upright;
   white-space: pre-wrap;
   word-break: normal;
   overflow-wrap: anywhere;
-  max-height: 100%;
+  width: max-content;
+  min-width: max-content;
+  text-align: start;
   letter-spacing: 0.02em;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="top"]
+  .now-playing-lyrics-line,
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical:not([data-vertical-align="center"]):not([data-vertical-align="bottom"])
+  .now-playing-lyrics-line {
+  height: auto;
+  max-height: none;
+  justify-content: flex-start;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="top"]
+  .now-playing-lyrics-vtext,
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical:not([data-vertical-align="center"]):not([data-vertical-align="bottom"])
+  .now-playing-lyrics-vtext {
+  max-height: var(--lyrics-column-max-height, 100%);
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="center"]
+  .now-playing-lyrics-line {
+  height: var(--lyrics-column-max-height, 100%);
+  max-height: var(--lyrics-column-max-height, 100%);
+  justify-content: center;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="center"]
+  .now-playing-lyrics-vtext {
+  max-height: 100%;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="bottom"]
+  .now-playing-lyrics-line {
+  height: var(--lyrics-column-max-height, 100%);
+  max-height: var(--lyrics-column-max-height, 100%);
+  justify-content: flex-end;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="bottom"]
+  .now-playing-lyrics-vtext {
+  max-height: 100%;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-line.is-next {
@@ -413,10 +472,7 @@ body.lyrics-dedicated .now-playing-lyrics-current-stage {
   align-items: var(--lyrics-stage-align, start);
   justify-items: var(--lyrics-stage-justify, start);
   flex: 0 0 auto;
-  min-width: 0;
-  max-width: 100%;
   align-self: var(--lyrics-align-self, center);
-  contain: layout style;
 }
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage > .now-playing-lyrics-line.is-current {
@@ -433,26 +489,47 @@ body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-play
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage {
   width: fit-content;
+  max-width: 100%;
+  min-width: 0;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage.is-animating {
   overflow: hidden;
 }
 
+/* 纵向 stage：始终同一套 grid，切换时不改 display，避免 block→grid 宽度塌陷 */
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .now-playing-lyrics-current-stage {
-  min-width: fit-content;
-  width: fit-content;
+  display: grid;
+  grid-template-columns: max-content;
+  grid-template-rows: auto;
+  width: auto;
+  height: auto;
   max-width: none;
-  max-height: 100%;
+  overflow: visible;
 }
 
 body.lyrics-dedicated
   .now-playing-lyrics.lyrics-window-body.layout-vertical
   .now-playing-lyrics-current-stage
   > .now-playing-lyrics-line.is-current {
-  min-width: fit-content;
-  width: fit-content;
-  max-height: 100%;
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
+  overflow: visible;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="bottom"]
+  .now-playing-lyrics-current-stage {
+  height: var(--lyrics-column-max-height, 100%);
+  align-items: end;
+}
+
+body.lyrics-dedicated
+  .now-playing-lyrics.lyrics-window-body.layout-vertical[data-vertical-align="center"]
+  .now-playing-lyrics-current-stage {
+  height: var(--lyrics-column-max-height, 100%);
+  align-items: center;
 }
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage.is-animating > .now-playing-lyrics-line.is-current.is-exiting {

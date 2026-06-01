@@ -104,6 +104,13 @@ function flexToGridAlign(flexValue) {
   return "center";
 }
 
+/** 水平对齐 → grid justify（物理左/中/右，竖排模式不能复用 row-reverse 的 flex 映射） */
+function alignHorizontalToGrid(value) {
+  if (value === LYRICS_ALIGN_H.right) return "end";
+  if (value === LYRICS_ALIGN_H.left) return "start";
+  return "center";
+}
+
 export function normalizeLyricsWindowLabel(label) {
   const s = String(label ?? "").trim();
   if (s.startsWith("lyrics-")) return s;
@@ -235,11 +242,12 @@ export function applyLyricsWindowStyle(root, config) {
     root.style.setProperty("--lyrics-align-self", "auto");
   }
   root.style.setProperty("--lyrics-stage-align", flexToGridAlign(vFlex));
-  root.style.setProperty("--lyrics-stage-justify", flexToGridAlign(hFlex));
+  root.style.setProperty("--lyrics-stage-justify", alignHorizontalToGrid(c.alignHorizontal));
 
   root.classList.toggle("layout-horizontal", c.layout === LYRICS_LAYOUT.horizontal);
   root.classList.toggle("layout-vertical", c.layout === LYRICS_LAYOUT.vertical);
   root.classList.toggle("is-vertical-motion", c.layout === LYRICS_LAYOUT.vertical);
   root.dataset.lyricsTransition = c.transitionEffect;
   root.dataset.textAlign = c.alignHorizontal;
+  root.dataset.verticalAlign = c.alignVertical;
 }
