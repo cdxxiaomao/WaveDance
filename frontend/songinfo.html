@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 歌曲信息</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="songinfo-clone">
+    <div class="app songinfo-only">
+      <div class="songinfo-toolbar" data-no-drag>
+        <button
+          type="button"
+          id="mousePassthroughLockBtn"
+          title="开启后本窗口鼠标穿透到下层"
+          aria-pressed="false"
+          aria-label="穿透锁定"
+        >
+          <img
+            class="toolbar-icon"
+            data-lock-icon
+            src="/icons/passthrough-idle.svg"
+            alt=""
+            width="14"
+            height="14"
+            decoding="async"
+          />
+        </button>
+        <button type="button" id="openSettingsBtn" title="设置" aria-label="设置">
+          <img
+            class="toolbar-icon"
+            src="/icons/settings.svg"
+            alt=""
+            width="14"
+            height="14"
+            decoding="async"
+          />
+        </button>
+      </div>
+      <div id="songInfoPanel" class="song-info-panel song-info-window-body" hidden>
+        <div class="song-info-stack">
+          <div class="song-info-line song-info-title">
+            <span class="song-info-vtext" id="songTitle"></span>
+          </div>
+          <div class="song-info-line song-info-artist">
+            <span class="song-info-vtext" id="songArtist"></span>
+          </div>
+          <div class="song-info-line song-info-album">
+            <span class="song-info-vtext" id="songAlbum"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/songInfoWindow.js"></script>
+  </body>
+</html>

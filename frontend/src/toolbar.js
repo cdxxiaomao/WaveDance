@@ -67,7 +67,7 @@ function applyLockUi(locked) {
 }
 
 async function resolveEdgeRevealFloater() {
-  if (targetLabel.startsWith("lyrics-")) {
+  if (targetLabel.startsWith("lyrics-") || targetLabel.startsWith("songinfo-")) {
     return true;
   }
   if (targetLabel.startsWith("spectrum-")) {

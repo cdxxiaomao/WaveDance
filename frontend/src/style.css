@@ -880,6 +880,241 @@ body.cover-dedicated .cover-window-body.is-idle .cover-art-frame {
   opacity: 0.55;
 }
 
+/* —— 独立歌曲信息浮层窗 —— */
+body.songinfo-clone {
+  overflow: hidden;
+}
+
+body.songinfo-dedicated {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.songinfo-dedicated.songinfo-clone {
+  overflow: visible;
+}
+
+body.songinfo-dedicated .app.songinfo-only {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  z-index: 10;
+  padding: 36px 14px 14px;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: visible;
+}
+
+body.songinfo-dedicated .songinfo-toolbar {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 9002;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+body.songinfo-dedicated:hover .songinfo-toolbar,
+body.songinfo-dedicated:focus-within .songinfo-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body.songinfo-dedicated.mouse-passthrough-locked .songinfo-toolbar {
+  visibility: hidden;
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  justify-content: var(--songinfo-justify-content, center);
+  align-items: var(--songinfo-align-items, center);
+  gap: var(--songinfo-block-gap, 10px);
+  max-width: none;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  opacity: 1;
+  overflow: visible;
+  font-family: var(
+    --songinfo-font-family,
+    system-ui,
+    -apple-system,
+    "PingFang SC",
+    "Helvetica Neue",
+    sans-serif
+  );
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-horizontal {
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 纵向：stack 不参与布局，三列仍直接挂在 panel 上（保持现有竖排效果） */
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-vertical .song-info-stack {
+  display: contents;
+}
+
+/* 横向：三行文字在 stack 内紧凑排列；行宽 100% 以便 text-align 生效 */
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-horizontal .song-info-stack {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  row-gap: var(--songinfo-block-gap, 0px);
+  align-self: stretch;
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-horizontal .song-info-line {
+  flex: none;
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  white-space: normal;
+  text-align: var(--songinfo-text-align, center);
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-horizontal .song-info-vtext {
+  display: block;
+  width: 100%;
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-vertical {
+  flex-direction: row-reverse;
+  align-items: var(--songinfo-align-items, center);
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-vertical .song-info-line {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: max-content;
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+body.songinfo-dedicated .song-info-panel.song-info-window-body.layout-vertical .song-info-vtext {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  width: max-content;
+  min-width: max-content;
+  text-align: start;
+  letter-spacing: 0.02em;
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="top"]
+  .song-info-line,
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical:not([data-vertical-align="center"]):not([data-vertical-align="bottom"])
+  .song-info-line {
+  height: auto;
+  max-height: none;
+  justify-content: flex-start;
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="top"]
+  .song-info-vtext,
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical:not([data-vertical-align="center"]):not([data-vertical-align="bottom"])
+  .song-info-vtext {
+  max-height: var(--songinfo-column-max-height, 100%);
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="center"]
+  .song-info-line {
+  height: var(--songinfo-column-max-height, 100%);
+  max-height: var(--songinfo-column-max-height, 100%);
+  justify-content: center;
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="center"]
+  .song-info-vtext {
+  max-height: 100%;
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="bottom"]
+  .song-info-line {
+  height: var(--songinfo-column-max-height, 100%);
+  max-height: var(--songinfo-column-max-height, 100%);
+  justify-content: flex-end;
+}
+
+body.songinfo-dedicated
+  .song-info-panel.song-info-window-body.layout-vertical[data-vertical-align="bottom"]
+  .song-info-vtext {
+  max-height: 100%;
+}
+
+body.songinfo-dedicated .song-info-line {
+  flex: 0 1 auto;
+  min-width: 0;
+  text-align: var(--songinfo-text-align, center);
+  text-indent: 0;
+  line-height: var(--songinfo-line-height, 1.4);
+  display: block;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  overflow: visible;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+body.songinfo-dedicated .song-info-line.song-info-title {
+  font-size: var(--songinfo-title-size, 20px);
+  color: var(--songinfo-title-color, rgba(237, 214, 173, 0.98));
+  font-weight: 600;
+}
+
+body.songinfo-dedicated .song-info-line.song-info-artist {
+  font-size: var(--songinfo-artist-size, 16px);
+  color: var(--songinfo-artist-color, rgba(196, 165, 116, 0.92));
+  font-weight: 500;
+}
+
+body.songinfo-dedicated .song-info-line.song-info-album {
+  font-size: var(--songinfo-album-size, 14px);
+  color: var(--songinfo-album-color, rgba(154, 143, 122, 0.85));
+  font-weight: 400;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+body.songinfo-dedicated .song-info-panel.is-idle .song-info-line {
+  font-weight: 400;
+  color: rgba(217, 225, 255, 0.55);
+  font-size: 13px;
+  text-shadow: none;
+}
+
 .now-playing-panel {
   position: fixed;
   left: 16px;

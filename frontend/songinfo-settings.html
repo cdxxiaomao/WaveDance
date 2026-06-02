@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 歌曲信息设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">歌曲信息窗口</h1>
+            <p class="settings-header__subtitle">样式与排版</p>
+            <p id="songInfoTargetBanner" class="settings-visual-target"></p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-songinfo-style">
+        <h2 id="sec-songinfo-style" class="settings-card__title">文字样式</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoFontPreset" class="settings-label">字体</label>
+            <select id="songInfoFontPreset" class="settings-select">
+              <option value="system">系统默认</option>
+              <option value="pingfang">苹方</option>
+              <option value="songti">宋体</option>
+              <option value="heiti">黑体</option>
+              <option value="kaiti">楷体</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="songInfoTitleSize" class="settings-label">
+              歌曲名称 · 字号 <span class="settings-value" id="songInfoTitleSizeVal">20</span>px
+            </label>
+            <input id="songInfoTitleSize" type="range" min="10" max="48" value="20" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoTitleColor" class="settings-label">歌曲名称 · 颜色</label>
+            <input id="songInfoTitleColor" type="color" value="#edd6ad" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="songInfoArtistSize" class="settings-label">
+              歌手名称 · 字号 <span class="settings-value" id="songInfoArtistSizeVal">16</span>px
+            </label>
+            <input id="songInfoArtistSize" type="range" min="8" max="36" value="16" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoArtistColor" class="settings-label">歌手名称 · 颜色</label>
+            <input id="songInfoArtistColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="songInfoAlbumSize" class="settings-label">
+              专辑名称 · 字号 <span class="settings-value" id="songInfoAlbumSizeVal">14</span>px
+            </label>
+            <input id="songInfoAlbumSize" type="range" min="8" max="36" value="14" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoAlbumColor" class="settings-label">专辑名称 · 颜色</label>
+            <input id="songInfoAlbumColor" type="color" value="#9a8f7a" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="songInfoLineHeight" class="settings-label">
+              行距（行高） <span class="settings-value" id="songInfoLineHeightVal">140</span>%
+            </label>
+            <input id="songInfoLineHeight" type="range" min="85" max="250" step="5" value="140" />
+          </div>
+          <div class="settings-field">
+            <label for="songInfoBlockGap" class="settings-label">
+              行间间距 <span class="settings-value" id="songInfoBlockGapVal">10</span>px
+            </label>
+            <input id="songInfoBlockGap" type="range" min="0" max="48" step="2" value="10" />
+          </div>
+          <fieldset class="settings-field">
+            <legend class="settings-label">排列方式</legend>
+            <div class="settings-actions settings-actions--wrap">
+              <label class="settings-toggle">
+                <input type="radio" name="songInfoLayout" id="songInfoLayoutHorizontal" value="horizontal" checked />
+                <span>横向：上下排列（默认）</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="radio" name="songInfoLayout" id="songInfoLayoutVertical" value="vertical" />
+                <span>纵向：竖排文字</span>
+              </label>
+            </div>
+          </fieldset>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoAlignHorizontal" class="settings-label">左右对齐</label>
+            <select id="songInfoAlignHorizontal" class="settings-select">
+              <option value="left">左对齐</option>
+              <option value="center" selected>左右居中</option>
+              <option value="right">右对齐</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="songInfoAlignVertical" class="settings-label">上下对齐</label>
+            <select id="songInfoAlignVertical" class="settings-select">
+              <option value="top">上对齐</option>
+              <option value="center" selected>上下居中</option>
+              <option value="bottom">下对齐</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-songinfo-app">
+        <h2 id="sec-songinfo-app" class="settings-card__title">窗口</h2>
+        <div class="settings-card__body">
+          <p class="settings-muted">
+            以上选项仅作用于当前所对应的歌曲信息浮层窗。下方按钮将关闭该窗口与本设置面板。
+          </p>
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="closeSongInfoSettingsBtn" class="settings-btn settings-btn--ghost">
+              关闭歌曲信息与设置
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/songInfoSettingsWindow.js"></script>
+  </body>
+</html>
