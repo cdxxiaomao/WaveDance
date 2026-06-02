@@ -181,8 +181,9 @@ fn track_key(info: &NowPlayingInfo) -> String {
     )
 }
 
-fn encode_cover_jpeg(cover: &DynamicImage) -> Option<Vec<u8>> {
-    let thumb = DynamicImage::ImageRgba8(thumbnail(cover, 96, 96));
+fn encode_cover_jpeg(cover: &DynamicImage, max_dim: u32) -> Option<Vec<u8>> {
+    let max_dim = max_dim.max(32);
+    let thumb = DynamicImage::ImageRgba8(thumbnail(cover, max_dim, max_dim));
     let rgb = thumb.into_rgb8();
     let (w, h) = (rgb.width(), rgb.height());
     let mut buf = Vec::new();
@@ -195,12 +196,12 @@ fn encode_cover_jpeg(cover: &DynamicImage) -> Option<Vec<u8>> {
 
 fn cover_from_info(info: &NowPlayingInfo) -> Option<Vec<u8>> {
     if let Some(cover) = info.album_cover.as_ref() {
-        if let Some(jpeg) = encode_cover_jpeg(cover) {
+        if let Some(jpeg) = encode_cover_jpeg(cover, 512) {
             return Some(jpeg);
         }
     }
     if let Some(icon) = info.bundle_icon.as_ref() {
-        return encode_cover_jpeg(icon);
+        return encode_cover_jpeg(icon, 96);
     }
     None
 }
@@ -236,7 +237,7 @@ fn write_artwork_file(app: &AppHandle, jpeg: &[u8]) -> Option<String> {
 }
 
 fn small_icon_data_url(icon: &DynamicImage) -> Option<String> {
-    let jpeg = encode_cover_jpeg(icon)?;
+    let jpeg = encode_cover_jpeg(icon, 96)?;
     if jpeg.len() > 48_000 {
         return None;
     }

@@ -754,6 +754,97 @@ body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"]:not([
   to { opacity: 1; clip-path: inset(0 0 0 0); }
 }
 
+/* —— 独立封面浮层窗 —— */
+body.cover-clone {
+  overflow: hidden;
+}
+
+body.cover-dedicated {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.cover-dedicated.cover-clone {
+  overflow: visible;
+}
+
+body.cover-dedicated .app.cover-only {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  z-index: 10;
+  padding: 14px;
+  box-sizing: border-box;
+  min-height: 0;
+  overflow: visible;
+}
+
+body.cover-dedicated .cover-window-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+}
+
+body.cover-dedicated .cover-art-frame {
+  width: var(--cover-edge, 200px);
+  height: var(--cover-edge, 200px);
+  flex-shrink: 0;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(8, 10, 18, 0.72);
+  border: 1px solid rgba(196, 165, 116, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+body.cover-dedicated .cover-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: rgba(255, 255, 255, 0.04);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+body.cover-dedicated .cover-art[hidden] {
+  display: none;
+}
+
+body.cover-dedicated .cover-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(217, 225, 255, 0.55);
+  padding: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+body.cover-dedicated .cover-placeholder[hidden] {
+  display: none;
+}
+
+body.cover-dedicated .cover-window-body.is-idle .cover-art-frame {
+  opacity: 0.55;
+}
+
 .now-playing-panel {
   position: fixed;
   left: 16px;

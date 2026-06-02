@@ -55,6 +55,8 @@ struct StreamState {
     spectrum_window_counter: Arc<AtomicU64>,
     /// 用于生成额外歌词窗口标签 `lyrics-{n}`。
     lyrics_window_counter: Arc<AtomicU64>,
+    /// 用于生成额外封面窗口标签 `cover-{n}`。
+    cover_window_counter: Arc<AtomicU64>,
     /// 额外频谱窗是否为浮层模式（可覆盖全屏应用）；false 为传统窗口（可正常全屏）。
     spectrum_overlay_by_label: Arc<Mutex<HashMap<String, bool>>>,
     /// 设置页当前编辑的频谱窗口 label（`main` 或 `spectrum-*`）；外观类事件只发往该窗。
@@ -81,6 +83,7 @@ impl Default for StreamState {
             waveform_line_width_px: Arc::new(AtomicUsize::new(2)),
             spectrum_window_counter: Arc::new(AtomicU64::new(0)),
             lyrics_window_counter: Arc::new(AtomicU64::new(0)),
+            cover_window_counter: Arc::new(AtomicU64::new(0)),
             spectrum_overlay_by_label: Arc::new(Mutex::new(HashMap::new())),
             visual_settings_target: Arc::new(Mutex::new("main".to_string())),
             lyrics_settings_target: Arc::new(Mutex::new(String::new())),
@@ -90,6 +93,7 @@ impl Default for StreamState {
 
 const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
 const LYRICS_WINDOW_LABEL_PREFIX: &str = "lyrics-";
+const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
 
 fn is_passthrough_capable_label(label: &str) -> bool {
     label == "main"
@@ -213,6 +217,26 @@ fn refresh_lyrics_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
         {
             win.set_always_on_top(pinned)?;
             let _ = win.set_ignore_cursor_events(locked);
+        }
+    }
+    Ok(())
+}
+
+/// 额外封面浮层窗：跟随全局置顶/模糊。
+fn refresh_cover_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    for (label, win) in app.webview_windows() {
+        if !label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+            continue;
+        }
+        #[cfg(target_os = "macos")]
+        configure_overlay_window(win, pinned, blur_enabled, false)?;
+        #[cfg(not(target_os = "macos"))]
+        {
+            win.set_always_on_top(pinned)?;
+            let _ = win.set_ignore_cursor_events(false);
         }
     }
     Ok(())
@@ -1232,6 +1256,7 @@ fn apply_mouse_passthrough_locked_change(
     refresh_main_overlay_window(app).map_err(|e| e.to_string())?;
     refresh_spectrum_clone_windows(app).map_err(|e| e.to_string())?;
     refresh_lyrics_clone_windows(app).map_err(|e| e.to_string())?;
+    refresh_cover_clone_windows(app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(app).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -1382,6 +1407,7 @@ fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     for (label, w) in app.webview_windows() {
         if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
             || label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
+            || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
         {
             w.show()?;
         }
@@ -1399,6 +1425,7 @@ fn set_overlay_pinned(
     refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
     refresh_spectrum_clone_windows(&app).map_err(|e| e.to_string())?;
     refresh_lyrics_clone_windows(&app).map_err(|e| e.to_string())?;
+    refresh_cover_clone_windows(&app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
 
     if let Some(settings_window) = app.get_webview_window("settings") {
@@ -1431,6 +1458,7 @@ fn set_overlay_blur_enabled(
         refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
         refresh_spectrum_clone_windows(&app).map_err(|e| e.to_string())?;
         refresh_lyrics_clone_windows(&app).map_err(|e| e.to_string())?;
+        refresh_cover_clone_windows(&app).map_err(|e| e.to_string())?;
         sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -1670,12 +1698,97 @@ fn open_extra_lyrics_window_impl(
     Ok(())
 }
 
+fn open_extra_cover_window_impl(
+    app: &tauri::AppHandle,
+    anchor_label: Option<String>,
+) -> Result<(), String> {
+    let anchor_key = anchor_label
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
+    let anchor_opt = anchor_key
+        .as_ref()
+        .and_then(|l| app.get_webview_window(l))
+        .or_else(|| app.get_webview_window("main"));
+
+    let use_center = anchor_opt.is_none();
+
+    let state = app.state::<StreamState>();
+    let n = state
+        .cover_window_counter
+        .fetch_add(1, Ordering::SeqCst)
+        .saturating_add(1);
+    let label = format!("{COVER_WINDOW_LABEL_PREFIX}{n}");
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+
+    const GAP: i32 = 10;
+    const STEP: i32 = 6;
+    let i = (n as i32).saturating_sub(1).rem_euclid(4);
+    let (px, py) = if let Some(ref anchor) = anchor_opt {
+        match (anchor.outer_position(), anchor.outer_size()) {
+            (Ok(pos), Ok(sz)) => (
+                pos.x + sz.width as i32 + GAP + i * STEP,
+                pos.y + GAP + i * STEP,
+            ),
+            _ => (160 + i * STEP, 160 + i * STEP),
+        }
+    } else {
+        (0, 0)
+    };
+
+    let win = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("cover.html".into()))
+        .title("WaveDance 封面")
+        .inner_size(240.0, 240.0)
+        .resizable(true)
+        .transparent(true)
+        .decorations(false)
+        .shadow(false)
+        .always_on_top(pinned)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    if use_center {
+        win.center().map_err(|e| e.to_string())?;
+    } else {
+        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
+        let _ = win.set_ignore_cursor_events(false);
+    }
+
+    win.show().map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let _ = app.emit_to(&label, "now-playing-update", payload);
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 fn open_extra_lyrics_window(
     app: tauri::AppHandle,
     anchor_label: Option<String>,
 ) -> Result<(), String> {
     open_extra_lyrics_window_impl(&app, anchor_label)
+}
+
+#[tauri::command]
+fn open_extra_cover_window(
+    app: tauri::AppHandle,
+    anchor_label: Option<String>,
+) -> Result<(), String> {
+    open_extra_cover_window_impl(&app, anchor_label)
 }
 
 #[tauri::command]
@@ -1991,6 +2104,8 @@ fn resize_window_by_delta(
     let label = window.label();
     let (min_width, min_height) = if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
         (260, 96)
+    } else if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+        (120, 120)
     } else {
         (640, 420)
     };
@@ -2074,6 +2189,7 @@ fn main() {
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
                 const TRAY_MENU_NEW_LYRICS: &str = "tray_new_lyrics";
+                const TRAY_MENU_NEW_COVER: &str = "tray_new_cover";
                 const TRAY_MENU_QUIT: &str = "tray_quit";
 
                 let Some(icon) = app.default_window_icon().cloned() else {
@@ -2084,6 +2200,7 @@ fn main() {
                     .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
                     .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
                     .text(TRAY_MENU_NEW_LYRICS, "新建浮层歌词窗口")
+                    .text(TRAY_MENU_NEW_COVER, "新建歌曲封面窗口")
                     .separator()
                     .text(TRAY_MENU_QUIT, "退出 WaveDance")
                     .build()?;
@@ -2102,6 +2219,8 @@ fn main() {
                             let _ = open_extra_spectrum_window_impl(app, None, false);
                         } else if event.id() == TRAY_MENU_NEW_LYRICS {
                             let _ = open_extra_lyrics_window_impl(app, None);
+                        } else if event.id() == TRAY_MENU_NEW_COVER {
+                            let _ = open_extra_cover_window_impl(app, None);
                         } else if event.id() == TRAY_MENU_QUIT {
                             app.exit(0);
                         }
@@ -2150,6 +2269,7 @@ fn main() {
             get_visual_settings_target,
             open_extra_spectrum_window,
             open_extra_lyrics_window,
+            open_extra_cover_window,
             open_lyrics_settings_window,
             close_lyrics_settings_window,
             get_lyrics_settings_target,
