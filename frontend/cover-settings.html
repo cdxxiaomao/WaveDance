@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 封面设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">封面窗口</h1>
+            <p class="settings-header__subtitle">边框与阴影</p>
+            <p id="coverTargetBanner" class="settings-visual-target"></p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-cover-border">
+        <h2 id="sec-cover-border" class="settings-card__title">边框</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="coverBorderEnabled" class="settings-label">显示边框</label>
+            <label class="settings-toggle">
+              <input id="coverBorderEnabled" type="checkbox" checked />
+              <span>启用</span>
+            </label>
+          </div>
+          <div class="settings-field">
+            <label for="coverBorderSize" class="settings-label">
+              边框粗细 <span class="settings-value" id="coverBorderSizeVal">1</span>px
+            </label>
+            <input id="coverBorderSize" type="range" min="0" max="12" step="1" value="1" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="coverBorderColor" class="settings-label">边框颜色</label>
+            <input id="coverBorderColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="coverBorderOpacity" class="settings-label">
+              边框透明度 <span class="settings-value" id="coverBorderOpacityVal">28</span>%
+            </label>
+            <input id="coverBorderOpacity" type="range" min="0" max="100" step="1" value="28" />
+          </div>
+          <div class="settings-field">
+            <label for="coverBorderRadius" class="settings-label">
+              圆角 <span class="settings-value" id="coverBorderRadiusVal">4</span>%
+            </label>
+            <input id="coverBorderRadius" type="range" min="0" max="50" step="1" value="4" />
+            <p class="settings-muted">50% 即为正圆，随窗口放大等比缩放</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-cover-shadow">
+        <h2 id="sec-cover-shadow" class="settings-card__title">阴影</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field">
+            <label for="coverShadowAngle" class="settings-label">
+              阴影角度 <span class="settings-value" id="coverShadowAngleVal">90</span>°
+            </label>
+            <input id="coverShadowAngle" type="range" min="0" max="359" step="1" value="90" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="coverShadowColor" class="settings-label">阴影颜色</label>
+            <input id="coverShadowColor" type="color" value="#000000" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="coverShadowBlur" class="settings-label">
+              阴影大小 <span class="settings-value" id="coverShadowBlurVal">24</span>px
+            </label>
+            <input id="coverShadowBlur" type="range" min="0" max="80" step="1" value="24" />
+          </div>
+          <div class="settings-field">
+            <label for="coverShadowOpacity" class="settings-label">
+              阴影透明度 <span class="settings-value" id="coverShadowOpacityVal">35</span>%
+            </label>
+            <input id="coverShadowOpacity" type="range" min="0" max="100" step="1" value="35" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-cover-app">
+        <h2 id="sec-cover-app" class="settings-card__title">窗口</h2>
+        <div class="settings-card__body">
+          <p class="settings-muted">
+            以上选项仅作用于当前所对应的封面浮层窗。下方按钮将关闭该封面窗与本设置面板。
+          </p>
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="closeCoverSettingsBtn" class="settings-btn settings-btn--ghost">
+              关闭封面与设置
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/coverSettingsWindow.js"></script>
+  </body>
+</html>

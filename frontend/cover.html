@@ -8,8 +8,20 @@
   </head>
   <body class="cover-clone">
     <div class="app cover-only">
+      <div class="cover-toolbar" data-no-drag>
+        <button type="button" id="openCoverSettingsBtn" title="设置" aria-label="设置">
+          <img
+            class="toolbar-icon"
+            src="/icons/settings.svg"
+            alt=""
+            width="14"
+            height="14"
+            decoding="async"
+          />
+        </button>
+      </div>
       <div id="coverWindowBody" class="cover-window-body">
-        <div class="cover-art-frame">
+        <div id="coverArtFrame" class="cover-art-frame">
           <img id="coverArt" class="cover-art" alt="" decoding="async" draggable="false" hidden />
           <div id="coverPlaceholder" class="cover-placeholder">未检测到正在播放</div>
         </div>

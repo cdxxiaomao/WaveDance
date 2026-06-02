@@ -18,6 +18,7 @@ use std::time::Duration;
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{
     NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior, NSWindowOrderingMode,
+    NSWindowStyleMask,
 };
 #[cfg(target_os = "macos")]
 use window_vibrancy::clear_vibrancy;
@@ -63,6 +64,8 @@ struct StreamState {
     visual_settings_target: Arc<Mutex<String>>,
     /// 歌词设置页当前编辑的歌词窗 label（`lyrics-*`）。
     lyrics_settings_target: Arc<Mutex<String>>,
+    /// 封面设置页当前编辑的封面窗 label（`cover-*`）。
+    cover_settings_target: Arc<Mutex<String>>,
 }
 
 impl Default for StreamState {
@@ -87,6 +90,7 @@ impl Default for StreamState {
             spectrum_overlay_by_label: Arc::new(Mutex::new(HashMap::new())),
             visual_settings_target: Arc::new(Mutex::new("main".to_string())),
             lyrics_settings_target: Arc::new(Mutex::new(String::new())),
+            cover_settings_target: Arc::new(Mutex::new(String::new())),
         }
     }
 }
@@ -94,6 +98,50 @@ impl Default for StreamState {
 const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
 const LYRICS_WINDOW_LABEL_PREFIX: &str = "lyrics-";
 const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
+const COVER_MIN_SIDE_PX: i32 = 120;
+
+/// 封面窗缩放后强制为正方形，并按拖拽锚边修正位置。
+fn apply_cover_square_size(
+    x: &mut i32,
+    y: &mut i32,
+    width: &mut i32,
+    height: &mut i32,
+    right: i32,
+    bottom: i32,
+    resize_west: bool,
+    resize_north: bool,
+) {
+    let side = (*width).max(*height).max(COVER_MIN_SIDE_PX);
+    if resize_west {
+        *x = right - side;
+    }
+    if resize_north {
+        *y = bottom - side;
+    }
+    *width = side;
+    *height = side;
+}
+
+fn wire_cover_window_square_resize(win: tauri::WebviewWindow) {
+    let win_for_handler = win.clone();
+    let enforcing = Arc::new(AtomicBool::new(false));
+    win.on_window_event(move |event| {
+        if let WindowEvent::Resized(size) = event {
+            if enforcing.load(Ordering::SeqCst) {
+                return;
+            }
+            let w = size.width;
+            let h = size.height;
+            let side = w.max(h).max(COVER_MIN_SIDE_PX as u32);
+            if w == side && h == side {
+                return;
+            }
+            enforcing.store(true, Ordering::SeqCst);
+            let _ = win_for_handler.set_size(Size::Physical(PhysicalSize::new(side, side)));
+            enforcing.store(false, Ordering::SeqCst);
+        }
+    });
+}
 
 fn is_passthrough_capable_label(label: &str) -> bool {
     label == "main"
@@ -855,6 +903,38 @@ fn configure_overlay_window(
     })
 }
 
+/// 封面浮层窗：在通用浮层配置基础上启用 macOS 原生边缘缩放（无需前端模拟手柄）。
+#[cfg(target_os = "macos")]
+fn configure_cover_overlay_window(
+    window: tauri::WebviewWindow,
+    pinned: bool,
+    blur_enabled: bool,
+) -> tauri::Result<()> {
+    configure_overlay_window(window.clone(), pinned, blur_enabled, false)?;
+    let cover_window = window.clone();
+    window.run_on_main_thread(move || unsafe {
+        let ns_window: &NSWindow = &*cover_window
+            .ns_window()
+            .expect("无法获取 macOS 窗口句柄")
+            .cast();
+        let mut mask = ns_window.styleMask();
+        mask |= NSWindowStyleMask::Resizable;
+        ns_window.setStyleMask(mask);
+    })
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_cover_overlay_window(
+    window: tauri::WebviewWindow,
+    pinned: bool,
+    blur_enabled: bool,
+) -> tauri::Result<()> {
+    window.set_always_on_top(pinned)?;
+    let _ = window.set_ignore_cursor_events(false);
+    let _ = blur_enabled;
+    Ok(())
+}
+
 #[cfg(target_os = "macos")]
 fn apply_window_blur_effect(window: &tauri::WebviewWindow, blur_enabled: bool) -> tauri::Result<()> {
     const OVERLAY_EFFECT: Effect = Effect::HudWindow;
@@ -1438,6 +1518,11 @@ fn set_overlay_pinned(
             .set_always_on_top(pinned)
             .map_err(|e| e.to_string())?;
     }
+    if let Some(cover_settings) = app.get_webview_window("cover-settings") {
+        cover_settings
+            .set_always_on_top(pinned)
+            .map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 
@@ -1756,13 +1841,9 @@ fn open_extra_cover_window_impl(
             .map_err(|e| e.to_string())?;
     }
 
-    #[cfg(target_os = "macos")]
-    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
-    #[cfg(not(target_os = "macos"))]
-    {
-        win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
-        let _ = win.set_ignore_cursor_events(false);
-    }
+    configure_cover_overlay_window(win.clone(), pinned, blur_enabled).map_err(|e| e.to_string())?;
+
+    wire_cover_window_square_resize(win.clone());
 
     win.show().map_err(|e| e.to_string())?;
 
@@ -1914,6 +1995,115 @@ fn close_lyrics_settings_window(app: tauri::AppHandle, state: State<'_, StreamSt
 fn get_lyrics_settings_target(state: State<'_, StreamState>) -> String {
     state
         .lyrics_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default()
+}
+
+fn notify_cover_settings_target(app: &tauri::AppHandle) {
+    let label = app
+        .state::<StreamState>()
+        .cover_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let _ = app.emit_to("cover-settings", "cover-settings-target", label);
+}
+
+/// 打开封面设置子窗（挂到对应 `cover-*` 父窗）。
+fn open_cover_settings_window_impl(
+    app: &tauri::AppHandle,
+    cover_label: &str,
+) -> Result<(), String> {
+    let parent = app
+        .get_webview_window(cover_label)
+        .ok_or_else(|| "封面窗口不存在或已关闭".to_string())?;
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+
+    parent.set_focus().map_err(|e| e.to_string())?;
+
+    if let Some(settings) = app.get_webview_window("cover-settings") {
+        #[cfg(target_os = "macos")]
+        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+
+        settings
+            .set_always_on_top(pinned)
+            .map_err(|e| e.to_string())?;
+        settings.show().map_err(|e| e.to_string())?;
+        settings.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let settings = WebviewWindowBuilder::new(
+        app,
+        "cover-settings",
+        WebviewUrl::App("cover-settings.html".into()),
+    )
+    .title("WaveDance 封面设置")
+    .inner_size(420.0, 560.0)
+    .decorations(true)
+    .parent(&parent)
+    .map_err(|e| e.to_string())?
+    .always_on_top(pinned)
+    .resizable(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+
+    settings.show().map_err(|e| e.to_string())?;
+    settings.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn open_cover_settings_window(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    if !label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+        return Err("仅封面浮层窗可打开封面设置".to_string());
+    }
+    if let Ok(mut g) = state.cover_settings_target.lock() {
+        *g = label.clone();
+    }
+    open_cover_settings_window_impl(&app, &label)?;
+    notify_cover_settings_target(&app);
+    Ok(())
+}
+
+/// 关闭「当前设置所针对」的封面浮层窗（`cover-*`），并隐藏封面设置窗。
+#[tauri::command]
+fn close_cover_settings_window(app: tauri::AppHandle, state: State<'_, StreamState>) -> Result<(), String> {
+    let target = state
+        .cover_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+
+    if let Some(settings) = app.get_webview_window("cover-settings") {
+        let _ = settings.hide();
+    }
+
+    if target.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+        if let Some(w) = app.get_webview_window(&target) {
+            w.close().map_err(|e| e.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+fn get_cover_settings_target(state: State<'_, StreamState>) -> String {
+    state
+        .cover_settings_target
         .lock()
         .map(|g| g.clone())
         .unwrap_or_default()
@@ -2105,7 +2295,7 @@ fn resize_window_by_delta(
     let (min_width, min_height) = if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
         (260, 96)
     } else if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
-        (120, 120)
+        (COVER_MIN_SIDE_PX, COVER_MIN_SIDE_PX)
     } else {
         (640, 420)
     };
@@ -2121,6 +2311,19 @@ fn resize_window_by_delta(
         if resize_north {
             y = bottom - height;
         }
+    }
+
+    if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+        apply_cover_square_size(
+            &mut x,
+            &mut y,
+            &mut width,
+            &mut height,
+            right,
+            bottom,
+            resize_west,
+            resize_north,
+        );
     }
 
     window
@@ -2273,6 +2476,9 @@ fn main() {
             open_lyrics_settings_window,
             close_lyrics_settings_window,
             get_lyrics_settings_target,
+            open_cover_settings_window,
+            close_cover_settings_window,
+            get_cover_settings_target,
             get_spectrum_window_overlay_mode,
             quit_app,
             start_window_dragging,

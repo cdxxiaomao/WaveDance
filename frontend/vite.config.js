@@ -8,6 +8,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         lyrics: resolve(__dirname, "lyrics.html"),
         cover: resolve(__dirname, "cover.html"),
+        coverSettings: resolve(__dirname, "cover-settings.html"),
         lyricsSettings: resolve(__dirname, "lyrics-settings.html"),
         settings: resolve(__dirname, "settings.html"),
         toolbar: resolve(__dirname, "toolbar.html"),

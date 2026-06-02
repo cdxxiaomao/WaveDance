@@ -1,18 +1,29 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import {
+  applyCoverShadowInset,
+  applyCoverWindowStyle,
+  normalizeCoverWindowConfig,
+  parseCoverStyleEventPayload,
+  readCoverWindowConfig,
+} from "./coverSettingsSchema.js";
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
 const coverArt = document.querySelector("#coverArt");
 const coverPlaceholder = document.querySelector("#coverPlaceholder");
 const coverWindowBody = document.querySelector("#coverWindowBody");
+const coverArtFrame = document.querySelector("#coverArtFrame");
+const openCoverSettingsBtn = document.querySelector("#openCoverSettingsBtn");
 
-/** 正方形边长 = 容器宽高的较小值（不依赖 container query，避免 WebView 中尺寸坍缩为 0） */
-function syncCoverSquareSize() {
-  if (!coverWindowBody) return;
-  const edge = Math.min(coverWindowBody.clientWidth, coverWindowBody.clientHeight);
-  if (edge > 0) {
-    coverWindowBody.style.setProperty("--cover-edge", `${edge}px`);
-  }
+function applyCoverLayout(config) {
+  const normalized = normalizeCoverWindowConfig(config);
+  if (coverArtFrame) applyCoverWindowStyle(coverArtFrame, normalized);
+  if (coverWindowBody) applyCoverShadowInset(coverWindowBody, normalized);
+}
+
+function applyLocalCoverStyle(windowLabel) {
+  applyCoverLayout(readCoverWindowConfig(window.localStorage, windowLabel));
 }
 
 function applyCoverArtwork(payload) {
@@ -48,7 +59,6 @@ function applyCoverArtwork(payload) {
   }
 
   if (art) {
-    coverArt.onload = () => syncCoverSquareSize();
     coverArt.onerror = () => {
       if (path && typeof p.artworkDataUrl === "string" && p.artworkDataUrl.startsWith("data:")) {
         coverArt.onerror = null;
@@ -72,6 +82,7 @@ function applyCoverArtwork(payload) {
 }
 
 async function init() {
+  const windowLabel = getCurrentWebviewWindow().label;
   document.body.classList.add("cover-dedicated", "overlay-edge-hint-window");
 
   const triggerNativeDrag = async (event) => {
@@ -95,13 +106,18 @@ async function init() {
     }
   });
 
+  applyLocalCoverStyle(windowLabel);
   initWindowEdgeHint();
 
-  if (coverWindowBody) {
-    syncCoverSquareSize();
-    const sizeObserver = new ResizeObserver(() => syncCoverSquareSize());
-    sizeObserver.observe(coverWindowBody);
-  }
+  const coverStyleTarget = { kind: "WebviewWindow", label: windowLabel };
+  await listen(
+    "cover-window-style",
+    (event) => {
+      const cfg = parseCoverStyleEventPayload(event.payload, windowLabel);
+      if (cfg) applyCoverLayout(cfg);
+    },
+    { target: coverStyleTarget },
+  );
 
   await listen("now-playing-update", (event) => {
     applyCoverArtwork(event.payload);
@@ -113,6 +129,14 @@ async function init() {
   } catch (err) {
     console.warn("get_now_playing_snapshot failed:", err);
   }
+
+  openCoverSettingsBtn?.addEventListener("click", async () => {
+    try {
+      await invoke("open_cover_settings_window");
+    } catch (err) {
+      console.error("open_cover_settings_window failed:", err);
+    }
+  });
 }
 
 init().catch((error) => {
