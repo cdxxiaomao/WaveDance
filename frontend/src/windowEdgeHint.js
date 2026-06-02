@@ -3,7 +3,7 @@ import { cursorPosition } from "@tauri-apps/api/window";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 const WINDOW_EDGE_HINT_HIDE_MS = 1500;
-const WINDOW_EDGE_BAND_LOGICAL = 10;
+const WINDOW_EDGE_BAND_LOGICAL = 18;
 const WINDOW_EDGE_HINT_POLL_MS = 80;
 
 let windowEdgeHintHideTimer = null;
