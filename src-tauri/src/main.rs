@@ -66,6 +66,8 @@ struct StreamState {
     visual_settings_target: Arc<Mutex<String>>,
     /// 歌词设置页当前编辑的歌词窗 label（`lyrics-*`）。
     lyrics_settings_target: Arc<Mutex<String>>,
+    /// 歌词加载信息页所关联的歌词窗 label（`lyrics-*`）。
+    lyrics_search_target: Arc<Mutex<String>>,
     /// 封面设置页当前编辑的封面窗 label（`cover-*`）。
     cover_settings_target: Arc<Mutex<String>>,
     /// 歌曲信息设置页当前编辑的窗口 label（`songinfo-*`）。
@@ -95,6 +97,7 @@ impl Default for StreamState {
             spectrum_overlay_by_label: Arc::new(Mutex::new(HashMap::new())),
             visual_settings_target: Arc::new(Mutex::new("main".to_string())),
             lyrics_settings_target: Arc::new(Mutex::new(String::new())),
+            lyrics_search_target: Arc::new(Mutex::new(String::new())),
             cover_settings_target: Arc::new(Mutex::new(String::new())),
             songinfo_settings_target: Arc::new(Mutex::new(String::new())),
         }
@@ -105,6 +108,192 @@ const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
 const LYRICS_WINDOW_LABEL_PREFIX: &str = "lyrics-";
 const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
 const SONGINFO_WINDOW_LABEL_PREFIX: &str = "songinfo-";
+
+/// 浮层窗叠放层级：歌词 / 封面 / 歌曲信息须始终高于浮层频谱（`main` / `spectrum-*`）。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum OverlayWindowStackTier {
+    Spectrum,
+    NowPlayingInfo,
+    /// 频谱/歌词/封面/歌曲信息设置子窗及歌词加载窗
+    Settings,
+}
+
+#[cfg(target_os = "macos")]
+/// 未置顶时，歌词/封面/歌曲信息略高于普通浮层频谱，避免点击抢焦点后互相遮挡。
+const OVERLAY_UNPINNED_NOW_PLAYING_LEVEL: isize = 3;
+#[cfg(target_os = "macos")]
+/// 置顶时，在屏保级之上再抬高，保证浮层频谱无法盖住信息窗。
+const OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET: isize = 10;
+#[cfg(target_os = "macos")]
+/// 置顶时，设置子窗高于歌词/封面/歌曲信息浮层，避免重排层级时被盖住。
+const OVERLAY_SETTINGS_ABOVE_NOW_PLAYING_LEVEL_OFFSET: isize = 10;
+
+fn is_settings_window_label(label: &str) -> bool {
+    matches!(
+        label,
+        "settings" | "lyrics-settings" | "cover-settings" | "songinfo-settings" | "lyrics-search"
+    )
+}
+
+fn is_now_playing_overlay_label(label: &str) -> bool {
+    label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
+        || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
+        || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+}
+
+#[cfg(target_os = "macos")]
+fn macos_overlay_window_level(tier: OverlayWindowStackTier, pinned: bool) -> isize {
+    match (tier, pinned) {
+        (OverlayWindowStackTier::Spectrum, true) => NSScreenSaverWindowLevel,
+        (OverlayWindowStackTier::Spectrum, false) => 0,
+        (OverlayWindowStackTier::NowPlayingInfo, true) => {
+            NSScreenSaverWindowLevel + OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET
+        }
+        (OverlayWindowStackTier::NowPlayingInfo, false) => OVERLAY_UNPINNED_NOW_PLAYING_LEVEL,
+        (OverlayWindowStackTier::Settings, true) => {
+            NSScreenSaverWindowLevel
+                + OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET
+                + OVERLAY_SETTINGS_ABOVE_NOW_PLAYING_LEVEL_OFFSET
+        }
+        (OverlayWindowStackTier::Settings, false) => 8,
+    }
+}
+
+fn is_spectrum_overlay_label(app: &tauri::AppHandle, label: &str) -> bool {
+    if label == "main" {
+        return true;
+    }
+    if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        let state = app.state::<StreamState>();
+        return spectrum_is_overlay_mode(&state, label);
+    }
+    false
+}
+
+fn overlay_tier_for_label(
+    app: &tauri::AppHandle,
+    label: &str,
+) -> Option<OverlayWindowStackTier> {
+    if is_spectrum_overlay_label(app, label) {
+        Some(OverlayWindowStackTier::Spectrum)
+    } else if is_now_playing_overlay_label(label) {
+        Some(OverlayWindowStackTier::NowPlayingInfo)
+    } else {
+        None
+    }
+}
+
+/// macOS：为浮层窗/设置子窗重设 NSWindow level（频谱 < 信息窗 < 设置窗）。
+/// 不可对浮层窗调用 Tauri `set_always_on_top`，否则会改回 `NSFloatingWindowLevel` 导致拖动抢层。
+#[cfg(target_os = "macos")]
+fn apply_macos_overlay_window_level(
+    window: &tauri::WebviewWindow,
+    tier: OverlayWindowStackTier,
+    pinned: bool,
+) -> tauri::Result<()> {
+    let level = macos_overlay_window_level(tier, pinned);
+    let w = window.clone();
+    window.run_on_main_thread(move || unsafe {
+        let ns_window: &NSWindow = &*w
+            .ns_window()
+            .expect("无法获取 macOS 窗口句柄")
+            .cast();
+        ns_window.setLevel(level);
+    })
+}
+
+#[cfg(target_os = "macos")]
+fn configure_settings_window_level(
+    window: &tauri::WebviewWindow,
+    pinned: bool,
+) -> tauri::Result<()> {
+    apply_macos_overlay_window_level(window, OverlayWindowStackTier::Settings, pinned)
+}
+
+#[cfg(target_os = "macos")]
+fn raise_visible_settings_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+    for (label, win) in app.webview_windows() {
+        if !is_settings_window_label(&label) {
+            continue;
+        }
+        if !win.is_visible().unwrap_or(false) {
+            continue;
+        }
+        configure_settings_window_level(&win, pinned)?;
+        let w = win.clone();
+        win.run_on_main_thread(move || unsafe {
+            let ns_window: &NSWindow = &*w
+                .ns_window()
+                .expect("无法获取 macOS 窗口句柄")
+                .cast();
+            ns_window.orderFrontRegardless();
+        })?;
+    }
+    Ok(())
+}
+
+fn apply_settings_window_stack(
+    settings: &tauri::WebviewWindow,
+    pinned: bool,
+) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    configure_settings_window_level(settings, pinned).map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    settings
+        .set_always_on_top(pinned)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn show_settings_window(
+    app: &tauri::AppHandle,
+    settings: &tauri::WebviewWindow,
+    pinned: bool,
+) -> Result<(), String> {
+    apply_settings_window_stack(settings, pinned)?;
+    settings.show().map_err(|e| e.to_string())?;
+    settings.set_focus().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    raise_visible_settings_windows(app).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn reassert_overlay_window_stack(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+
+    for (label, win) in app.webview_windows() {
+        if let Some(tier) = overlay_tier_for_label(app, &label) {
+            apply_macos_overlay_window_level(&win, tier, pinned)?;
+        } else if is_settings_window_label(&label) {
+            configure_settings_window_level(&win, pinned)?;
+        }
+    }
+
+    raise_visible_settings_windows(app)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn reassert_overlay_window_stack(app: &tauri::AppHandle) -> tauri::Result<()> {
+    for (label, win) in app.webview_windows() {
+        if is_now_playing_overlay_label(&label) {
+            win.show()?;
+        }
+    }
+    Ok(())
+}
+
+/// 将歌词 / 封面 / 歌曲信息浮层窗叠到浮层频谱之上。
+fn raise_now_playing_overlay_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
+    reassert_overlay_window_stack(app)
+}
 const COVER_MIN_SIDE_PX: i32 = 120;
 
 /// 封面窗缩放后强制为正方形，并按拖拽锚边修正位置。
@@ -239,7 +428,13 @@ fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
         let locked = label_passthrough_locked(&state, &label);
         if spectrum_is_overlay_mode(&state, &label) {
             #[cfg(target_os = "macos")]
-            configure_overlay_window(win, pinned, blur_enabled, locked)?;
+            configure_overlay_window(
+                win,
+                OverlayWindowStackTier::Spectrum,
+                pinned,
+                blur_enabled,
+                locked,
+            )?;
             #[cfg(not(target_os = "macos"))]
             {
                 win.set_always_on_top(pinned)?;
@@ -255,6 +450,7 @@ fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
             }
         }
     }
+    raise_now_playing_overlay_windows(app)?;
     Ok(())
 }
 
@@ -269,7 +465,13 @@ fn refresh_lyrics_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
         }
         let locked = label_passthrough_locked(&state, &label);
         #[cfg(target_os = "macos")]
-        configure_overlay_window(win, pinned, blur_enabled, locked)?;
+        configure_overlay_window(
+            win,
+            OverlayWindowStackTier::NowPlayingInfo,
+            pinned,
+            blur_enabled,
+            locked,
+        )?;
         #[cfg(not(target_os = "macos"))]
         {
             win.set_always_on_top(pinned)?;
@@ -289,7 +491,7 @@ fn refresh_cover_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
             continue;
         }
         #[cfg(target_os = "macos")]
-        configure_overlay_window(win, pinned, blur_enabled, false)?;
+        configure_cover_overlay_window(win, pinned, blur_enabled)?;
         #[cfg(not(target_os = "macos"))]
         {
             win.set_always_on_top(pinned)?;
@@ -310,7 +512,13 @@ fn refresh_songinfo_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
         }
         let locked = label_passthrough_locked(&state, &label);
         #[cfg(target_os = "macos")]
-        configure_overlay_window(win, pinned, blur_enabled, locked)?;
+        configure_overlay_window(
+            win,
+            OverlayWindowStackTier::NowPlayingInfo,
+            pinned,
+            blur_enabled,
+            locked,
+        )?;
         #[cfg(not(target_os = "macos"))]
         {
             win.set_always_on_top(pinned)?;
@@ -882,25 +1090,24 @@ fn open_sound_settings() -> Result<(), String> {
 #[cfg(target_os = "macos")]
 fn configure_overlay_window(
     window: tauri::WebviewWindow,
+    tier: OverlayWindowStackTier,
     pinned: bool,
     blur_enabled: bool,
     main_ignores_mouse_events: bool,
 ) -> tauri::Result<()> {
-    window.set_always_on_top(pinned)?;
+    // macOS 置顶由 NSWindow level 控制；`set_always_on_top` 会异步改成 Floating 级别并破坏分层。
     window.set_shadow(false)?;
     apply_window_blur_effect(&window, blur_enabled)?;
 
     let overlay_window = window.clone();
+    let level = macos_overlay_window_level(tier, pinned);
+    let raise_info = tier == OverlayWindowStackTier::NowPlayingInfo && pinned;
     window.run_on_main_thread(move || unsafe {
         let ns_window: &NSWindow = &*overlay_window
             .ns_window()
             .expect("无法获取 macOS 窗口句柄")
             .cast();
-        if pinned {
-            ns_window.setLevel(NSScreenSaverWindowLevel);
-        } else {
-            ns_window.setLevel(0);
-        }
+        ns_window.setLevel(level);
         ns_window.setOpaque(false);
         ns_window.setHasShadow(false);
         ns_window.setHidesOnDeactivate(false);
@@ -926,8 +1133,7 @@ fn configure_overlay_window(
                 & !NSWindowCollectionBehavior::FullScreenAuxiliary
         };
         ns_window.setCollectionBehavior(behavior);
-        if pinned {
-            ns_window.makeKeyAndOrderFront(None);
+        if raise_info {
             ns_window.orderFrontRegardless();
         }
     })
@@ -940,7 +1146,13 @@ fn configure_cover_overlay_window(
     pinned: bool,
     blur_enabled: bool,
 ) -> tauri::Result<()> {
-    configure_overlay_window(window.clone(), pinned, blur_enabled, false)?;
+    configure_overlay_window(
+        window.clone(),
+        OverlayWindowStackTier::NowPlayingInfo,
+        pinned,
+        blur_enabled,
+        false,
+    )?;
     let cover_window = window.clone();
     window.run_on_main_thread(move || unsafe {
         let ns_window: &NSWindow = &*cover_window
@@ -1045,7 +1257,14 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     let ignore_mouse = label_passthrough_locked(&state, "main");
-    configure_overlay_window(window, pinned, blur_enabled, ignore_mouse)
+    configure_overlay_window(
+        window,
+        OverlayWindowStackTier::Spectrum,
+        pinned,
+        blur_enabled,
+        ignore_mouse,
+    )?;
+    raise_now_playing_overlay_windows(app)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -1058,7 +1277,7 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     let ignore_mouse = label_passthrough_locked(&state, "main");
     window.set_always_on_top(pinned)?;
     window.set_ignore_cursor_events(ignore_mouse)?;
-    Ok(())
+    raise_now_playing_overlay_windows(app)
 }
 
 /// 将浮动解锁条（`main-toolbar` / `ptb-spectrum-*`）贴到父图形窗 Web 视口右上。
@@ -1248,13 +1467,17 @@ fn wire_spectrum_toolbar_follow_if_needed(
     let h = app.clone();
     let sl = spectrum_label.to_string();
     spec.on_window_event(move |event| {
-        if matches!(
-            event,
+        match event {
             WindowEvent::Moved(_)
-                | WindowEvent::Resized(_)
-                | WindowEvent::ScaleFactorChanged { .. }
-        ) {
-            reposition_spectrum_toolbar_if_locked(&h, &sl);
+            | WindowEvent::Resized(_)
+            | WindowEvent::ScaleFactorChanged { .. } => {
+                reposition_spectrum_toolbar_if_locked(&h, &sl);
+                let _ = reassert_overlay_window_stack(&h);
+            }
+            WindowEvent::Focused(true) => {
+                let _ = reassert_overlay_window_stack(&h);
+            }
+            _ => {}
         }
     });
     Ok(())
@@ -1379,13 +1602,17 @@ fn wire_main_window_toolbar_follow(handle: tauri::AppHandle) {
     };
     let h = handle.clone();
     main.on_window_event(move |event| {
-        if matches!(
-            event,
+        match event {
             WindowEvent::Moved(_)
-                | WindowEvent::Resized(_)
-                | WindowEvent::ScaleFactorChanged { .. }
-        ) {
-            reposition_main_toolbar_if_passthrough_locked(&h);
+            | WindowEvent::Resized(_)
+            | WindowEvent::ScaleFactorChanged { .. } => {
+                reposition_main_toolbar_if_passthrough_locked(&h);
+                let _ = reassert_overlay_window_stack(&h);
+            }
+            WindowEvent::Focused(true) => {
+                let _ = reassert_overlay_window_stack(&h);
+            }
+            _ => {}
         }
     });
 }
@@ -1525,6 +1752,7 @@ fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
             w.show()?;
         }
     }
+    raise_now_playing_overlay_windows(app)?;
     Ok(())
 }
 
@@ -1542,25 +1770,34 @@ fn set_overlay_pinned(
     refresh_songinfo_clone_windows(&app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
 
-    if let Some(settings_window) = app.get_webview_window("settings") {
-        settings_window
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        for label in [
+            "settings",
+            "lyrics-settings",
+            "cover-settings",
+            "songinfo-settings",
+            "lyrics-search",
+        ] {
+            if let Some(w) = app.get_webview_window(label) {
+                configure_settings_window_level(&w, pinned).map_err(|e| e.to_string())?;
+            }
+        }
+        raise_visible_settings_windows(&app).map_err(|e| e.to_string())?;
     }
-    if let Some(lyrics_settings) = app.get_webview_window("lyrics-settings") {
-        lyrics_settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-    }
-    if let Some(cover_settings) = app.get_webview_window("cover-settings") {
-        cover_settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-    }
-    if let Some(songinfo_settings) = app.get_webview_window("songinfo-settings") {
-        songinfo_settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        for label in [
+            "settings",
+            "lyrics-settings",
+            "cover-settings",
+            "songinfo-settings",
+            "lyrics-search",
+        ] {
+            if let Some(w) = app.get_webview_window(label) {
+                w.set_always_on_top(pinned).map_err(|e| e.to_string())?;
+            }
+        }
     }
     Ok(())
 }
@@ -1719,8 +1956,14 @@ fn open_extra_spectrum_window_impl(
 
     if overlay_mode {
         #[cfg(target_os = "macos")]
-        configure_overlay_window(win.clone(), pinned, blur_enabled, false)
-            .map_err(|e| e.to_string())?;
+        configure_overlay_window(
+            win.clone(),
+            OverlayWindowStackTier::Spectrum,
+            pinned,
+            blur_enabled,
+            false,
+        )
+        .map_err(|e| e.to_string())?;
         #[cfg(not(target_os = "macos"))]
         {
             win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
@@ -1733,7 +1976,9 @@ fn open_extra_spectrum_window_impl(
     }
 
     win.show().map_err(|e| e.to_string())?;
-    if !overlay_mode {
+    if overlay_mode {
+        let _ = wire_spectrum_toolbar_follow_if_needed(app, &label);
+    } else {
         let _ = win.set_focus();
     }
 
@@ -1805,7 +2050,14 @@ fn open_extra_lyrics_window_impl(
     }
 
     #[cfg(target_os = "macos")]
-    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
+    configure_overlay_window(
+        win.clone(),
+        OverlayWindowStackTier::NowPlayingInfo,
+        pinned,
+        blur_enabled,
+        false,
+    )
+    .map_err(|e| e.to_string())?;
     #[cfg(not(target_os = "macos"))]
     {
         win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
@@ -1955,7 +2207,14 @@ fn open_extra_songinfo_window_impl(
     }
 
     #[cfg(target_os = "macos")]
-    configure_overlay_window(win.clone(), pinned, blur_enabled, false).map_err(|e| e.to_string())?;
+    configure_overlay_window(
+        win.clone(),
+        OverlayWindowStackTier::NowPlayingInfo,
+        pinned,
+        blur_enabled,
+        false,
+    )
+    .map_err(|e| e.to_string())?;
     #[cfg(not(target_os = "macos"))]
     {
         win.set_always_on_top(pinned).map_err(|e| e.to_string())?;
@@ -2044,11 +2303,7 @@ fn open_lyrics_settings_window_impl(
         #[cfg(target_os = "macos")]
         attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-        settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-        settings.show().map_err(|e| e.to_string())?;
-        settings.set_focus().map_err(|e| e.to_string())?;
+        show_settings_window(app, &settings, pinned)?;
         return Ok(());
     }
 
@@ -2070,9 +2325,7 @@ fn open_lyrics_settings_window_impl(
     #[cfg(target_os = "macos")]
     attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-    settings.show().map_err(|e| e.to_string())?;
-    settings.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    show_settings_window(app, &settings, pinned)
 }
 
 #[tauri::command]
@@ -2124,6 +2377,121 @@ fn get_lyrics_settings_target(state: State<'_, StreamState>) -> String {
         .unwrap_or_default()
 }
 
+fn notify_lyrics_search_target(app: &tauri::AppHandle) {
+    let label = app
+        .state::<StreamState>()
+        .lyrics_search_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_default();
+    let _ = app.emit_to("lyrics-search", "lyrics-search-target", label);
+}
+
+/// 打开歌词加载信息子窗（挂到对应 `lyrics-*` 父窗）。
+fn open_lyrics_search_window_impl(
+    app: &tauri::AppHandle,
+    lyrics_label: &str,
+) -> Result<(), String> {
+    let parent = app
+        .get_webview_window(lyrics_label)
+        .ok_or_else(|| "歌词窗口不存在或已关闭".to_string())?;
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+
+    parent.set_focus().map_err(|e| e.to_string())?;
+
+    if let Some(search) = app.get_webview_window("lyrics-search") {
+        #[cfg(target_os = "macos")]
+        attach_settings_window_to_parent_space(&parent, &search).map_err(|e| e.to_string())?;
+
+        show_settings_window(app, &search, pinned)?;
+        return Ok(());
+    }
+
+    let search = WebviewWindowBuilder::new(
+        app,
+        "lyrics-search",
+        WebviewUrl::App("lyrics-search.html".into()),
+    )
+    .title("WaveDance 歌词加载")
+    .inner_size(440.0, 560.0)
+    .decorations(true)
+    .parent(&parent)
+    .map_err(|e| e.to_string())?
+    .always_on_top(pinned)
+    .resizable(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    attach_settings_window_to_parent_space(&parent, &search).map_err(|e| e.to_string())?;
+
+    show_settings_window(app, &search, pinned)
+}
+
+#[tauri::command]
+fn open_lyrics_search_window(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    if !label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
+        return Err("仅歌词浮层窗可打开歌词加载信息".to_string());
+    }
+    if let Ok(mut g) = state.lyrics_search_target.lock() {
+        *g = label.clone();
+    }
+    open_lyrics_search_window_impl(&app, &label)?;
+    notify_lyrics_search_target(&app);
+    #[cfg(target_os = "macos")]
+    {
+        let session = app.state::<lyrics::LyricsFetcher>().get_search_session();
+        let _ = app.emit_to("lyrics-search", "lyrics-search-update", session);
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn get_lyrics_search_session(
+    fetcher: State<'_, lyrics::LyricsFetcher>,
+) -> lyrics::LyricsSearchSessionPayload {
+    fetcher.get_search_session()
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn select_lyrics_candidate(
+    app: tauri::AppHandle,
+    fetcher: State<'_, lyrics::LyricsFetcher>,
+    candidate_id: String,
+) -> Result<(), String> {
+    fetcher.select_candidate(&app, &candidate_id)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn refresh_lyrics_search(
+    app: tauri::AppHandle,
+    monitor: State<'_, now_playing::NowPlayingMonitor>,
+    fetcher: State<'_, lyrics::LyricsFetcher>,
+) {
+    let snap = monitor.snapshot();
+    fetcher.refresh_search(
+        &app,
+        &lyrics::LyricTrackQuery {
+            active: snap.active,
+            title: snap.title,
+            artist: snap.artist,
+            album: snap.album,
+            duration: snap.duration,
+        },
+    );
+}
+
 fn notify_cover_settings_target(app: &tauri::AppHandle) {
     let label = app
         .state::<StreamState>()
@@ -2153,11 +2521,7 @@ fn open_cover_settings_window_impl(
         #[cfg(target_os = "macos")]
         attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-        settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-        settings.show().map_err(|e| e.to_string())?;
-        settings.set_focus().map_err(|e| e.to_string())?;
+        show_settings_window(app, &settings, pinned)?;
         return Ok(());
     }
 
@@ -2179,9 +2543,7 @@ fn open_cover_settings_window_impl(
     #[cfg(target_os = "macos")]
     attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-    settings.show().map_err(|e| e.to_string())?;
-    settings.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    show_settings_window(app, &settings, pinned)
 }
 
 #[tauri::command]
@@ -2262,11 +2624,7 @@ fn open_songinfo_settings_window_impl(
         #[cfg(target_os = "macos")]
         attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-        settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-        settings.show().map_err(|e| e.to_string())?;
-        settings.set_focus().map_err(|e| e.to_string())?;
+        show_settings_window(app, &settings, pinned)?;
         return Ok(());
     }
 
@@ -2288,9 +2646,7 @@ fn open_songinfo_settings_window_impl(
     #[cfg(target_os = "macos")]
     attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-    settings.show().map_err(|e| e.to_string())?;
-    settings.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    show_settings_window(app, &settings, pinned)
 }
 
 #[tauri::command]
@@ -2381,11 +2737,7 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
         #[cfg(target_os = "macos")]
         attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
-        settings
-            .set_always_on_top(pinned)
-            .map_err(|e| e.to_string())?;
-        settings.show().map_err(|e| e.to_string())?;
-        settings.set_focus().map_err(|e| e.to_string())?;
+        show_settings_window(app, &settings, pinned)?;
         return Ok(());
     }
 
@@ -2403,9 +2755,10 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     .build()
     .map_err(|e| e.to_string())?;
 
-    settings.show().map_err(|e| e.to_string())?;
-    settings.set_focus().map_err(|e| e.to_string())?;
-    Ok(())
+    #[cfg(target_os = "macos")]
+    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+
+    show_settings_window(app, &settings, pinned)
 }
 
 #[tauri::command]
@@ -2438,8 +2791,17 @@ fn open_settings_window(
 }
 
 #[tauri::command]
-fn start_window_dragging(window: tauri::WebviewWindow) -> Result<(), String> {
-    window.start_dragging().map_err(|e| e.to_string())
+fn start_window_dragging(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    let label = window.label().to_string();
+    let spectrum_overlay = is_spectrum_overlay_label(&app, &label);
+    window.start_dragging().map_err(|e| e.to_string())?;
+    if spectrum_overlay {
+        reassert_overlay_window_stack(&app).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// 浮层窗边缘提示：显示穿透解锁浮动条并通知其前端展示按钮（3s 后由 toolbar.js 自行隐藏）。
@@ -2716,6 +3078,13 @@ fn main() {
             open_lyrics_settings_window,
             close_lyrics_settings_window,
             get_lyrics_settings_target,
+            open_lyrics_search_window,
+            #[cfg(target_os = "macos")]
+            get_lyrics_search_session,
+            #[cfg(target_os = "macos")]
+            select_lyrics_candidate,
+            #[cfg(target_os = "macos")]
+            refresh_lyrics_search,
             open_cover_settings_window,
             close_cover_settings_window,
             get_cover_settings_target,

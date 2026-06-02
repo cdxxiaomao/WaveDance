@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 歌词加载</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window lyrics-search-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">歌词加载</h1>
+            <p class="settings-header__subtitle">检索状态与候选列表</p>
+            <p id="lyricsSearchTargetBanner" class="settings-visual-target"></p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-lyrics-search-status">
+        <h2 id="sec-lyrics-search-status" class="settings-card__title">加载状态</h2>
+        <div class="settings-card__body" data-no-drag>
+          <div id="lyricsSearchStatus" class="lyrics-search-status lyrics-search-status--idle">等待播放</div>
+          <dl class="lyrics-search-meta">
+            <div>
+              <dt>曲目</dt>
+              <dd id="lyricsSearchQueryTitle">—</dd>
+            </div>
+            <div>
+              <dt>艺术家</dt>
+              <dd id="lyricsSearchQueryArtist">—</dd>
+            </div>
+            <div>
+              <dt>专辑</dt>
+              <dd id="lyricsSearchQueryAlbum">—</dd>
+            </div>
+            <div>
+              <dt>当前来源</dt>
+              <dd id="lyricsSearchActiveSource">—</dd>
+            </div>
+          </dl>
+          <p id="lyricsSearchError" class="lyrics-search-error" hidden></p>
+          <div class="settings-actions">
+            <button type="button" id="refreshLyricsSearchBtn" class="settings-btn settings-btn--primary">
+              重新搜索
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-lyrics-candidates">
+        <h2 id="sec-lyrics-candidates" class="settings-card__title">匹配歌词</h2>
+        <div class="settings-card__body" data-no-drag>
+          <p id="lyricsSearchCandidatesEmpty" class="settings-muted">暂无候选歌词</p>
+          <ul id="lyricsSearchCandidates" class="lyrics-search-candidates" hidden></ul>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/lyricsSearchWindow.js"></script>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import {
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
+const openLyricsSearchBtn = document.querySelector("#openLyricsSearchBtn");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const lyricsRoot = document.querySelector("#nowPlayingLyrics");
 
@@ -111,6 +112,16 @@ async function init() {
         applyMousePassthroughLockUi(next);
       } catch (err) {
         console.error("mouse passthrough toggle failed:", err);
+      }
+    });
+  }
+
+  if (openLyricsSearchBtn) {
+    openLyricsSearchBtn.addEventListener("click", async () => {
+      try {
+        await invoke("open_lyrics_search_window");
+      } catch (err) {
+        console.error("open_lyrics_search_window failed:", err);
       }
     });
   }
