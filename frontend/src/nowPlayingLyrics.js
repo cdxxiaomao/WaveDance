@@ -189,7 +189,7 @@ function shouldTickLyrics() {
 function renderNowPlayingLyrics(force = true) {
   if (!nowPlayingLyrics) return;
   const { status, instrumental } = lyricsDisplayState;
-  if (status === "idle" || status === "miss") {
+  if (status === "idle") {
     stopLyricsTick();
     if (lyricsOnlyMode) {
       nowPlayingLyrics.hidden = false;
@@ -197,6 +197,24 @@ function renderNowPlayingLyrics(force = true) {
       nowPlayingLyrics.classList.remove("is-loading");
       setLyricsLines("未检测到正在播放", "", { instant: true });
       lastRenderedLyrics = { current: "未检测到正在播放", next: "", lineIndex: -1 };
+      return;
+    }
+    nowPlayingLyrics.hidden = true;
+    nowPlayingLyrics.classList.remove("is-visible", "is-loading");
+    clearLyricsLines();
+    return;
+  }
+  if (status === "miss") {
+    stopLyricsTick();
+    if (lyricsOnlyMode) {
+      nowPlayingLyrics.hidden = false;
+      nowPlayingLyrics.classList.add("is-visible");
+      nowPlayingLyrics.classList.remove("is-idle", "is-loading");
+      const { current, next } = getTrackMetaLyricLines();
+      if (current !== lastRenderedLyrics.current || next !== lastRenderedLyrics.next) {
+        lastRenderedLyrics = { current, next, lineIndex: -1 };
+        setLyricsLines(current, next, { instant: true });
+      }
       return;
     }
     nowPlayingLyrics.hidden = true;
@@ -409,7 +427,9 @@ function applyNowPlaying(payload) {
 
   syncNowPlayingProgressFromPayload(p);
   if (nowPlayingSource) renderNowPlayingSourceLine();
-  if (lyricsDisplayState.status === "loading") renderNowPlayingLyrics();
+  if (lyricsDisplayState.status === "loading" || lyricsDisplayState.status === "miss") {
+    renderNowPlayingLyrics();
+  }
 }
 
 /**
