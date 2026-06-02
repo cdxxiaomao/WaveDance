@@ -11,6 +11,7 @@ import {
   readWindowStorageString,
 } from "./visualizationSchema.js";
 import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
+import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
 const canvas = document.querySelector("#waveCanvas");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
@@ -200,6 +201,7 @@ async function init() {
   const windowLabel = getCurrentWebviewWindow().label;
   const isSpectrumClone = windowLabel.startsWith("spectrum-");
   let isSpectrumTraditional = false;
+  let isSpectrumOverlay = false;
   if (isSpectrumClone) {
     document.body.classList.add("spectrum-clone");
     try {
@@ -209,11 +211,17 @@ async function init() {
       if (!overlayMode) {
         isSpectrumTraditional = true;
         document.body.classList.add("spectrum-traditional");
+      } else {
+        isSpectrumOverlay = true;
+        document.body.classList.add("spectrum-overlay-dedicated", "overlay-edge-hint-window");
       }
     } catch (err) {
       console.error("get_spectrum_window_overlay_mode failed:", err);
     }
   }
+
+  const enableWindowDrag = !isSpectrumTraditional;
+  const enableWindowResize = !isSpectrumTraditional && !isSpectrumOverlay && windowLabel === "main";
 
   const triggerNativeDrag = async (event) => {
     if (event.button !== 0) return;
@@ -226,7 +234,7 @@ async function init() {
     }
   };
 
-  if (!isSpectrumTraditional) {
+  if (enableWindowDrag) {
     document.body.addEventListener("mousedown", triggerNativeDrag);
   }
 
@@ -264,10 +272,14 @@ async function init() {
     window.addEventListener("mouseup", stopResize);
     window.addEventListener("mouseleave", stopResize);
   };
-  if (!isSpectrumTraditional) {
+  if (enableWindowResize) {
     resizeHandles.forEach((handle) => {
       handle.addEventListener("mousedown", triggerNativeResize);
     });
+  }
+
+  if (isSpectrumOverlay) {
+    initWindowEdgeHint();
   }
 
   await listen("waveform-frame", (event) => {

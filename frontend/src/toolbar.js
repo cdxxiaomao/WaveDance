@@ -14,14 +14,10 @@ function toolbarTargetLabel() {
 const targetLabel = toolbarTargetLabel();
 const UNLOCK_REVEAL_MS = 3000;
 let unlockRevealTimer = null;
-const isLyricsFloater = targetLabel.startsWith("lyrics-");
+let isEdgeRevealFloater = false;
 
-if (isLyricsFloater) {
-  document.body.classList.add("toolbar-floater-lyrics");
-}
-
-async function hideLyricsFloaterIfNeeded() {
-  if (!isLyricsFloater) return;
+async function hideEdgeRevealFloaterIfNeeded() {
+  if (!isEdgeRevealFloater) return;
   document.body.classList.remove("show-unlock-button");
   try {
     await getCurrentWebviewWindow().hide();
@@ -31,7 +27,7 @@ async function hideLyricsFloaterIfNeeded() {
 }
 
 async function revealUnlockButtonTemporarily() {
-  if (isLyricsFloater) {
+  if (isEdgeRevealFloater) {
     try {
       await getCurrentWebviewWindow().show();
     } catch {
@@ -44,7 +40,7 @@ async function revealUnlockButtonTemporarily() {
   }
   unlockRevealTimer = window.setTimeout(() => {
     unlockRevealTimer = null;
-    hideLyricsFloaterIfNeeded();
+    hideEdgeRevealFloaterIfNeeded();
   }, UNLOCK_REVEAL_MS);
 }
 
@@ -61,18 +57,36 @@ function applyLockUi(locked) {
   if (lockImg) {
     lockImg.src = on ? "/icons/passthrough-active.svg" : "/icons/passthrough-idle.svg";
   }
-  if (!on && isLyricsFloater) {
+  if (!on && isEdgeRevealFloater) {
     if (unlockRevealTimer != null) {
       clearTimeout(unlockRevealTimer);
       unlockRevealTimer = null;
     }
-    hideLyricsFloaterIfNeeded();
+    hideEdgeRevealFloaterIfNeeded();
   }
 }
 
+async function resolveEdgeRevealFloater() {
+  if (targetLabel.startsWith("lyrics-")) {
+    return true;
+  }
+  if (targetLabel.startsWith("spectrum-")) {
+    try {
+      return Boolean(
+        await invoke("get_spectrum_window_overlay_mode", { label: targetLabel }),
+      );
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 async function init() {
-  if (isLyricsFloater) {
-    await listen("lyrics-unlock-toolbar-reveal", () => {
+  isEdgeRevealFloater = await resolveEdgeRevealFloater();
+  if (isEdgeRevealFloater) {
+    document.body.classList.add("toolbar-floater-edge-reveal");
+    await listen("overlay-unlock-toolbar-reveal", () => {
       revealUnlockButtonTemporarily();
     });
   }
@@ -109,7 +123,7 @@ async function init() {
     });
   }
 
-  if (isLyricsFloater) {
+  if (isEdgeRevealFloater) {
     try {
       if (await getCurrentWebviewWindow().isVisible()) {
         revealUnlockButtonTemporarily();

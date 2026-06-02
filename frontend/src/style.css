@@ -165,7 +165,9 @@ html:has(body.settings-window)::-webkit-scrollbar-thumb:hover {
 }
 
 body.lyrics-dedicated::before,
-body.lyrics-dedicated::after {
+body.lyrics-dedicated::after,
+body.overlay-edge-hint-window::before,
+body.overlay-edge-hint-window::after {
   content: "";
   position: fixed;
   inset: 0;
@@ -202,13 +204,15 @@ body.lyrics-dedicated::after {
   animation: none;
 }
 
-body.lyrics-dedicated::before {
+body.lyrics-dedicated::before,
+body.overlay-edge-hint-window::before {
   z-index: 19999;
   --ants-a: rgba(237, 214, 173, 0.95);
   --ants-b: transparent;
 }
 
-body.lyrics-dedicated::after {
+body.lyrics-dedicated::after,
+body.overlay-edge-hint-window::after {
   z-index: 19998;
   --ants-a: rgba(88, 70, 42, 0.9);
   --ants-b: transparent;
@@ -220,7 +224,9 @@ body.lyrics-dedicated::after {
 }
 
 body.lyrics-dedicated.show-window-edges::before,
-body.lyrics-dedicated.show-window-edges::after {
+body.lyrics-dedicated.show-window-edges::after,
+body.overlay-edge-hint-window.show-window-edges::before,
+body.overlay-edge-hint-window.show-window-edges::after {
   opacity: 1;
   animation: lyrics-window-edge-march 0.35s linear infinite;
 }
@@ -831,7 +837,8 @@ body.lyrics-dedicated .now-playing-lyrics[data-lyrics-transition="reveal"]:not([
   display: none;
 }
 
-body.spectrum-traditional .resize-handle {
+body.spectrum-traditional .resize-handle,
+body.spectrum-overlay-dedicated .resize-handle {
   display: none;
 }
 
@@ -934,7 +941,7 @@ body.toolbar-floater #mousePassthroughLockBtn {
 }
 
 /* 歌词穿透浮动条：默认隐藏，仅边缘触发边框时临时显示解锁按钮 */
-body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone {
+body.toolbar-floater.toolbar-floater-edge-reveal .toolbar-unlock-hitzone {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -944,18 +951,18 @@ body.toolbar-floater.toolbar-floater-lyrics .toolbar-unlock-hitzone {
   pointer-events: none;
 }
 
-body.toolbar-floater.toolbar-floater-lyrics #mousePassthroughLockBtn {
+body.toolbar-floater.toolbar-floater-edge-reveal #mousePassthroughLockBtn {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
   transition: opacity 0.16s ease, visibility 0.16s ease;
 }
 
-body.toolbar-floater.toolbar-floater-lyrics.show-unlock-button .toolbar-unlock-hitzone {
+body.toolbar-floater.toolbar-floater-edge-reveal.show-unlock-button .toolbar-unlock-hitzone {
   pointer-events: auto;
 }
 
-body.toolbar-floater.toolbar-floater-lyrics.show-unlock-button #mousePassthroughLockBtn {
+body.toolbar-floater.toolbar-floater-edge-reveal.show-unlock-button #mousePassthroughLockBtn {
   opacity: 1 !important;
   visibility: visible !important;
   pointer-events: auto !important;

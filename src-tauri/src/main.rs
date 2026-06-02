@@ -126,6 +126,12 @@ fn spectrum_is_overlay_mode(state: &StreamState, label: &str) -> bool {
         .unwrap_or(true)
 }
 
+/// 浮层歌词窗与浮层频谱窗：穿透锁定时隐藏浮动解锁条，仅边缘触发时临时显示。
+fn overlay_uses_edge_reveal_unlock(state: &StreamState, label: &str) -> bool {
+    label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
+        || (label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) && spectrum_is_overlay_mode(state, label))
+}
+
 fn app_has_open_traditional_spectrum_window(app: &tauri::AppHandle) -> bool {
     let state = app.state::<StreamState>();
     app.webview_windows().keys().any(|label| {
@@ -1134,7 +1140,8 @@ fn sync_spectrum_floating_toolbar(
         return Ok(());
     }
     ensure_spectrum_pass_through_toolbar_created(app, spectrum_label)?;
-    let lyrics_locked_only = spectrum_label.starts_with(LYRICS_WINDOW_LABEL_PREFIX);
+    let state = app.state::<StreamState>();
+    let hide_until_edge_reveal = overlay_uses_edge_reveal_unlock(&state, spectrum_label);
 
     #[cfg(target_os = "macos")]
     {
@@ -1145,7 +1152,7 @@ fn sync_spectrum_floating_toolbar(
             spec.run_on_main_thread(move || {
                 let _ = position_floating_toolbar_near_parent(&app_handle, &sl, &tbl);
                 if let Some(tb) = app_handle.get_webview_window(&tbl) {
-                    if lyrics_locked_only {
+                    if hide_until_edge_reveal {
                         let _ = tb.hide();
                     } else {
                         let _ = tb.show();
@@ -1157,7 +1164,7 @@ fn sync_spectrum_floating_toolbar(
             position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
                 .map_err(|e| e.to_string())?;
             if let Some(tb) = app.get_webview_window(&tb_label) {
-                if lyrics_locked_only {
+                if hide_until_edge_reveal {
                     tb.hide().map_err(|e| e.to_string())?;
                 } else {
                     tb.show().map_err(|e| e.to_string())?;
@@ -1172,7 +1179,7 @@ fn sync_spectrum_floating_toolbar(
         position_floating_toolbar_near_parent(app, spectrum_label, &tb_label)
             .map_err(|e| e.to_string())?;
         if let Some(tb) = app.get_webview_window(&tb_label) {
-            if lyrics_locked_only {
+            if hide_until_edge_reveal {
                 tb.hide().map_err(|e| e.to_string())?;
             } else {
                 tb.show().map_err(|e| e.to_string())?;
@@ -1899,14 +1906,14 @@ fn start_window_dragging(window: tauri::WebviewWindow) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())
 }
 
-/// 歌词窗边缘提示：显示穿透解锁浮动条并通知其前端展示按钮（3s 后由 toolbar.js 自行隐藏）。
+/// 浮层窗边缘提示：显示穿透解锁浮动条并通知其前端展示按钮（3s 后由 toolbar.js 自行隐藏）。
 #[tauri::command]
-fn reveal_lyrics_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<(), String> {
+fn reveal_overlay_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<(), String> {
     let label = label.trim().to_string();
-    if !label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
-        return Err("仅歌词窗口支持临时解锁条".to_string());
-    }
     let state = app.state::<StreamState>();
+    if !overlay_uses_edge_reveal_unlock(&state, &label) {
+        return Err("仅浮层歌词窗与浮层频谱窗支持临时解锁条".to_string());
+    }
     if !label_passthrough_locked(&state, &label) {
         return Ok(());
     }
@@ -1916,7 +1923,7 @@ fn reveal_lyrics_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<
     #[cfg(target_os = "macos")]
     {
         let Some(parent) = app.get_webview_window(&label) else {
-            return Err("歌词窗口不存在".to_string());
+            return Err("浮层窗口不存在".to_string());
         };
         let app_h = app.clone();
         let pl = label.clone();
@@ -1926,7 +1933,7 @@ fn reveal_lyrics_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<
                 let _ = position_floating_toolbar_near_parent(&app_h, &pl, &tbl);
                 if let Some(tb) = app_h.get_webview_window(&tbl) {
                     let _ = tb.show();
-                    let _ = app_h.emit_to(&tbl, "lyrics-unlock-toolbar-reveal", ());
+                    let _ = app_h.emit_to(&tbl, "overlay-unlock-toolbar-reveal", ());
                 }
             })
             .map_err(|e| e.to_string());
@@ -1937,7 +1944,7 @@ fn reveal_lyrics_unlock_toolbar(app: tauri::AppHandle, label: String) -> Result<
         position_floating_toolbar_near_parent(&app, &label, &tb_label)?;
         if let Some(tb) = app.get_webview_window(&tb_label) {
             tb.show().map_err(|e| e.to_string())?;
-            let _ = app.emit_to(&tb_label, "lyrics-unlock-toolbar-reveal", ());
+            let _ = app.emit_to(&tb_label, "overlay-unlock-toolbar-reveal", ());
         }
         Ok(())
     }
@@ -2149,7 +2156,7 @@ fn main() {
             get_spectrum_window_overlay_mode,
             quit_app,
             start_window_dragging,
-            reveal_lyrics_unlock_toolbar,
+            reveal_overlay_unlock_toolbar,
             resize_window_by_delta,
             #[cfg(target_os = "macos")]
             get_now_playing_snapshot,
