@@ -533,6 +533,17 @@ async function init() {
     }
   }
   loadMainBackgroundStyleFromStorage(windowLabel);
+
+  try {
+    const blurEnabled = parseBoolean(
+      readWindowStorageString(window.localStorage, windowLabel, "overlayBlur"),
+      false,
+    );
+    await invoke("set_overlay_blur_enabled", { label: windowLabel, enabled: blurEnabled });
+  } catch (err) {
+    console.error("restore overlay blur failed:", err);
+  }
+
   renderWaveform();
 }
 

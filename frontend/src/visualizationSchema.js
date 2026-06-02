@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   barPeakThickness: "wavedance.barPeakThickness",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
+  overlayBlur: "wavedance.overlayBlurEnabled",
 };
 
 export const DISPLAY_MODES = {
@@ -104,6 +105,7 @@ export function windowStorageKeys(windowLabel) {
     barPeakThickness: `${pre}.barPeakThickness`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
+    overlayBlur: `${pre}.overlayBlurEnabled`,
   };
 }
 

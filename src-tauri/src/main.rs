@@ -39,7 +39,8 @@ struct StreamState {
     running: Arc<AtomicBool>,
     capture_source_mode: Arc<AtomicU8>,
     overlay_pinned: Arc<AtomicBool>,
-    overlay_blur_enabled: Arc<AtomicBool>,
+    /// 各频谱窗（`main` / `spectrum-*`）是否启用系统毛玻璃；未记录视为关闭。
+    overlay_blur_by_label: Arc<Mutex<HashMap<String, bool>>>,
     /// 各图形窗（`main` / `spectrum-*`）整窗鼠标穿透是否开启；键存在且为 true 表示锁定。
     mouse_passthrough_by_label: Arc<Mutex<HashMap<String, bool>>>,
     /// 已为对应 `spectrum-*` 注册过「移动/缩放时重贴浮动解锁条」监听，避免重复绑定。
@@ -80,7 +81,7 @@ impl Default for StreamState {
             running: Arc::new(AtomicBool::new(false)),
             capture_source_mode: Arc::new(AtomicU8::new(0)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
-            overlay_blur_enabled: Arc::new(AtomicBool::new(false)),
+            overlay_blur_by_label: Arc::new(Mutex::new(HashMap::new())),
             mouse_passthrough_by_label: Arc::new(Mutex::new(HashMap::new())),
             spectrum_toolbar_follow_wired: Arc::new(Mutex::new(HashSet::new())),
             bucket_count: Arc::new(AtomicUsize::new(256)),
@@ -361,6 +362,19 @@ fn label_passthrough_locked(state: &StreamState, label: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn is_blur_capable_label(label: &str) -> bool {
+    label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+}
+
+fn label_blur_enabled(state: &StreamState, label: &str) -> bool {
+    state
+        .overlay_blur_by_label
+        .lock()
+        .ok()
+        .and_then(|m| m.get(label).copied())
+        .unwrap_or(false)
+}
+
 /// 频谱窗 `spectrum-N` 对应的穿透解锁浮动子窗标签（与 `main-toolbar` 区分）。
 fn toolbar_webview_label_for_spectrum(spectrum_label: &str) -> String {
     format!("ptb-{spectrum_label}")
@@ -420,11 +434,11 @@ fn wire_spectrum_window_activation_policy(app: &tauri::AppHandle, label: &str) {
 fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
         if !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
             continue;
         }
+        let blur_enabled = label_blur_enabled(&state, &label);
         let locked = label_passthrough_locked(&state, &label);
         if spectrum_is_overlay_mode(&state, &label) {
             #[cfg(target_os = "macos")]
@@ -458,11 +472,11 @@ fn refresh_spectrum_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
 fn refresh_lyrics_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
         if !label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
             continue;
         }
+        let blur_enabled = label_blur_enabled(&state, &label);
         let locked = label_passthrough_locked(&state, &label);
         #[cfg(target_os = "macos")]
         configure_overlay_window(
@@ -485,11 +499,11 @@ fn refresh_lyrics_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
 fn refresh_cover_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
         if !label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
             continue;
         }
+        let blur_enabled = label_blur_enabled(&state, &label);
         #[cfg(target_os = "macos")]
         configure_cover_overlay_window(win, pinned, blur_enabled)?;
         #[cfg(not(target_os = "macos"))]
@@ -505,11 +519,11 @@ fn refresh_cover_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
 fn refresh_songinfo_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
     for (label, win) in app.webview_windows() {
         if !label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX) {
             continue;
         }
+        let blur_enabled = label_blur_enabled(&state, &label);
         let locked = label_passthrough_locked(&state, &label);
         #[cfg(target_os = "macos")]
         configure_overlay_window(
@@ -1255,7 +1269,7 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
     };
     let state = app.state::<StreamState>();
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    let blur_enabled = label_blur_enabled(&state, "main");
     let ignore_mouse = label_passthrough_locked(&state, "main");
     configure_overlay_window(
         window,
@@ -1807,28 +1821,74 @@ fn get_overlay_pinned(state: State<'_, StreamState>) -> bool {
     state.overlay_pinned.load(Ordering::SeqCst)
 }
 
-#[tauri::command]
-fn set_overlay_blur_enabled(
-    app: tauri::AppHandle,
-    state: State<'_, StreamState>,
-    enabled: bool,
-) -> Result<(), String> {
-    state.overlay_blur_enabled.store(enabled, Ordering::SeqCst);
-    #[cfg(target_os = "macos")]
-    {
-        refresh_main_overlay_window(&app).map_err(|e| e.to_string())?;
-        refresh_spectrum_clone_windows(&app).map_err(|e| e.to_string())?;
-        refresh_lyrics_clone_windows(&app).map_err(|e| e.to_string())?;
-        refresh_cover_clone_windows(&app).map_err(|e| e.to_string())?;
-        refresh_songinfo_clone_windows(&app).map_err(|e| e.to_string())?;
-        sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
+#[cfg(target_os = "macos")]
+fn refresh_blur_for_label(app: &tauri::AppHandle, label: &str) -> tauri::Result<()> {
+    if label == "main" {
+        return refresh_main_overlay_window(app);
+    }
+    if !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        return Ok(());
+    }
+    let Some(win) = app.get_webview_window(label) else {
+        return Ok(());
+    };
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+    let blur_enabled = label_blur_enabled(&state, label);
+    let locked = label_passthrough_locked(&state, label);
+    if spectrum_is_overlay_mode(&state, label) {
+        configure_overlay_window(
+            win,
+            OverlayWindowStackTier::Spectrum,
+            pinned,
+            blur_enabled,
+            locked,
+        )?;
+        raise_now_playing_overlay_windows(app)?;
+    } else {
+        configure_traditional_window(win, blur_enabled, locked)?;
     }
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
+fn refresh_blur_for_label(_app: &tauri::AppHandle, _label: &str) -> tauri::Result<()> {
+    Ok(())
+}
+
 #[tauri::command]
-fn get_overlay_blur_enabled(state: State<'_, StreamState>) -> bool {
-    state.overlay_blur_enabled.load(Ordering::SeqCst)
+fn set_overlay_blur_enabled(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    label: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let label = label.trim().to_string();
+    if !is_blur_capable_label(&label) {
+        return Err("仅主窗口与频谱窗口支持毛玻璃".to_string());
+    }
+    if app.get_webview_window(&label).is_none() {
+        return Err("窗口不存在或已关闭".to_string());
+    }
+    {
+        let mut m = state
+            .overlay_blur_by_label
+            .lock()
+            .map_err(|e| format!("毛玻璃状态锁异常: {e}"))?;
+        if enabled {
+            m.insert(label.clone(), true);
+        } else {
+            m.remove(&label);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    refresh_blur_for_label(&app, &label).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_overlay_blur_enabled(state: State<'_, StreamState>, label: String) -> bool {
+    label_blur_enabled(&state, label.trim())
 }
 
 #[tauri::command]
@@ -1908,8 +1968,7 @@ fn open_extra_spectrum_window_impl(
         modes.insert(label.clone(), overlay_mode);
     }
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
-
+    let blur_enabled = label_blur_enabled(&state, &label);
     // 紧贴锚点窗口外侧：优先放在其右侧，小步错位避免完全重叠（物理像素，与 set_position 一致）
     const GAP: i32 = 10;
     const STEP: i32 = 6;
@@ -2014,7 +2073,7 @@ fn open_extra_lyrics_window_impl(
         .saturating_add(1);
     let label = format!("{LYRICS_WINDOW_LABEL_PREFIX}{n}");
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    let blur_enabled = label_blur_enabled(&state, &label);
 
     const GAP: i32 = 10;
     const STEP: i32 = 6;
@@ -2098,7 +2157,7 @@ fn open_extra_cover_window_impl(
         .saturating_add(1);
     let label = format!("{COVER_WINDOW_LABEL_PREFIX}{n}");
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    let blur_enabled = label_blur_enabled(&state, &label);
 
     const GAP: i32 = 10;
     const STEP: i32 = 6;
@@ -2171,7 +2230,7 @@ fn open_extra_songinfo_window_impl(
         .saturating_add(1);
     let label = format!("{SONGINFO_WINDOW_LABEL_PREFIX}{n}");
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
-    let blur_enabled = state.overlay_blur_enabled.load(Ordering::SeqCst);
+    let blur_enabled = label_blur_enabled(&state, &label);
 
     const GAP: i32 = 10;
     const STEP: i32 = 6;

@@ -289,6 +289,32 @@ function readMainBackgroundConfig(visualTargetLabel) {
   }
 }
 
+function readBlurEnabled(visualTargetLabel) {
+  return parseBoolean(
+    readWindowStorageString(window.localStorage, visualTargetLabel, "overlayBlur"),
+    false,
+  );
+}
+
+async function syncWindowBlur(visualTargetLabel, enabled) {
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "overlayBlur",
+      String(enabled),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await invoke("set_overlay_blur_enabled", { label: visualTargetLabel, enabled });
+  } catch (err) {
+    statusEl.textContent = `更新毛玻璃开关失败：${String(err)}`;
+    throw err;
+  }
+}
+
 async function syncMainBackgroundStyle(visualTargetLabel, emitVisual) {
   const color = bodyBgColor.value;
   const alphaPercent = clampInt(bodyBgAlpha.value, 0, 100);
@@ -344,6 +370,7 @@ async function init() {
     bodyBgColor.value = bg.color;
     bodyBgAlpha.value = String(bg.alphaPercent);
     bodyBgAlphaValue.textContent = String(bg.alphaPercent);
+    blurToggle.checked = readBlurEnabled(v);
 
     const savedMode = readWindowStorageString(window.localStorage, v, "displayMode");
     applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
@@ -453,6 +480,7 @@ async function init() {
   bodyBgColor.value = savedMainBackground.color;
   bodyBgAlpha.value = String(savedMainBackground.alphaPercent);
   bodyBgAlphaValue.textContent = String(savedMainBackground.alphaPercent);
+  blurToggle.checked = readBlurEnabled(visualTargetLabel);
   await listen("waveform-status", (event) => {
     const text = String(event.payload ?? "");
     statusEl.textContent = text;
@@ -706,10 +734,10 @@ async function init() {
   blurToggle.addEventListener("change", async (event) => {
     const enabled = event.target.checked;
     try {
-      await invoke("set_overlay_blur_enabled", { enabled });
+      await syncWindowBlur(visualTargetLabel, enabled);
       statusEl.textContent = enabled ? "毛玻璃已开启" : "毛玻璃已关闭";
-    } catch (err) {
-      statusEl.textContent = `更新毛玻璃开关失败：${String(err)}`;
+    } catch {
+      // syncWindowBlur 已写入 status
     }
   });
 
@@ -783,7 +811,6 @@ async function init() {
       currentTilt,
       frequencyRange,
       overlayPinned,
-      blurEnabled,
       streamRunning,
       sourceMode,
     ] = await Promise.all([
@@ -792,7 +819,6 @@ async function init() {
       invoke("get_high_tilt_percent"),
       invoke("get_frequency_range"),
       invoke("get_overlay_pinned"),
-      invoke("get_overlay_blur_enabled"),
       invoke("get_waveform_stream_running"),
       invoke("get_capture_source_mode"),
     ]);
@@ -807,7 +833,7 @@ async function init() {
     freqMinValue.textContent = String(minHz);
     freqMaxValue.textContent = String(maxHz);
     pinToggle.checked = Boolean(overlayPinned);
-    blurToggle.checked = Boolean(blurEnabled);
+    blurToggle.checked = readBlurEnabled(visualTargetLabel);
     setCaptureTransportRunning(Boolean(streamRunning));
     if (sourceMode === "microphone" || sourceMode === "blackhole") {
       captureSourceMode = sourceMode;
