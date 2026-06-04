@@ -1,9 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
+import { initNowPlayingLyrics, applyLyricsRendererFromConfig } from "./nowPlayingLyrics.js";
 import {
-  applyLyricsWindowStyle,
   parseLyricsStyleEventPayload,
   readLyricsWindowConfig,
 } from "./lyricsSettingsSchema.js";
@@ -15,14 +14,13 @@ const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const lyricsRoot = document.querySelector("#nowPlayingLyrics");
 
 function applyLocalLyricsStyle(windowLabel) {
-  if (!lyricsRoot) return;
-  applyLyricsWindowStyle(lyricsRoot, readLyricsWindowConfig(window.localStorage, windowLabel));
+  applyLyricsRendererFromConfig(readLyricsWindowConfig(window.localStorage, windowLabel));
   syncVerticalColumnMaxHeight();
 }
 
 /** 竖排列高上限：用容器像素高度，避免 vertical-rl + height:100% 链导致 stage 宽度算窄 */
 function syncVerticalColumnMaxHeight() {
-  if (!lyricsRoot) return;
+  if (!lyricsRoot || lyricsRoot.classList.contains("uses-am-lyrics")) return;
   const h = lyricsRoot.clientHeight;
   if (h > 0) {
     lyricsRoot.style.setProperty("--lyrics-column-max-height", `${h}px`);
@@ -45,13 +43,11 @@ async function init() {
   };
   document.body.addEventListener("mousedown", triggerNativeDrag);
 
-  applyLocalLyricsStyle(windowLabel);
   initWindowEdgeHint();
 
   if (lyricsRoot) {
     const columnHeightObserver = new ResizeObserver(() => syncVerticalColumnMaxHeight());
     columnHeightObserver.observe(lyricsRoot);
-    syncVerticalColumnMaxHeight();
   }
 
   const lyricsStyleTarget = { kind: "WebviewWindow", label: windowLabel };
@@ -59,15 +55,13 @@ async function init() {
     "lyrics-window-style",
     (event) => {
       const cfg = parseLyricsStyleEventPayload(event.payload, windowLabel);
-      if (cfg && lyricsRoot) {
-        applyLyricsWindowStyle(lyricsRoot, cfg);
-        syncVerticalColumnMaxHeight();
-      }
+      if (cfg) applyLyricsRendererFromConfig(cfg);
     },
     { target: lyricsStyleTarget },
   );
 
   await initNowPlayingLyrics({ lyricsOnly: true });
+  applyLocalLyricsStyle(windowLabel);
 
   const applyMousePassthroughLockUi = (locked) => {
     const on = Boolean(locked);

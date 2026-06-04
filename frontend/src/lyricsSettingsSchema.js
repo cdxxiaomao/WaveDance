@@ -36,6 +36,17 @@ export const LYRICS_TRANSITION_OPTIONS = [
   { id: LYRICS_TRANSITION.reveal, label: "逐字显现" },
 ];
 
+/** 经典双行 / Apple Music 滚动（am-lyrics） */
+export const LYRICS_RENDERER = {
+  classic: "classic",
+  amScroll: "amScroll",
+};
+
+export const LYRICS_RENDERER_OPTIONS = [
+  { id: LYRICS_RENDERER.classic, label: "经典双行" },
+  { id: LYRICS_RENDERER.amScroll, label: "Apple Music 滚动" },
+];
+
 export const LYRICS_FONT_PRESETS = [
   { id: "system", label: "系统默认", value: 'system-ui, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif' },
   { id: "pingfang", label: "苹方", value: '"PingFang SC", "Microsoft YaHei", sans-serif' },
@@ -59,6 +70,11 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   lineHeightPercent: 140,
   blockGapPx: 12,
   transitionEffect: LYRICS_TRANSITION.crossfade,
+  renderer: LYRICS_RENDERER.classic,
+  amAutoscroll: true,
+  amInterpolate: true,
+  amFontSizePx: 32,
+  amHighlightColor: "#edd6ad",
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -168,7 +184,21 @@ export function normalizeLyricsWindowConfig(raw) {
   const allowed = new Set(LYRICS_TRANSITION_OPTIONS.map((item) => item.id));
   base.transitionEffect = allowed.has(transition) ? transition : base.transitionEffect;
 
+  const renderer = String(o.renderer ?? "");
+  base.renderer =
+    renderer === LYRICS_RENDERER.amScroll ? LYRICS_RENDERER.amScroll : LYRICS_RENDERER.classic;
+
+  base.amAutoscroll = o.amAutoscroll !== false;
+  base.amInterpolate = o.amInterpolate !== false;
+  base.amFontSizePx = clampInt(o.amFontSizePx, 16, 56);
+  base.amHighlightColor = normalizeHexColor(o.amHighlightColor, base.amHighlightColor);
+
   return base;
+}
+
+/** @param {LyricsWindowConfig} cfg */
+export function isAmScrollRenderer(cfg) {
+  return normalizeLyricsWindowConfig(cfg).renderer === LYRICS_RENDERER.amScroll;
 }
 
 /** @param {Storage} ls @param {string} windowLabel */
@@ -224,6 +254,8 @@ export function applyLyricsWindowStyle(root, config) {
   root.style.setProperty("--lyrics-font-family", c.fontFamily);
   root.style.setProperty("--lyrics-current-size", `${c.currentFontSizePx}px`);
   root.style.setProperty("--lyrics-current-color", c.currentColor);
+  root.style.setProperty("--lyrics-am-highlight-color", c.amHighlightColor);
+  root.style.setProperty("--lyrics-am-font-size", `${c.amFontSizePx}px`);
   root.style.setProperty("--lyrics-next-size", `${c.nextFontSizePx}px`);
   root.style.setProperty("--lyrics-next-color", c.nextColor);
   root.style.setProperty("--lyrics-text-align", c.alignHorizontal);

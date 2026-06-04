@@ -6,8 +6,10 @@ import {
   LYRICS_ALIGN_V,
   LYRICS_FONT_PRESETS,
   LYRICS_LAYOUT,
+  LYRICS_RENDERER,
   LYRICS_TRANSITION_OPTIONS,
   buildLyricsStyleEventPayload,
+  isAmScrollRenderer,
   normalizeHexColor,
   normalizeLyricsWindowConfig,
   readLyricsWindowConfig,
@@ -16,6 +18,10 @@ import {
 
 const lyricsTargetBanner = document.querySelector("#lyricsTargetBanner");
 const closeLyricsSettingsBtn = document.querySelector("#closeLyricsSettingsBtn");
+const classicOptions = document.querySelector("#lyricsClassicOptions");
+const amScrollOptions = document.querySelector("#lyricsAmScrollOptions");
+const rendererClassic = document.querySelector("#lyricsRendererClassic");
+const rendererAmScroll = document.querySelector("#lyricsRendererAmScroll");
 const fontPreset = document.querySelector("#lyricsFontPreset");
 const currentSize = document.querySelector("#lyricsCurrentSize");
 const currentSizeVal = document.querySelector("#lyricsCurrentSizeVal");
@@ -32,6 +38,12 @@ const lineHeightVal = document.querySelector("#lyricsLineHeightVal");
 const blockGap = document.querySelector("#lyricsBlockGap");
 const blockGapVal = document.querySelector("#lyricsBlockGapVal");
 const transitionEffect = document.querySelector("#lyricsTransitionEffect");
+const amHighlightColor = document.querySelector("#lyricsAmHighlightColor");
+const amFontPreset = document.querySelector("#lyricsAmFontPreset");
+const amFontSize = document.querySelector("#lyricsAmFontSize");
+const amFontSizeVal = document.querySelector("#lyricsAmFontSizeVal");
+const amAutoscroll = document.querySelector("#lyricsAmAutoscroll");
+const amInterpolate = document.querySelector("#lyricsAmInterpolate");
 
 let lyricsTargetLabel = "";
 /** @type {import("./lyricsSettingsSchema.js").LyricsWindowConfig} */
@@ -45,7 +57,17 @@ function updateTargetBanner() {
   lyricsTargetBanner.hidden = !lyricsTargetLabel;
 }
 
+function syncModeSections() {
+  const am = isAmScrollRenderer(config);
+  classicOptions?.toggleAttribute("hidden", am);
+  amScrollOptions?.toggleAttribute("hidden", !am);
+}
+
 function syncFormFromConfig() {
+  if (rendererClassic) rendererClassic.checked = config.renderer === LYRICS_RENDERER.classic;
+  if (rendererAmScroll) rendererAmScroll.checked = config.renderer === LYRICS_RENDERER.amScroll;
+  syncModeSections();
+
   if (fontPreset) fontPreset.value = config.fontPresetId;
   if (currentSize) currentSize.value = String(config.currentFontSizePx);
   if (currentSizeVal) currentSizeVal.textContent = String(config.currentFontSizePx);
@@ -62,6 +84,13 @@ function syncFormFromConfig() {
   if (blockGap) blockGap.value = String(config.blockGapPx);
   if (blockGapVal) blockGapVal.textContent = String(config.blockGapPx);
   if (transitionEffect) transitionEffect.value = config.transitionEffect;
+
+  if (amHighlightColor) amHighlightColor.value = config.amHighlightColor;
+  if (amFontPreset) amFontPreset.value = config.fontPresetId;
+  if (amFontSize) amFontSize.value = String(config.amFontSizePx);
+  if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+  if (amAutoscroll) amAutoscroll.checked = config.amAutoscroll;
+  if (amInterpolate) amInterpolate.checked = config.amInterpolate;
 }
 
 async function persistAndNotify() {
@@ -105,6 +134,54 @@ async function init() {
   await listen("lyrics-settings-target", (event) => {
     setLyricsTarget(event.payload);
   });
+
+  const onRendererChange = async () => {
+    config.renderer = rendererAmScroll?.checked
+      ? LYRICS_RENDERER.amScroll
+      : LYRICS_RENDERER.classic;
+    syncModeSections();
+    await persistAndNotify();
+  };
+  rendererClassic?.addEventListener("change", onRendererChange);
+  rendererAmScroll?.addEventListener("change", onRendererChange);
+
+  if (amHighlightColor) {
+    amHighlightColor.addEventListener("input", async () => {
+      config.amHighlightColor = normalizeHexColor(amHighlightColor.value, config.amHighlightColor);
+      await persistAndNotify();
+    });
+  }
+
+  if (amFontPreset) {
+    amFontPreset.addEventListener("change", async () => {
+      const preset = LYRICS_FONT_PRESETS.find((p) => p.id === amFontPreset.value);
+      config.fontPresetId = preset?.id ?? DEFAULT_LYRICS_WINDOW_CONFIG.fontPresetId;
+      config.fontFamily = preset?.value ?? DEFAULT_LYRICS_WINDOW_CONFIG.fontFamily;
+      await persistAndNotify();
+    });
+  }
+
+  if (amFontSize) {
+    amFontSize.addEventListener("input", async () => {
+      config.amFontSizePx = Number(amFontSize.value);
+      if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+      await persistAndNotify();
+    });
+  }
+
+  if (amAutoscroll) {
+    amAutoscroll.addEventListener("change", async () => {
+      config.amAutoscroll = amAutoscroll.checked;
+      await persistAndNotify();
+    });
+  }
+
+  if (amInterpolate) {
+    amInterpolate.addEventListener("change", async () => {
+      config.amInterpolate = amInterpolate.checked;
+      await persistAndNotify();
+    });
+  }
 
   if (fontPreset) {
     fontPreset.addEventListener("change", async () => {

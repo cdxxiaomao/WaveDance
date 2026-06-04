@@ -391,6 +391,48 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
   );
 }
 
+/* am-lyrics 整页滚动（独立歌词窗预览集成） */
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics {
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics .am-lyrics-mount {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics am-lyrics {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  --highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
+  --am-lyrics-highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
+  --lyplus-font-size-base: var(--lyrics-am-font-size, 32px);
+  color: rgba(237, 214, 173, 0.72);
+}
+
+body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics .am-lyrics-status {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.5;
+  font-size: var(--lyrics-current-font-size, 18px);
+  color: var(--lyrics-current-color, rgba(237, 214, 173, 0.98));
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  padding: 12px;
+}
+
 /* 横向：两段歌词上下排列 */
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal {
   flex-direction: column;

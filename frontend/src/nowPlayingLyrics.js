@@ -1,6 +1,22 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import {
+  applyAmLyricsStyle,
+  isAmLyricsMounted,
+  mountAmLyricsPanel,
+  refreshAmLyricsPanel,
+  renderAmLyricsPanel,
+  resetAmLyricsBinding,
+  syncAmLyricsTime,
+  unmountAmLyricsPanel,
+} from "./amLyricsPanel.js";
+import { buildClassicLyricsDom } from "./classicLyricsDom.js";
 import { createLyricsLineTransition } from "./lyricsLineTransition.js";
+import {
+  applyLyricsWindowStyle,
+  isAmScrollRenderer,
+  normalizeLyricsWindowConfig,
+} from "./lyricsSettingsSchema.js";
 
 function formatPlaybackTime(seconds) {
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
@@ -43,6 +59,7 @@ let nowPlayingLyrics = null;
 let nowPlayingLyricCurrent = null;
 let nowPlayingLyricNext = null;
 let lyricsOnlyMode = false;
+let useAmScrollRenderer = false;
 /** @type {ReturnType<typeof createLyricsLineTransition> | null} */
 let lyricsLineTransition = null;
 
@@ -161,7 +178,11 @@ function stopLyricsRaf() {
 function lyricsRafTick() {
   lyricsRafId = null;
   if (!shouldTickLyrics()) return;
-  renderNowPlayingLyrics(false);
+  if (useAmScrollRenderer && isAmLyricsMounted()) {
+    syncAmLyricsTime(getLiveElapsedSec());
+  } else {
+    renderNowPlayingLyrics(false);
+  }
   lyricsRafId = requestAnimationFrame(lyricsRafTick);
 }
 
@@ -188,6 +209,15 @@ function shouldTickLyrics() {
  */
 function renderNowPlayingLyrics(force = true) {
   if (!nowPlayingLyrics) return;
+  if (useAmScrollRenderer && isAmLyricsMounted()) {
+    renderAmLyricsPanel(
+      lyricsDisplayState,
+      getLiveElapsedSec(),
+      nowPlayingProgressSync?.durationSec ?? null,
+      { title: nowPlayingTrackTitle, artist: nowPlayingTrackArtist },
+    );
+    return;
+  }
   const { status, instrumental } = lyricsDisplayState;
   if (status === "idle") {
     stopLyricsTick();
@@ -303,6 +333,7 @@ function softSyncPlaybackClock(p) {
   if (p.isPlaying === false) {
     nowPlayingProgressSync.isPlaying = false;
     stopLyricsTick();
+    if (useAmScrollRenderer && isAmLyricsMounted()) syncAmLyricsTime(getLiveElapsedSec());
   } else if (p.isPlaying === true) {
     nowPlayingProgressSync.isPlaying = true;
     if (shouldTickLyrics()) startLyricsRaf();
@@ -433,6 +464,63 @@ function applyNowPlaying(payload) {
 }
 
 /**
+ * 按歌词窗配置切换经典双行 / am-lyrics 滚动，并应用样式。
+ * @param {import("./lyricsSettingsSchema.js").LyricsWindowConfig} cfg
+ */
+export function applyLyricsRendererFromConfig(cfg) {
+  if (!lyricsOnlyMode || !nowPlayingLyrics) return;
+  const c = normalizeLyricsWindowConfig(cfg);
+  const wantAm = isAmScrollRenderer(c);
+  const modeChanged =
+    wantAm !== useAmScrollRenderer ||
+    (wantAm && !isAmLyricsMounted()) ||
+    (!wantAm && isAmLyricsMounted());
+
+  if (wantAm && !isAmLyricsMounted()) {
+    resetAmLyricsBinding();
+    mountAmLyricsPanel(nowPlayingLyrics);
+    lyricsLineTransition = null;
+  } else if (!wantAm && isAmLyricsMounted()) {
+    unmountAmLyricsPanel();
+    const { nextEl } = buildClassicLyricsDom(nowPlayingLyrics);
+    nowPlayingLyricNext = nextEl;
+    lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
+  } else if (!wantAm && !lyricsLineTransition) {
+    nowPlayingLyricNext = nowPlayingLyrics.querySelector("#nowPlayingLyricNext");
+    if (nowPlayingLyrics.querySelector(".now-playing-lyrics-current-stage")) {
+      lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
+    }
+  } else if (wantAm && modeChanged) {
+    resetAmLyricsBinding();
+  }
+
+  useAmScrollRenderer = wantAm;
+  nowPlayingLyrics.dataset.lyricsRenderer = c.renderer;
+  applyLyricsWindowStyle(nowPlayingLyrics, c);
+  if (wantAm) {
+    applyAmLyricsStyle(c);
+    if (modeChanged) {
+      refreshAmLyricsPanel(
+        lyricsDisplayState,
+        getLiveElapsedSec(),
+        nowPlayingProgressSync?.durationSec ?? null,
+        { title: nowPlayingTrackTitle, artist: nowPlayingTrackArtist },
+      );
+    } else {
+      renderNowPlayingLyrics(true);
+    }
+  } else {
+    renderNowPlayingLyrics(true);
+  }
+  if (shouldTickLyrics()) startLyricsRaf();
+  else stopLyricsTick();
+
+  if (wantAm && modeChanged) {
+    invoke("sync_lyrics_for_now_playing").catch(() => {});
+  }
+}
+
+/**
  * 订阅系统正在播放与歌词事件（频谱窗 / 独立歌词窗共用）。
  * @param {{ syncOnStart?: boolean, lyricsOnly?: boolean }} [options]
  */
@@ -449,7 +537,10 @@ export async function initNowPlayingLyrics(options = {}) {
   nowPlayingLyrics = document.querySelector("#nowPlayingLyrics");
   nowPlayingLyricCurrent = document.querySelector("#nowPlayingLyricCurrent");
   nowPlayingLyricNext = document.querySelector("#nowPlayingLyricNext");
-  if (lyricsOnlyMode && nowPlayingLyrics?.querySelector(".now-playing-lyrics-current-stage")) {
+  if (
+    !lyricsOnlyMode &&
+    nowPlayingLyrics?.querySelector(".now-playing-lyrics-current-stage")
+  ) {
     lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
   }
 

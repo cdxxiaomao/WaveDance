@@ -19,7 +19,64 @@
         </div>
       </header>
 
-      <section class="settings-card" aria-labelledby="sec-lyrics-style">
+      <section class="settings-card" aria-labelledby="sec-lyrics-mode">
+        <h2 id="sec-lyrics-mode" class="settings-card__title">显示模式</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <fieldset class="settings-field">
+            <legend class="settings-label">歌词展示</legend>
+            <div class="settings-actions settings-actions--wrap">
+              <label class="settings-toggle">
+                <input type="radio" name="lyricsRenderer" id="lyricsRendererClassic" value="classic" checked />
+                <span>经典双行（当前行 + 预备行）</span>
+              </label>
+              <label class="settings-toggle">
+                <input type="radio" name="lyricsRenderer" id="lyricsRendererAmScroll" value="amScroll" />
+                <span>Apple Music 滚动（列表居中滚动）</span>
+              </label>
+            </div>
+          </fieldset>
+        </div>
+      </section>
+
+      <section id="lyricsAmScrollOptions" class="settings-card" aria-labelledby="sec-lyrics-am" hidden>
+        <h2 id="sec-lyrics-am" class="settings-card__title">滚动歌词</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAmHighlightColor" class="settings-label">高亮颜色</label>
+            <input id="lyricsAmHighlightColor" type="color" value="#edd6ad" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAmFontPreset" class="settings-label">字体</label>
+            <select id="lyricsAmFontPreset" class="settings-select">
+              <option value="system">系统默认</option>
+              <option value="pingfang">苹方</option>
+              <option value="songti">宋体</option>
+              <option value="heiti">黑体</option>
+              <option value="kaiti">楷体</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="lyricsAmFontSize" class="settings-label">
+              字号 <span class="settings-value" id="lyricsAmFontSizeVal">32</span>px
+            </label>
+            <input id="lyricsAmFontSize" type="range" min="16" max="56" value="32" />
+          </div>
+          <div class="settings-field">
+            <label class="settings-toggle">
+              <input type="checkbox" id="lyricsAmAutoscroll" checked />
+              <span>自动滚动到当前行</span>
+            </label>
+          </div>
+          <div class="settings-field">
+            <label class="settings-toggle">
+              <input type="checkbox" id="lyricsAmInterpolate" checked />
+              <span>平滑高亮过渡（逐词动画，需字级歌词时效果更明显）</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section id="lyricsClassicOptions" class="settings-card" aria-labelledby="sec-lyrics-style">
         <h2 id="sec-lyrics-style" class="settings-card__title">歌词样式</h2>
         <div class="settings-card__body settings-form" data-no-drag>
           <div class="settings-field settings-field--row">
