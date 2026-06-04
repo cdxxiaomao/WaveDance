@@ -10,7 +10,6 @@ import {
   parseBoolean,
   readWindowStorageString,
 } from "./visualizationSchema.js";
-import { initNowPlayingLyrics } from "./nowPlayingLyrics.js";
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
 const canvas = document.querySelector("#waveCanvas");
@@ -296,10 +295,6 @@ async function init() {
   await listen("waveform-status", (event) => {
     console.info("waveform-status:", event.payload);
   });
-
-  if (windowLabel === "main" || windowLabel.startsWith("spectrum-")) {
-    await initNowPlayingLyrics();
-  }
 
   const thisWebviewTarget = { kind: "WebviewWindow", label: windowLabel };
 
