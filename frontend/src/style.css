@@ -381,6 +381,10 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
   -webkit-backdrop-filter: none;
   opacity: 1;
   overflow: visible;
+  /* 临时：允许歌词区接收点击与文字选中（独立歌词窗覆盖 .now-playing-lyrics 的 pointer-events:none） */
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
   font-family: var(
     --lyrics-font-family,
     system-ui,
@@ -407,30 +411,26 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics .am-
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics am-lyrics {
   flex: 1;
   width: 100%;
   min-height: 0;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
   --highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
   --am-lyrics-highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
   --lyplus-font-size-base: var(--lyrics-am-font-size, 32px);
-  color: rgba(237, 214, 173, 0.72);
-}
-
-body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics .am-lyrics-status {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: pre-line;
-  line-height: 1.5;
-  font-size: var(--lyrics-current-font-size, 18px);
-  color: var(--lyrics-current-color, rgba(237, 214, 173, 0.98));
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
-  padding: 12px;
+  --lyplus-text-primary: var(--lyrics-am-text-primary, var(--lyrics-am-highlight-color, #edd6ad));
+  --lyplus-text-secondary: var(--lyrics-am-text-secondary, #c4a574);
+  --lyplus-blur-amount: var(--lyrics-am-blur, 0.07em);
+  --lyplus-blur-amount-near: var(--lyrics-am-blur-near, 0.035em);
+  color: var(--lyrics-am-text-secondary, rgba(237, 214, 173, 0.72));
 }
 
 /* 横向：两段歌词上下排列 */
@@ -529,6 +529,9 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .no
 body.lyrics-dedicated .now-playing-lyrics-line {
   flex: 0 1 auto;
   min-width: 0;
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: auto;
   font-size: var(--lyrics-current-size, 18px);
   color: var(--lyrics-current-color, rgba(237, 214, 173, 0.98));
   text-align: var(--lyrics-text-align, center);

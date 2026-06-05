@@ -6,8 +6,6 @@ const LYRICS_LEAD_MS = 320;
 /** @type {HTMLElement | null} */
 let hostEl = null;
 /** @type {HTMLElement | null} */
-let statusEl = null;
-/** @type {HTMLElement | null} */
 let mountEl = null;
 /** @type {HTMLElement | null} */
 let amEl = null;
@@ -75,15 +73,36 @@ function watchAmLyricsReady(elapsedSec) {
   lyricsReadyObserver.observe(sr, { childList: true, subtree: true });
 }
 
-/** 隐藏 am-lyrics 底部来源 / GitHub 推广信息（Shadow DOM 内） */
-function suppressAmLyricsFooter() {
+/** 隐藏 am-lyrics 底部推广信息，并临时开启 Shadow DOM 内点击与选中 */
+function injectAmLyricsShadowOverrides() {
+  const css = `
+    .lyrics-footer { display: none !important; }
+    .lyrics-line,
+    .lyrics-line-container,
+    .lyrics-syllable,
+    .lyrics-char {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+      pointer-events: auto !important;
+    }
+    .lyrics-syllable.transliteration,
+    .lyrics-translation-container,
+    .lyrics-romanization-container {
+      user-select: text !important;
+      -webkit-user-select: text !important;
+      pointer-events: auto !important;
+    }
+  `;
   const inject = () => {
     const sr = amEl?.shadowRoot;
-    if (!sr || sr.querySelector("#wd-hide-footer")) return;
-    const style = document.createElement("style");
-    style.id = "wd-hide-footer";
-    style.textContent = ".lyrics-footer { display: none !important; }";
-    sr.appendChild(style);
+    if (!sr) return;
+    let style = sr.querySelector("#wd-panel-overrides");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "wd-panel-overrides";
+      sr.appendChild(style);
+    }
+    style.textContent = css;
   };
   inject();
   requestAnimationFrame(inject);
@@ -108,10 +127,6 @@ export function mountAmLyricsPanel(root) {
   hostEl = root;
   hostEl.classList.add("uses-am-lyrics");
 
-  statusEl = document.createElement("div");
-  statusEl.className = "am-lyrics-status";
-  statusEl.hidden = true;
-
   mountEl = document.createElement("div");
   mountEl.className = "am-lyrics-mount";
 
@@ -120,7 +135,7 @@ export function mountAmLyricsPanel(root) {
   amEl.interpolate = true;
   amEl.highlightColor = "#edd6ad";
 
-  hostEl.replaceChildren(statusEl, mountEl);
+  hostEl.replaceChildren(mountEl);
   hostEl.hidden = false;
   hostEl.classList.add("is-visible");
   return amEl;
@@ -134,7 +149,6 @@ export function unmountAmLyricsPanel() {
   detachAmElFromDom();
   amEl = null;
   mountEl = null;
-  statusEl = null;
   hostEl = null;
   boundTrackKey = "";
   boundTtml = "";
@@ -174,27 +188,26 @@ export function applyAmLyricsStyle(cfg) {
   amEl.autoscroll = cfg.amAutoscroll !== false;
   amEl.interpolate = cfg.amInterpolate !== false;
   const fontSize = cfg.amFontSizePx || 32;
-  hostEl?.style.setProperty("--lyrics-am-font-size", `${fontSize}px`);
-  mountEl?.style.setProperty("--lyplus-font-size-base", `${fontSize}px`);
-  amEl.style.setProperty("--lyplus-font-size-base", `${fontSize}px`);
-  if (amEl.isConnected) suppressAmLyricsFooter();
-}
-
-/**
- * @param {string} message
- * @param {boolean} [visible]
- */
-function setStatusMessage(message, visible = true) {
-  if (!statusEl) return;
-  if (!visible || !message) {
-    statusEl.hidden = true;
-    statusEl.textContent = "";
-    if (mountEl) mountEl.hidden = false;
-    return;
+  const textPrimary = cfg.amTextPrimaryColor || highlight;
+  const textSecondary = cfg.amTextSecondaryColor || cfg.nextColor || "#c4a574";
+  const blurNear =
+    typeof cfg.amBlurAmountNearEm === "number" ? cfg.amBlurAmountNearEm : 0.035;
+  const blur = typeof cfg.amBlurAmountEm === "number" ? cfg.amBlurAmountEm : 0.07;
+  const lyplusVars = {
+    "--lyrics-am-font-size": `${fontSize}px`,
+    "--lyplus-font-size-base": `${fontSize}px`,
+    "--lyplus-text-primary": textPrimary,
+    "--lyplus-text-secondary": textSecondary,
+    "--lyplus-blur-amount": `${blur}em`,
+    "--lyplus-blur-amount-near": `${blurNear}em`,
+  };
+  for (const el of [hostEl, mountEl, amEl]) {
+    if (!el) continue;
+    for (const [name, value] of Object.entries(lyplusVars)) {
+      el.style.setProperty(name, value);
+    }
   }
-  statusEl.textContent = message;
-  statusEl.hidden = false;
-  if (mountEl) mountEl.hidden = true;
+  if (amEl.isConnected) injectAmLyricsShadowOverrides();
 }
 
 /**
@@ -217,7 +230,7 @@ function applyTtml(ttml, trackKey, elapsedSec, options = {}) {
 
   amEl.ttml = ttml;
   mountEl.appendChild(amEl);
-  suppressAmLyricsFooter();
+  injectAmLyricsShadowOverrides();
   watchAmLyricsReady(elapsedSec);
 }
 
@@ -247,29 +260,28 @@ export function renderAmLyricsPanel(state, elapsedSec, durationSec, meta = {}) {
 
   if (state.status === "idle") {
     clearLyrics();
-    setStatusMessage("未检测到正在播放");
+    if (hostEl) hostEl.classList.remove("is-visible");
     return;
   }
 
   if (state.status === "loading") {
     clearLyrics();
-    const title = meta.title || "未知曲目";
-    const artist = meta.artist || "";
-    setStatusMessage(artist ? `${title}\n${artist}` : title);
+    if (hostEl) {
+      hostEl.classList.add("is-loading");
+      hostEl.classList.remove("is-visible");
+    }
     return;
   }
 
   if (state.status === "miss") {
     clearLyrics();
-    const title = meta.title || "未知曲目";
-    const artist = meta.artist || "";
-    setStatusMessage(artist ? `${title}\n${artist}` : title);
+    if (hostEl) hostEl.classList.remove("is-visible");
     return;
   }
 
   if (state.instrumental) {
     clearLyrics();
-    setStatusMessage("纯音乐");
+    if (hostEl) hostEl.classList.remove("is-visible");
     return;
   }
 
@@ -282,12 +294,10 @@ export function renderAmLyricsPanel(state, elapsedSec, durationSec, meta = {}) {
 
   if (!ttml) {
     clearLyrics();
-    setStatusMessage("");
     if (hostEl) hostEl.classList.remove("is-visible");
     return;
   }
 
-  setStatusMessage("", false);
   applyTtml(ttml, state.trackKey, elapsedSec);
   if (hostEl) {
     hostEl.hidden = false;
@@ -309,6 +319,6 @@ function setAmLyricsCurrentTime(elapsedSec) {
 
 /** @param {number} elapsedSec */
 export function syncAmLyricsTime(elapsedSec) {
-  if (!amEl?.isConnected || mountEl?.hidden) return;
+  if (!amEl?.isConnected) return;
   setAmLyricsCurrentTime(elapsedSec);
 }

@@ -55,11 +55,31 @@
               <option value="kaiti">楷体</option>
             </select>
           </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAmTextPrimaryColor" class="settings-label">主文字颜色</label>
+            <input id="lyricsAmTextPrimaryColor" type="color" value="#edd6ad" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsAmTextSecondaryColor" class="settings-label">次文字颜色</label>
+            <input id="lyricsAmTextSecondaryColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
           <div class="settings-field">
             <label for="lyricsAmFontSize" class="settings-label">
               字号 <span class="settings-value" id="lyricsAmFontSizeVal">32</span>px
             </label>
             <input id="lyricsAmFontSize" type="range" min="16" max="56" value="32" />
+          </div>
+          <div class="settings-field">
+            <label for="lyricsAmBlur" class="settings-label">
+              远距模糊 <span class="settings-value" id="lyricsAmBlurVal">0.07</span>em
+            </label>
+            <input id="lyricsAmBlur" type="range" min="0" max="0.2" step="0.005" value="0.07" />
+          </div>
+          <div class="settings-field">
+            <label for="lyricsAmBlurNear" class="settings-label">
+              近距模糊 <span class="settings-value" id="lyricsAmBlurNearVal">0.035</span>em
+            </label>
+            <input id="lyricsAmBlurNear" type="range" min="0" max="0.15" step="0.005" value="0.035" />
           </div>
           <div class="settings-field">
             <label class="settings-toggle">

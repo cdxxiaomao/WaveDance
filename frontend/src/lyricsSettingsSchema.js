@@ -75,6 +75,10 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   amInterpolate: true,
   amFontSizePx: 32,
   amHighlightColor: "#edd6ad",
+  amTextPrimaryColor: "#edd6ad",
+  amTextSecondaryColor: "#c4a574",
+  amBlurAmountEm: 0.07,
+  amBlurAmountNearEm: 0.035,
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -192,6 +196,16 @@ export function normalizeLyricsWindowConfig(raw) {
   base.amInterpolate = o.amInterpolate !== false;
   base.amFontSizePx = clampInt(o.amFontSizePx, 16, 56);
   base.amHighlightColor = normalizeHexColor(o.amHighlightColor, base.amHighlightColor);
+  base.amTextPrimaryColor = normalizeHexColor(o.amTextPrimaryColor, base.amTextPrimaryColor);
+  base.amTextSecondaryColor = normalizeHexColor(o.amTextSecondaryColor, base.amTextSecondaryColor);
+  const blur = Number(o.amBlurAmountEm);
+  base.amBlurAmountEm = Number.isFinite(blur)
+    ? Math.min(Math.max(blur, 0), 0.2)
+    : base.amBlurAmountEm;
+  const blurNear = Number(o.amBlurAmountNearEm);
+  base.amBlurAmountNearEm = Number.isFinite(blurNear)
+    ? Math.min(Math.max(blurNear, 0), 0.2)
+    : base.amBlurAmountNearEm;
 
   return base;
 }
@@ -256,6 +270,10 @@ export function applyLyricsWindowStyle(root, config) {
   root.style.setProperty("--lyrics-current-color", c.currentColor);
   root.style.setProperty("--lyrics-am-highlight-color", c.amHighlightColor);
   root.style.setProperty("--lyrics-am-font-size", `${c.amFontSizePx}px`);
+  root.style.setProperty("--lyrics-am-text-primary", c.amTextPrimaryColor);
+  root.style.setProperty("--lyrics-am-text-secondary", c.amTextSecondaryColor);
+  root.style.setProperty("--lyrics-am-blur", `${c.amBlurAmountEm}em`);
+  root.style.setProperty("--lyrics-am-blur-near", `${c.amBlurAmountNearEm}em`);
   root.style.setProperty("--lyrics-next-size", `${c.nextFontSizePx}px`);
   root.style.setProperty("--lyrics-next-color", c.nextColor);
   root.style.setProperty("--lyrics-text-align", c.alignHorizontal);

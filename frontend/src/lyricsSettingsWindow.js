@@ -39,9 +39,15 @@ const blockGap = document.querySelector("#lyricsBlockGap");
 const blockGapVal = document.querySelector("#lyricsBlockGapVal");
 const transitionEffect = document.querySelector("#lyricsTransitionEffect");
 const amHighlightColor = document.querySelector("#lyricsAmHighlightColor");
+const amTextPrimaryColor = document.querySelector("#lyricsAmTextPrimaryColor");
+const amTextSecondaryColor = document.querySelector("#lyricsAmTextSecondaryColor");
 const amFontPreset = document.querySelector("#lyricsAmFontPreset");
 const amFontSize = document.querySelector("#lyricsAmFontSize");
 const amFontSizeVal = document.querySelector("#lyricsAmFontSizeVal");
+const amBlur = document.querySelector("#lyricsAmBlur");
+const amBlurVal = document.querySelector("#lyricsAmBlurVal");
+const amBlurNear = document.querySelector("#lyricsAmBlurNear");
+const amBlurNearVal = document.querySelector("#lyricsAmBlurNearVal");
 const amAutoscroll = document.querySelector("#lyricsAmAutoscroll");
 const amInterpolate = document.querySelector("#lyricsAmInterpolate");
 
@@ -86,9 +92,15 @@ function syncFormFromConfig() {
   if (transitionEffect) transitionEffect.value = config.transitionEffect;
 
   if (amHighlightColor) amHighlightColor.value = config.amHighlightColor;
+  if (amTextPrimaryColor) amTextPrimaryColor.value = config.amTextPrimaryColor;
+  if (amTextSecondaryColor) amTextSecondaryColor.value = config.amTextSecondaryColor;
   if (amFontPreset) amFontPreset.value = config.fontPresetId;
   if (amFontSize) amFontSize.value = String(config.amFontSizePx);
   if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+  if (amBlur) amBlur.value = String(config.amBlurAmountEm);
+  if (amBlurVal) amBlurVal.textContent = String(config.amBlurAmountEm);
+  if (amBlurNear) amBlurNear.value = String(config.amBlurAmountNearEm);
+  if (amBlurNearVal) amBlurNearVal.textContent = String(config.amBlurAmountNearEm);
   if (amAutoscroll) amAutoscroll.checked = config.amAutoscroll;
   if (amInterpolate) amInterpolate.checked = config.amInterpolate;
 }
@@ -152,6 +164,26 @@ async function init() {
     });
   }
 
+  if (amTextPrimaryColor) {
+    amTextPrimaryColor.addEventListener("input", async () => {
+      config.amTextPrimaryColor = normalizeHexColor(
+        amTextPrimaryColor.value,
+        config.amTextPrimaryColor,
+      );
+      await persistAndNotify();
+    });
+  }
+
+  if (amTextSecondaryColor) {
+    amTextSecondaryColor.addEventListener("input", async () => {
+      config.amTextSecondaryColor = normalizeHexColor(
+        amTextSecondaryColor.value,
+        config.amTextSecondaryColor,
+      );
+      await persistAndNotify();
+    });
+  }
+
   if (amFontPreset) {
     amFontPreset.addEventListener("change", async () => {
       const preset = LYRICS_FONT_PRESETS.find((p) => p.id === amFontPreset.value);
@@ -165,6 +197,22 @@ async function init() {
     amFontSize.addEventListener("input", async () => {
       config.amFontSizePx = Number(amFontSize.value);
       if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+      await persistAndNotify();
+    });
+  }
+
+  if (amBlur) {
+    amBlur.addEventListener("input", async () => {
+      config.amBlurAmountEm = Number(amBlur.value);
+      if (amBlurVal) amBlurVal.textContent = String(config.amBlurAmountEm);
+      await persistAndNotify();
+    });
+  }
+
+  if (amBlurNear) {
+    amBlurNear.addEventListener("input", async () => {
+      config.amBlurAmountNearEm = Number(amBlurNear.value);
+      if (amBlurNearVal) amBlurNearVal.textContent = String(config.amBlurAmountNearEm);
       await persistAndNotify();
     });
   }
