@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 窗口管理</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window window-manager-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">窗口管理</h1>
+            <p class="settings-header__subtitle">查看并切换已打开的 WaveDance 窗口</p>
+          </div>
+        </div>
+        <button type="button" id="refreshBtn" class="settings-btn settings-btn--ghost wm-refresh-btn">
+          刷新
+        </button>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-window-list">
+        <h2 id="sec-window-list" class="settings-card__title">已打开窗口</h2>
+        <div class="settings-card__body">
+          <p id="windowListEmpty" class="settings-muted wm-empty" hidden>当前没有其他已打开的窗口。</p>
+          <ul id="windowList" class="wm-list" aria-live="polite"></ul>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/windowManager.js"></script>
+  </body>
+</html>

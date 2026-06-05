@@ -13,6 +13,7 @@ export default defineConfig({
         songinfoSettings: resolve(__dirname, "songinfo-settings.html"),
         lyricsSettings: resolve(__dirname, "lyrics-settings.html"),
         settings: resolve(__dirname, "settings.html"),
+        windowManager: resolve(__dirname, "window-manager.html"),
         toolbar: resolve(__dirname, "toolbar.html"),
       },
     },

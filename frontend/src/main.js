@@ -217,6 +217,8 @@ async function init() {
     } catch (err) {
       console.error("get_spectrum_window_overlay_mode failed:", err);
     }
+  } else if (windowLabel === "main") {
+    document.body.classList.add("overlay-edge-hint-window");
   }
 
   const enableWindowDrag = !isSpectrumTraditional;
@@ -277,7 +279,7 @@ async function init() {
     });
   }
 
-  if (isSpectrumOverlay) {
+  if (windowLabel === "main" || isSpectrumOverlay) {
     initWindowEdgeHint();
   }
 

@@ -23,6 +23,7 @@ use objc2_app_kit::{
 #[cfg(target_os = "macos")]
 use window_vibrancy::clear_vibrancy;
 use rustfft::{num_complex::Complex, FftPlanner};
+use serde::Serialize;
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
@@ -109,6 +110,8 @@ const SPECTRUM_WINDOW_LABEL_PREFIX: &str = "spectrum-";
 const LYRICS_WINDOW_LABEL_PREFIX: &str = "lyrics-";
 const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
 const SONGINFO_WINDOW_LABEL_PREFIX: &str = "songinfo-";
+const WINDOW_MANAGER_LABEL: &str = "window-manager";
+const PASSTHROUGH_TOOLBAR_LABEL_PREFIX: &str = "ptb-";
 
 /// 浮层窗叠放层级：歌词 / 封面 / 歌曲信息须始终高于浮层频谱（`main` / `spectrum-*`）。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -128,12 +131,118 @@ const OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET: isize = 10;
 #[cfg(target_os = "macos")]
 /// 置顶时，设置子窗高于歌词/封面/歌曲信息浮层，避免重排层级时被盖住。
 const OVERLAY_SETTINGS_ABOVE_NOW_PLAYING_LEVEL_OFFSET: isize = 10;
+#[cfg(target_os = "macos")]
+/// 窗口管理始终高于设置子窗，便于在浮层之上操作窗口列表。
+const WINDOW_MANAGER_ABOVE_SETTINGS_LEVEL_OFFSET: isize = 10;
 
 fn is_settings_window_label(label: &str) -> bool {
     matches!(
         label,
         "settings" | "lyrics-settings" | "cover-settings" | "songinfo-settings" | "lyrics-search"
     )
+}
+
+fn is_internal_auxiliary_window_label(label: &str) -> bool {
+    label == WINDOW_MANAGER_LABEL
+        || label == "main-toolbar"
+        || label.starts_with(PASSTHROUGH_TOOLBAR_LABEL_PREFIX)
+}
+
+fn suffix_number(label: &str, prefix: &str) -> u32 {
+    label
+        .strip_prefix(prefix)
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0)
+}
+
+fn managed_window_sort_key(label: &str) -> (u8, u32, String) {
+    if label == "main" {
+        return (0, 0, String::new());
+    }
+    if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        return (
+            1,
+            suffix_number(label, SPECTRUM_WINDOW_LABEL_PREFIX),
+            String::new(),
+        );
+    }
+    if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
+        return (
+            2,
+            suffix_number(label, LYRICS_WINDOW_LABEL_PREFIX),
+            String::new(),
+        );
+    }
+    if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
+        return (
+            3,
+            suffix_number(label, COVER_WINDOW_LABEL_PREFIX),
+            String::new(),
+        );
+    }
+    if label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX) {
+        return (
+            4,
+            suffix_number(label, SONGINFO_WINDOW_LABEL_PREFIX),
+            String::new(),
+        );
+    }
+    if label == "settings" {
+        return (5, 0, String::new());
+    }
+    if label == "lyrics-settings" {
+        return (5, 1, String::new());
+    }
+    if label == "cover-settings" {
+        return (5, 2, String::new());
+    }
+    if label == "songinfo-settings" {
+        return (5, 3, String::new());
+    }
+    if label == "lyrics-search" {
+        return (5, 4, String::new());
+    }
+    (6, 0, label.to_string())
+}
+
+fn managed_window_display_name(state: &StreamState, label: &str) -> String {
+    match label {
+        "main" => "主频谱窗口".to_string(),
+        "settings" => "频谱设置".to_string(),
+        "lyrics-settings" => "歌词设置".to_string(),
+        "cover-settings" => "封面设置".to_string(),
+        "songinfo-settings" => "歌曲信息设置".to_string(),
+        "lyrics-search" => "歌词加载".to_string(),
+        l if l.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) => {
+            let n = l.strip_prefix(SPECTRUM_WINDOW_LABEL_PREFIX).unwrap_or(l);
+            if spectrum_is_overlay_mode(state, l) {
+                format!("浮层频谱 · {n}")
+            } else {
+                format!("传统频谱 · {n}")
+            }
+        }
+        l if l.starts_with(LYRICS_WINDOW_LABEL_PREFIX) => {
+            let n = l.strip_prefix(LYRICS_WINDOW_LABEL_PREFIX).unwrap_or(l);
+            format!("歌词 · {n}")
+        }
+        l if l.starts_with(COVER_WINDOW_LABEL_PREFIX) => {
+            let n = l.strip_prefix(COVER_WINDOW_LABEL_PREFIX).unwrap_or(l);
+            format!("封面 · {n}")
+        }
+        l if l.starts_with(SONGINFO_WINDOW_LABEL_PREFIX) => {
+            let n = l.strip_prefix(SONGINFO_WINDOW_LABEL_PREFIX).unwrap_or(l);
+            format!("歌曲信息 · {n}")
+        }
+        other => other.to_string(),
+    }
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ManagedWindowInfo {
+    label: String,
+    title: String,
+    visible: bool,
 }
 
 fn is_now_playing_overlay_label(label: &str) -> bool {
@@ -212,6 +321,53 @@ fn configure_settings_window_level(
 }
 
 #[cfg(target_os = "macos")]
+fn macos_window_manager_level() -> isize {
+    macos_overlay_window_level(OverlayWindowStackTier::Settings, true)
+        + WINDOW_MANAGER_ABOVE_SETTINGS_LEVEL_OFFSET
+}
+
+fn configure_window_manager_level(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let level = macos_window_manager_level();
+        let w = window.clone();
+        return window.run_on_main_thread(move || unsafe {
+            let ns_window: &NSWindow = &*w
+                .ns_window()
+                .expect("无法获取 macOS 窗口句柄")
+                .cast();
+            ns_window.setLevel(level);
+        });
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        window.set_always_on_top(true)
+    }
+}
+
+fn raise_window_manager_if_visible(app: &tauri::AppHandle) -> tauri::Result<()> {
+    let Some(win) = app.get_webview_window(WINDOW_MANAGER_LABEL) else {
+        return Ok(());
+    };
+    if !win.is_visible().unwrap_or(false) {
+        return Ok(());
+    }
+    configure_window_manager_level(&win)?;
+    #[cfg(target_os = "macos")]
+    {
+        let w = win.clone();
+        win.run_on_main_thread(move || unsafe {
+            let ns_window: &NSWindow = &*w
+                .ns_window()
+                .expect("无法获取 macOS 窗口句柄")
+                .cast();
+            ns_window.orderFrontRegardless();
+        })?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
 fn raise_visible_settings_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
     let pinned = app
         .state::<StreamState>()
@@ -278,7 +434,8 @@ fn reassert_overlay_window_stack(app: &tauri::AppHandle) -> tauri::Result<()> {
         }
     }
 
-    raise_visible_settings_windows(app)
+    raise_visible_settings_windows(app)?;
+    raise_window_manager_if_visible(app)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -1799,6 +1956,7 @@ fn set_overlay_pinned(
         }
         raise_visible_settings_windows(&app).map_err(|e| e.to_string())?;
     }
+    raise_window_manager_if_visible(&app).map_err(|e| e.to_string())?;
     #[cfg(not(target_os = "macos"))]
     {
         for label in [
@@ -1811,6 +1969,9 @@ fn set_overlay_pinned(
             if let Some(w) = app.get_webview_window(label) {
                 w.set_always_on_top(pinned).map_err(|e| e.to_string())?;
             }
+        }
+        if let Some(w) = app.get_webview_window(WINDOW_MANAGER_LABEL) {
+            w.set_always_on_top(true).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
@@ -2757,17 +2918,6 @@ fn get_songinfo_settings_target(state: State<'_, StreamState>) -> String {
         .unwrap_or_default()
 }
 
-/// 托盘「设置」：父窗与视觉目标对齐到当前仍打开的图形窗（主窗或频谱窗）。
-fn open_settings_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
-    let (parent_label, _) = resolve_settings_parent_window(app, None)?;
-    if let Ok(mut g) = app.state::<StreamState>().visual_settings_target.lock() {
-        *g = parent_label;
-    }
-    open_settings_window_impl(app)?;
-    notify_settings_visual_target(app);
-    Ok(())
-}
-
 /// 菜单栏托盘「设置」与 `open_settings_window` 命令共用。
 fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     let pinned = app
@@ -2818,6 +2968,153 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &settings, pinned)
+}
+
+/// 托盘「设置」：父窗与视觉目标对齐到当前仍打开的图形窗（主窗或频谱窗）。
+fn open_settings_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    let (parent_label, _) = resolve_settings_parent_window(app, None)?;
+    if let Ok(mut g) = app.state::<StreamState>().visual_settings_target.lock() {
+        *g = parent_label;
+    }
+    open_settings_window_impl(app)?;
+    notify_settings_visual_target(app);
+    Ok(())
+}
+
+fn open_window_manager_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(WINDOW_MANAGER_LABEL) {
+        win.show().map_err(|e| e.to_string())?;
+        win.unminimize().ok();
+        configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+        raise_window_manager_if_visible(app).map_err(|e| e.to_string())?;
+        win.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        WINDOW_MANAGER_LABEL,
+        WebviewUrl::App("window-manager.html".into()),
+    )
+    .title("WaveDance 窗口管理")
+    .inner_size(480.0, 520.0)
+    .resizable(true)
+    .decorations(true)
+    .shadow(true)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    win.show().map_err(|e| e.to_string())?;
+    configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+    raise_window_manager_if_visible(app).map_err(|e| e.to_string())?;
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+fn open_window_manager_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_window_manager_impl(app)
+}
+
+fn supports_window_edge_reveal(app: &tauri::AppHandle, label: &str) -> bool {
+    if label == "main" {
+        return true;
+    }
+    if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
+        || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
+        || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+    {
+        return true;
+    }
+    if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        let state = app.state::<StreamState>();
+        return spectrum_is_overlay_mode(&state, label);
+    }
+    false
+}
+
+fn reveal_window_edges_for_label(app: &tauri::AppHandle, label: &str) {
+    if !supports_window_edge_reveal(app, label) {
+        return;
+    }
+    for (other_label, _) in app.webview_windows() {
+        if other_label == label || !supports_window_edge_reveal(app, &other_label) {
+            continue;
+        }
+        let _ = app.emit_to(&other_label, "hide-window-edges", ());
+    }
+    let _ = app.emit_to(label, "reveal-window-edges", ());
+}
+
+#[tauri::command]
+fn list_managed_windows(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+) -> Result<Vec<ManagedWindowInfo>, String> {
+    let mut items: Vec<ManagedWindowInfo> = app
+        .webview_windows()
+        .into_iter()
+        .filter(|(label, _)| !is_internal_auxiliary_window_label(label))
+        .map(|(label, win)| ManagedWindowInfo {
+            title: managed_window_display_name(&state, &label),
+            visible: win.is_visible().unwrap_or(false),
+            label,
+        })
+        .collect();
+    items.sort_by(|a, b| {
+        managed_window_sort_key(&a.label).cmp(&managed_window_sort_key(&b.label))
+    });
+    Ok(items)
+}
+
+#[tauri::command]
+fn focus_managed_window(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    let label = label.trim().to_string();
+    if is_internal_auxiliary_window_label(&label) {
+        return Err("无法聚焦该窗口".to_string());
+    }
+    let Some(win) = app.get_webview_window(&label) else {
+        return Err("窗口已关闭".to_string());
+    };
+
+    if is_settings_window_label(&label) {
+        let pinned = app
+            .state::<StreamState>()
+            .overlay_pinned
+            .load(Ordering::SeqCst);
+        show_settings_window(&app, &win, pinned)?;
+        return Ok(());
+    }
+
+    win.show().map_err(|e| e.to_string())?;
+    win.set_focus().map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    if overlay_tier_for_label(&app, &label).is_some() {
+        reassert_overlay_window_stack(&app).map_err(|e| e.to_string())?;
+    }
+
+    reveal_window_edges_for_label(&app, &label);
+    Ok(())
+}
+
+#[tauri::command]
+fn close_managed_window(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    let label = label.trim().to_string();
+    if is_internal_auxiliary_window_label(&label) {
+        return Err("无法关闭该窗口".to_string());
+    }
+    let Some(win) = app.get_webview_window(&label) else {
+        return Ok(());
+    };
+    win.close().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -3045,6 +3342,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             {
                 const TRAY_MENU_SETTINGS: &str = "tray_settings";
+                const TRAY_MENU_WINDOW_MANAGER: &str = "tray_window_manager";
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
                 const TRAY_MENU_NEW_LYRICS: &str = "tray_new_lyrics";
@@ -3057,6 +3355,7 @@ fn main() {
                 };
                 let menu = MenuBuilder::new(app.handle())
                     .text(TRAY_MENU_SETTINGS, "设置…")
+                    .text(TRAY_MENU_WINDOW_MANAGER, "窗口管理…")
                     .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
                     .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
                     .text(TRAY_MENU_NEW_LYRICS, "新建浮层歌词窗口")
@@ -3074,6 +3373,8 @@ fn main() {
                     .on_menu_event(|app, event| {
                         if event.id() == TRAY_MENU_SETTINGS {
                             let _ = open_settings_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_WINDOW_MANAGER {
+                            let _ = open_window_manager_from_tray(app);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
                             let _ = open_extra_spectrum_window_impl(app, None, true);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
@@ -3128,6 +3429,9 @@ fn main() {
             set_mouse_passthrough_locked,
             get_mouse_passthrough_locked,
             open_settings_window,
+            list_managed_windows,
+            focus_managed_window,
+            close_managed_window,
             close_settings_window,
             get_visual_settings_target,
             open_extra_spectrum_window,

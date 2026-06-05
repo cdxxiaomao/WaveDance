@@ -2056,3 +2056,89 @@ body.lyrics-search-window .lyrics-search-candidate__badge {
   border: 1px solid rgba(196, 165, 116, 0.35);
   background: rgba(196, 165, 116, 0.1);
 }
+
+body.window-manager-window .settings-header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.window-manager-window .wm-refresh-btn {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+body.window-manager-window .wm-empty {
+  margin: 0;
+}
+
+body.window-manager-window .wm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+body.window-manager-window .wm-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+body.window-manager-window .wm-item__main {
+  min-width: 0;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--settings-border);
+  background: var(--settings-surface);
+  color: var(--settings-text);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.12s ease;
+}
+
+body.window-manager-window .wm-item__main:hover {
+  border-color: rgba(196, 165, 116, 0.45);
+  background: var(--settings-surface-2);
+}
+
+body.window-manager-window .wm-item__title {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+body.window-manager-window .wm-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+body.window-manager-window .wm-item__label {
+  font-size: 11px;
+  color: var(--settings-text-dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body.window-manager-window .wm-item__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--settings-text-muted);
+  border: 1px solid var(--settings-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body.window-manager-window .wm-item__close {
+  align-self: center;
+  min-width: 64px;
+}

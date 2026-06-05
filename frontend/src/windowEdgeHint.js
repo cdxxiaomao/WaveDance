@@ -5,12 +5,24 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 const WINDOW_EDGE_HINT_HIDE_MS = 1500;
 const WINDOW_EDGE_BAND_LOGICAL = 18;
 const WINDOW_EDGE_HINT_POLL_MS = 80;
+const WINDOW_EDGE_REVEAL_EVENT = "reveal-window-edges";
+const WINDOW_EDGE_HIDE_EVENT = "hide-window-edges";
 
 let windowEdgeHintHideTimer = null;
 let windowEdgeActive = false;
 let pollTimer = null;
+let revealListenerReady = false;
 
-function revealWindowEdges() {
+export function hideWindowEdges() {
+  if (windowEdgeHintHideTimer != null) {
+    clearTimeout(windowEdgeHintHideTimer);
+    windowEdgeHintHideTimer = null;
+  }
+  document.body.classList.remove("show-window-edges");
+  windowEdgeActive = false;
+}
+
+export function revealWindowEdges() {
   document.body.classList.add("show-window-edges");
   if (document.body.classList.contains("mouse-passthrough-locked")) {
     invoke("reveal_overlay_unlock_toolbar", {
@@ -24,6 +36,18 @@ function revealWindowEdges() {
     document.body.classList.remove("show-window-edges");
     windowEdgeHintHideTimer = null;
   }, WINDOW_EDGE_HINT_HIDE_MS);
+}
+
+function setupWindowEdgeRevealListener() {
+  if (revealListenerReady) return;
+  revealListenerReady = true;
+  const win = getCurrentWebviewWindow();
+  win.listen(WINDOW_EDGE_REVEAL_EVENT, () => {
+    revealWindowEdges();
+  }).catch(() => {});
+  win.listen(WINDOW_EDGE_HIDE_EVENT, () => {
+    hideWindowEdges();
+  }).catch(() => {});
 }
 
 /** 检测光标是否进入窗口边缘带（兼容 cursor 为逻辑/物理坐标两种平台行为） */
@@ -90,6 +114,7 @@ async function pollWindowEdgeHint() {
 
 /** 为浮层窗（歌词 / 浮层频谱）启用边缘蚂蚁线与穿透解锁条联动 */
 export function initWindowEdgeHint() {
+  setupWindowEdgeRevealListener();
   if (pollTimer != null) return;
   pollTimer = window.setInterval(pollWindowEdgeHint, WINDOW_EDGE_HINT_POLL_MS);
 }
