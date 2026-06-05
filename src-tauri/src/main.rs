@@ -17,7 +17,7 @@ use std::time::Duration;
 
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{
-    NSColor, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior, NSWindowOrderingMode,
+    NSColor, NSStatusWindowLevel, NSWindow, NSWindowCollectionBehavior, NSWindowOrderingMode,
     NSWindowStyleMask,
 };
 #[cfg(target_os = "macos")]
@@ -123,10 +123,13 @@ enum OverlayWindowStackTier {
 }
 
 #[cfg(target_os = "macos")]
+/// 置顶浮层基准层级：须低于 `NSPopUpMenuWindowLevel`（101），否则托盘下拉菜单会被遮挡。
+const OVERLAY_PINNED_BASE_LEVEL: isize = NSStatusWindowLevel;
+#[cfg(target_os = "macos")]
 /// 未置顶时，歌词/封面/歌曲信息略高于普通浮层频谱，避免点击抢焦点后互相遮挡。
 const OVERLAY_UNPINNED_NOW_PLAYING_LEVEL: isize = 3;
 #[cfg(target_os = "macos")]
-/// 置顶时，在屏保级之上再抬高，保证浮层频谱无法盖住信息窗。
+/// 置顶时，在基准层级之上再抬高，保证浮层频谱无法盖住信息窗。
 const OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET: isize = 10;
 #[cfg(target_os = "macos")]
 /// 置顶时，设置子窗高于歌词/封面/歌曲信息浮层，避免重排层级时被盖住。
@@ -254,14 +257,14 @@ fn is_now_playing_overlay_label(label: &str) -> bool {
 #[cfg(target_os = "macos")]
 fn macos_overlay_window_level(tier: OverlayWindowStackTier, pinned: bool) -> isize {
     match (tier, pinned) {
-        (OverlayWindowStackTier::Spectrum, true) => NSScreenSaverWindowLevel,
+        (OverlayWindowStackTier::Spectrum, true) => OVERLAY_PINNED_BASE_LEVEL,
         (OverlayWindowStackTier::Spectrum, false) => 0,
         (OverlayWindowStackTier::NowPlayingInfo, true) => {
-            NSScreenSaverWindowLevel + OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET
+            OVERLAY_PINNED_BASE_LEVEL + OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET
         }
         (OverlayWindowStackTier::NowPlayingInfo, false) => OVERLAY_UNPINNED_NOW_PLAYING_LEVEL,
         (OverlayWindowStackTier::Settings, true) => {
-            NSScreenSaverWindowLevel
+            OVERLAY_PINNED_BASE_LEVEL
                 + OVERLAY_NOW_PLAYING_ABOVE_SPECTRUM_LEVEL_OFFSET
                 + OVERLAY_SETTINGS_ABOVE_NOW_PLAYING_LEVEL_OFFSET
         }
