@@ -1,4 +1,27 @@
-import { applyAdaptiveSmooth, clamp01 } from "./common.js";
+import { applyAdaptiveSmooth, clamp01, clampPeakCapSpanAlongBar, minNdcForPixels } from "./common.js";
+
+function writeRectVertices(vertices, offset, left, bottom, right, top) {
+  vertices[offset] = left;
+  vertices[offset + 1] = bottom;
+  vertices[offset + 2] = left;
+  vertices[offset + 3] = top;
+  vertices[offset + 4] = right;
+  vertices[offset + 5] = bottom;
+  vertices[offset + 6] = left;
+  vertices[offset + 7] = top;
+  vertices[offset + 8] = right;
+  vertices[offset + 9] = top;
+  vertices[offset + 10] = right;
+  vertices[offset + 11] = bottom;
+}
+
+function updatePositivePeakCap(prev, current, fallNdc) {
+  return current > prev ? current : Math.max(current, prev - fallNdc);
+}
+
+function updateNegativePeakCap(prev, current, fallNdc) {
+  return current < prev ? current : Math.min(current, prev + fallNdc);
+}
 
 export function createBarRenderer(gl) {
   const vertexShaderSource = `
@@ -44,7 +67,8 @@ void main() {
   const colorLoc = gl.getUniformLocation(program, "u_barColor");
   const buffer = gl.createBuffer();
   let easedBars = [];
-  let peakCaps = [];
+  let peakCapsPos = [];
+  let peakCapsNeg = [];
 
   const render = (points, shapeConfig, styleConfig) => {
     if (!Array.isArray(points) || points.length === 0) return;
@@ -52,8 +76,11 @@ void main() {
     if (easedBars.length !== len) {
       easedBars = new Array(len).fill(0);
     }
-    if (peakCaps.length !== len) {
-      peakCaps = new Array(len).fill(0);
+    if (peakCapsPos.length !== len) {
+      peakCapsPos = new Array(len).fill(0);
+    }
+    if (peakCapsNeg.length !== len) {
+      peakCapsNeg = new Array(len).fill(0);
     }
 
     const normalized = new Float32Array(len);
@@ -72,61 +99,114 @@ void main() {
     const widthPercent = Math.max(20, Math.min(100, Number(styleConfig.widthPercent) || 76));
     const gapPercent = Math.max(0, Math.min(70, Number(styleConfig.gapPercent) || 18));
     const gapScale = 1 - gapPercent / 100;
-    const barWidth = (2 / len) * (widthPercent / 100) * gapScale;
-    const barHalf = barWidth / 2;
+    const barThickness = (2 / len) * (widthPercent / 100) * gapScale;
+    const barHalf = barThickness / 2;
     const mirrored = Boolean(styleConfig.mirrorEnabled);
+    const verticalLayout = styleConfig.orientation === "vertical";
     const headroomPercent = Math.max(0, Math.min(40, Number(styleConfig.headroomPercent) || 6));
-    const topPaddingNdc = (headroomPercent / 100) * 2;
-    const verticalRoom = Math.max(0.05, 2 - topPaddingNdc);
+    const endPaddingNdc = (headroomPercent / 100) * 2;
+    const growthRoom = Math.max(0.05, 2 - endPaddingNdc);
     const baseline = mirrored ? 0 : -1;
-    const maxHeight = mirrored ? verticalRoom * 0.5 : verticalRoom;
+    const maxExtent = mirrored ? growthRoom * 0.5 : growthRoom;
 
     const vertices = new Float32Array(len * 12);
-    const capVertices = new Float32Array(len * 12);
-    const peakHoldEnabled = Boolean(styleConfig.peakHoldEnabled);
+    const peakHoldMode = styleConfig.peakHoldMode === "off"
+      ? "off"
+      : styleConfig.peakHoldMode === "both"
+        ? "both"
+        : "single";
+    const drawPositivePeak = peakHoldMode === "single" || peakHoldMode === "both";
+    const drawNegativePeak = peakHoldMode === "both" && mirrored;
+    const capSlots = (drawPositivePeak ? 1 : 0) + (drawNegativePeak ? 1 : 0);
+    const capVertices = capSlots > 0 ? new Float32Array(len * capSlots * 12) : null;
     const peakThicknessPx = Math.max(1, Math.min(8, Number(styleConfig.peakThickness) || 2));
-    const capThicknessNdc = gl.canvas.height > 0 ? (2 / gl.canvas.height) * peakThicknessPx : 0.006;
-    const capInset = barWidth * 0.16;
+    const capThicknessNdc = verticalLayout
+      ? Math.max(minNdcForPixels(1, gl.canvas.width), (2 / Math.max(1, gl.canvas.width)) * peakThicknessPx)
+      : Math.max(minNdcForPixels(1, gl.canvas.height), (2 / Math.max(1, gl.canvas.height)) * peakThicknessPx);
+    const minCapSpanNdc = verticalLayout
+      ? minNdcForPixels(1, gl.canvas.height)
+      : minNdcForPixels(1, gl.canvas.width);
     const peakFallSpeed = Math.max(5, Math.min(120, Number(styleConfig.peakFallSpeed) || 35));
     const capFallNdc = (peakFallSpeed / 120) * 0.012;
-    for (let i = 0; i < len; i++) {
-      const centerX = ((i + 0.5) / len) * 2 - 1;
-      const left = centerX - barHalf;
-      const right = centerX + barHalf;
-      const top = baseline + normalized[i] * maxHeight;
-      const bottom = mirrored ? baseline - normalized[i] * maxHeight : baseline;
-      const offset = i * 12;
-      vertices[offset] = left;
-      vertices[offset + 1] = bottom;
-      vertices[offset + 2] = left;
-      vertices[offset + 3] = top;
-      vertices[offset + 4] = right;
-      vertices[offset + 5] = bottom;
-      vertices[offset + 6] = left;
-      vertices[offset + 7] = top;
-      vertices[offset + 8] = right;
-      vertices[offset + 9] = top;
-      vertices[offset + 10] = right;
-      vertices[offset + 11] = bottom;
+    const freqReversed = Boolean(styleConfig.freqReversed);
+    let capWriteIndex = 0;
+    for (let slot = 0; slot < len; slot++) {
+      const freqIndex = freqReversed ? len - 1 - slot : slot;
+      const extent = normalized[freqIndex] * maxExtent;
+      const offset = slot * 12;
+      let left;
+      let right;
+      let bottom;
+      let top;
+      let positivePeakPos;
+      let negativePeakPos = null;
 
-      const nextCap = top > peakCaps[i] ? top : Math.max(top, peakCaps[i] - capFallNdc);
-      peakCaps[i] = nextCap;
-      const capTop = nextCap + capThicknessNdc * 0.5;
-      const capBottom = nextCap - capThicknessNdc * 0.5;
-      const capLeft = left + capInset;
-      const capRight = right - capInset;
-      capVertices[offset] = capLeft;
-      capVertices[offset + 1] = capBottom;
-      capVertices[offset + 2] = capLeft;
-      capVertices[offset + 3] = capTop;
-      capVertices[offset + 4] = capRight;
-      capVertices[offset + 5] = capBottom;
-      capVertices[offset + 6] = capLeft;
-      capVertices[offset + 7] = capTop;
-      capVertices[offset + 8] = capRight;
-      capVertices[offset + 9] = capTop;
-      capVertices[offset + 10] = capRight;
-      capVertices[offset + 11] = capBottom;
+      if (verticalLayout) {
+        const centerY = ((slot + 0.5) / len) * 2 - 1;
+        bottom = centerY - barHalf;
+        top = centerY + barHalf;
+        right = baseline + extent;
+        left = mirrored ? baseline - extent : baseline;
+        positivePeakPos = right;
+        if (mirrored) {
+          negativePeakPos = left;
+        }
+      } else {
+        const centerX = ((slot + 0.5) / len) * 2 - 1;
+        left = centerX - barHalf;
+        right = centerX + barHalf;
+        top = baseline + extent;
+        bottom = mirrored ? baseline - extent : baseline;
+        positivePeakPos = top;
+        if (mirrored) {
+          negativePeakPos = bottom;
+        }
+      }
+
+      writeRectVertices(vertices, offset, left, bottom, right, top);
+
+      if (drawPositivePeak) {
+        peakCapsPos[freqIndex] = updatePositivePeakCap(
+          peakCapsPos[freqIndex],
+          positivePeakPos,
+          capFallNdc,
+        );
+      }
+      if (drawNegativePeak && negativePeakPos != null) {
+        peakCapsNeg[freqIndex] = updateNegativePeakCap(
+          peakCapsNeg[freqIndex],
+          negativePeakPos,
+          capFallNdc,
+        );
+      }
+
+      const writeCapAt = (peakPos, isVerticalCap) => {
+        const capOffset = capWriteIndex * 12;
+        capWriteIndex += 1;
+        let capLeft;
+        let capRight;
+        let capBottom;
+        let capTop;
+        if (isVerticalCap) {
+          capRight = peakPos + capThicknessNdc * 0.5;
+          capLeft = peakPos - capThicknessNdc * 0.5;
+          [capBottom, capTop] = clampPeakCapSpanAlongBar(bottom, top, minCapSpanNdc);
+        } else {
+          capTop = peakPos + capThicknessNdc * 0.5;
+          capBottom = peakPos - capThicknessNdc * 0.5;
+          [capLeft, capRight] = clampPeakCapSpanAlongBar(left, right, minCapSpanNdc);
+        }
+        writeRectVertices(capVertices, capOffset, capLeft, capBottom, capRight, capTop);
+      };
+
+      if (capVertices) {
+        if (drawPositivePeak) {
+          writeCapAt(peakCapsPos[freqIndex], verticalLayout);
+        }
+        if (drawNegativePeak && negativePeakPos != null) {
+          writeCapAt(peakCapsNeg[freqIndex], verticalLayout);
+        }
+      }
     }
 
     gl.useProgram(program);
@@ -137,13 +217,11 @@ void main() {
     gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, len * 6);
 
-    if (peakHoldEnabled) {
-      const capR = Math.min(1, styleConfig.color.r * 0.4 + 0.6);
-      const capG = Math.min(1, styleConfig.color.g * 0.4 + 0.6);
-      const capB = Math.min(1, styleConfig.color.b * 0.4 + 0.6);
-      gl.uniform3f(colorLoc, capR, capG, capB);
+    if (capVertices && capWriteIndex > 0) {
+      const peakColor = styleConfig.peakColor ?? styleConfig.color;
+      gl.uniform3f(colorLoc, peakColor.r, peakColor.g, peakColor.b);
       gl.bufferData(gl.ARRAY_BUFFER, capVertices, gl.DYNAMIC_DRAW);
-      gl.drawArrays(gl.TRIANGLES, 0, len * 6);
+      gl.drawArrays(gl.TRIANGLES, 0, capWriteIndex * 6);
     }
   };
 

@@ -6,6 +6,27 @@ export function clamp01(value) {
   return n;
 }
 
+export function minNdcForPixels(px, canvasPixels) {
+  if (canvasPixels <= 0 || px <= 0) return 0;
+  return (px / canvasPixels) * 2;
+}
+
+function clampSpanToMinNdc(low, high, minNdc) {
+  if (high - low >= minNdc) {
+    return [low, high];
+  }
+  const center = (low + high) * 0.5;
+  return [center - minNdc * 0.5, center + minNdc * 0.5];
+}
+
+/**
+ * 保证峰值保持线沿柱体方向至少占据 1 个设备像素，避免 capInset 把窄柱压成零宽线。
+ * @returns {[number, number]}
+ */
+export function clampPeakCapSpanAlongBar(low, high, minNdc) {
+  return clampSpanToMinNdc(low, high, minNdc);
+}
+
 export function applyAdaptiveSmooth(samples, smoothPercent) {
   const len = samples.length;
   if (len <= 2) return;

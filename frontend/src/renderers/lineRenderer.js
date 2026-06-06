@@ -70,6 +70,7 @@ void main() {
     const stepNdc = canvasH > 0 ? 2 / canvasH : 0;
     const passes = Math.max(1, Number(styleConfig.lineWidthPx) || 1);
     const half = (passes - 1) / 2;
+    const freqReversed = Boolean(styleConfig.freqReversed);
 
     const vertices = new Float32Array(len * 2);
     gl.useProgram(program);
@@ -81,9 +82,10 @@ void main() {
 
     for (let p = 0; p < passes; p++) {
       const yOff = (p - half) * stepNdc;
-      for (let i = 0; i < len; i++) {
-        vertices[i * 2] = (i / (len - 1)) * 2 - 1;
-        vertices[i * 2 + 1] = ys[i] + yOff;
+      for (let slot = 0; slot < len; slot++) {
+        const freqIndex = freqReversed ? len - 1 - slot : slot;
+        vertices[slot * 2] = (slot / (len - 1)) * 2 - 1;
+        vertices[slot * 2 + 1] = ys[freqIndex] + yOff;
       }
       gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
       gl.drawArrays(gl.LINE_STRIP, 0, len);

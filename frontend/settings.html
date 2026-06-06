@@ -113,6 +113,11 @@
             <label for="freqMaxRange" class="settings-label">频率上限 <span class="settings-value" id="freqMaxValue">7600</span> Hz</label>
             <input id="freqMaxRange" type="range" min="100" max="24000" step="10" value="7600" />
           </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="freqReversedToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>反转频率方向（高音/低音对调）</span>
+          </label>
         </div>
       </section>
 
@@ -165,16 +170,30 @@
             <label for="barHeadroomRange" class="settings-label">顶部留白 <span class="settings-value" id="barHeadroomValue">6</span>%</label>
             <input id="barHeadroomRange" type="range" min="0" max="40" step="1" value="6" />
           </div>
+          <div class="settings-field settings-field--row">
+            <label for="barOrientation" class="settings-label">排列方向</label>
+            <select id="barOrientation" class="settings-select">
+              <option value="horizontal" selected>左右排列</option>
+              <option value="vertical">上下排列</option>
+            </select>
+          </div>
           <label class="settings-toggle settings-toggle--block">
             <input id="barMirrorToggle" type="checkbox" />
             <span class="settings-toggle__ui" aria-hidden="true"></span>
             <span>镜像柱体（中心对称）</span>
           </label>
-          <label class="settings-toggle settings-toggle--block">
-            <input id="barPeakHoldToggle" type="checkbox" checked />
-            <span class="settings-toggle__ui" aria-hidden="true"></span>
-            <span>峰值保持线（被顶起后缓慢回落）</span>
-          </label>
+          <div class="settings-field settings-field--row">
+            <label for="barPeakHoldMode" class="settings-label">峰值保持线</label>
+            <select id="barPeakHoldMode" class="settings-select">
+              <option value="off">全部关闭</option>
+              <option value="single" selected>仅一面</option>
+              <option value="both">两面开启</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="barPeakColor" class="settings-label">峰值线颜色</label>
+            <input id="barPeakColor" type="color" value="#ffffff" class="settings-color" />
+          </div>
           <div class="settings-field">
             <label for="barPeakFallSpeedRange" class="settings-label">峰值线回落速度 <span class="settings-value" id="barPeakFallSpeedValue">35</span></label>
             <input id="barPeakFallSpeedRange" type="range" min="5" max="120" step="1" value="35" />

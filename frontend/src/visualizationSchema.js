@@ -3,14 +3,18 @@ export const STORAGE_KEYS = {
   barShape: "wavedance.barShapeConfig",
   displayMode: "wavedance.displayMode",
   panelStyleMode: "wavedance.panelStyleMode",
+  freqReversed: "wavedance.freqReversed",
   lineColor: "wavedance.lineColor",
   lineWidth: "wavedance.lineWidthPx",
   barColor: "wavedance.barColor",
   barWidth: "wavedance.barWidthPercent",
   barGap: "wavedance.barGapPercent",
   barHeadroom: "wavedance.barHeadroomPercent",
+  barOrientation: "wavedance.barOrientation",
   barMirror: "wavedance.barMirrorEnabled",
   barPeakHold: "wavedance.barPeakHoldEnabled",
+  barPeakHoldMode: "wavedance.barPeakHoldMode",
+  barPeakColor: "wavedance.barPeakColor",
   barPeakFallSpeed: "wavedance.barPeakFallSpeed",
   barPeakThickness: "wavedance.barPeakThickness",
   mainBgColor: "wavedance.mainBgColor",
@@ -28,9 +32,21 @@ export const PANEL_STYLES = {
   minimal: "minimal",
 };
 
+export const BAR_ORIENTATIONS = {
+  horizontal: "horizontal",
+  vertical: "vertical",
+};
+
+export const PEAK_HOLD_MODES = {
+  off: "off",
+  single: "single",
+  both: "both",
+};
+
 export const DEFAULT_CONFIG = {
   displayMode: DISPLAY_MODES.line,
   panelStyleMode: PANEL_STYLES.pro,
+  freqReversed: false,
   line: {
     color: "#c4a574",
     lineWidthPx: 2,
@@ -46,8 +62,10 @@ export const DEFAULT_CONFIG = {
     widthPercent: 76,
     gapPercent: 18,
     headroomPercent: 6,
+    orientation: BAR_ORIENTATIONS.horizontal,
     mirrorEnabled: false,
-    peakHoldEnabled: true,
+    peakHoldMode: PEAK_HOLD_MODES.single,
+    peakColor: "#ffffff",
     peakFallSpeed: 35,
     peakThickness: 2,
     shape: {
@@ -72,6 +90,38 @@ export function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+export function normalizeBarOrientation(value, fallback = BAR_ORIENTATIONS.horizontal) {
+  const s = String(value ?? "").trim();
+  if (s === BAR_ORIENTATIONS.vertical) return BAR_ORIENTATIONS.vertical;
+  if (s === BAR_ORIENTATIONS.horizontal) return BAR_ORIENTATIONS.horizontal;
+  return fallback;
+}
+
+export function normalizeBarPeakHoldMode(value, fallback = PEAK_HOLD_MODES.single) {
+  const s = String(value ?? "").trim();
+  if (s === PEAK_HOLD_MODES.off) return PEAK_HOLD_MODES.off;
+  if (s === PEAK_HOLD_MODES.both) return PEAK_HOLD_MODES.both;
+  if (s === PEAK_HOLD_MODES.single) return PEAK_HOLD_MODES.single;
+  return fallback;
+}
+
+/**
+ * 读取峰值保持线模式；兼容旧版 boolean 存储 `barPeakHold`。
+ * @param {Storage} ls
+ * @param {string} windowLabel
+ */
+export function readBarPeakHoldMode(ls, windowLabel) {
+  const modeRaw = readWindowStorageString(ls, windowLabel, "barPeakHoldMode");
+  if (modeRaw === PEAK_HOLD_MODES.off || modeRaw === PEAK_HOLD_MODES.single || modeRaw === PEAK_HOLD_MODES.both) {
+    return modeRaw;
+  }
+  const legacyRaw = readWindowStorageString(ls, windowLabel, "barPeakHold");
+  if (legacyRaw != null && legacyRaw !== "") {
+    return parseBoolean(legacyRaw, true) ? PEAK_HOLD_MODES.single : PEAK_HOLD_MODES.off;
+  }
+  return DEFAULT_CONFIG.bar.peakHoldMode;
+}
+
 /** 仅允许主窗与频谱副窗作为「每窗配置」的存储分区。 */
 export function normalizeSpectrumWindowLabel(label) {
   const s = String(label ?? "").trim();
@@ -93,14 +143,18 @@ export function windowStorageKeys(windowLabel) {
     barShape: `${pre}.barShapeConfig`,
     displayMode: `${pre}.displayMode`,
     panelStyleMode: `${pre}.panelStyleMode`,
+    freqReversed: `${pre}.freqReversed`,
     lineColor: `${pre}.lineColor`,
     lineWidth: `${pre}.lineWidthPx`,
     barColor: `${pre}.barColor`,
     barWidth: `${pre}.barWidthPercent`,
     barGap: `${pre}.barGapPercent`,
     barHeadroom: `${pre}.barHeadroomPercent`,
+    barOrientation: `${pre}.barOrientation`,
     barMirror: `${pre}.barMirrorEnabled`,
     barPeakHold: `${pre}.barPeakHoldEnabled`,
+    barPeakHoldMode: `${pre}.barPeakHoldMode`,
+    barPeakColor: `${pre}.barPeakColor`,
     barPeakFallSpeed: `${pre}.barPeakFallSpeed`,
     barPeakThickness: `${pre}.barPeakThickness`,
     mainBgColor: `${pre}.mainBgColor`,

@@ -9,6 +9,9 @@ import {
   DISPLAY_MODES,
   parseBoolean,
   readWindowStorageString,
+  readBarPeakHoldMode,
+  normalizeBarPeakHoldMode,
+  PEAK_HOLD_MODES,
 } from "./visualizationSchema.js";
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
@@ -72,6 +75,7 @@ const DEFAULT_WAVEFORM_HEX = DEFAULT_CONFIG.line.color;
 
 const waveformLineRgb = { r: 0, g: 0, b: 0 };
 const barFillRgb = { r: 0, g: 0, b: 0 };
+const barPeakRgb = { r: 1, g: 1, b: 1 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -84,6 +88,7 @@ function applyWaveformColorHex(hex) {
 
 applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
 applyBarColorHex(DEFAULT_CONFIG.bar.color);
+applyBarPeakColorHex(DEFAULT_CONFIG.bar.peakColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -91,10 +96,12 @@ let waveformLineWidthPx = 2;
 let barWidthPercent = DEFAULT_CONFIG.bar.widthPercent;
 let barGapPercent = DEFAULT_CONFIG.bar.gapPercent;
 let barHeadroomPercent = DEFAULT_CONFIG.bar.headroomPercent;
+let barOrientation = DEFAULT_CONFIG.bar.orientation;
 let barMirrorEnabled = DEFAULT_CONFIG.bar.mirrorEnabled;
-let barPeakHoldEnabled = DEFAULT_CONFIG.bar.peakHoldEnabled;
+let barPeakHoldMode = DEFAULT_CONFIG.bar.peakHoldMode;
 let barPeakFallSpeed = DEFAULT_CONFIG.bar.peakFallSpeed;
 let barPeakThickness = DEFAULT_CONFIG.bar.peakThickness;
+let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -103,6 +110,15 @@ function applyBarColorHex(hex) {
   barFillRgb.r = r / 255;
   barFillRgb.g = g / 255;
   barFillRgb.b = b / 255;
+}
+
+function applyBarPeakColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.bar.peakColor;
+  const { r, g, b } = hexToRgb(safe);
+  barPeakRgb.r = r / 255;
+  barPeakRgb.g = g / 255;
+  barPeakRgb.b = b / 255;
 }
 
 function applyWaveformLineWidthPx(n) {
@@ -125,12 +141,20 @@ function applyBarHeadroomPercent(n) {
   barHeadroomPercent = clampInt(n, 0, 40);
 }
 
+function applyBarOrientation(value) {
+  barOrientation = value === "vertical" ? "vertical" : "horizontal";
+}
+
 function applyBarMirrorEnabled(value) {
   barMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.bar.mirrorEnabled);
 }
 
-function applyBarPeakHoldEnabled(value) {
-  barPeakHoldEnabled = parseBoolean(value, DEFAULT_CONFIG.bar.peakHoldEnabled);
+function applyBarPeakHoldMode(value) {
+  if (typeof value === "boolean") {
+    barPeakHoldMode = value ? PEAK_HOLD_MODES.single : PEAK_HOLD_MODES.off;
+    return;
+  }
+  barPeakHoldMode = normalizeBarPeakHoldMode(value, DEFAULT_CONFIG.bar.peakHoldMode);
 }
 
 function applyBarPeakFallSpeed(value) {
@@ -139,6 +163,10 @@ function applyBarPeakFallSpeed(value) {
 
 function applyBarPeakThickness(value) {
   barPeakThickness = clampInt(value, 1, 8);
+}
+
+function applyFreqReversed(value) {
+  freqReversed = parseBoolean(value, DEFAULT_CONFIG.freqReversed);
 }
 
 function applyMainBackgroundStyle(payload) {
@@ -181,15 +209,19 @@ function renderWaveform() {
       widthPercent: barWidthPercent,
       gapPercent: barGapPercent,
       headroomPercent: barHeadroomPercent,
+      orientation: barOrientation,
       mirrorEnabled: barMirrorEnabled,
-      peakHoldEnabled: barPeakHoldEnabled,
+      peakHoldMode: barPeakHoldMode,
+      peakColor: barPeakRgb,
       peakFallSpeed: barPeakFallSpeed,
       peakThickness: barPeakThickness,
+      freqReversed,
     });
   } else {
     lineRenderer.render(latestPoints, waveShapeConfig, {
       color: waveformLineRgb,
       lineWidthPx: waveformLineWidthPx,
+      freqReversed,
     });
   }
 
@@ -326,6 +358,15 @@ async function init() {
     },
     { target: thisWebviewTarget },
   );
+  await listen(
+    "waveform-bar-peak-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyBarPeakColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
 
   await listen(
     "waveform-line-width",
@@ -356,6 +397,13 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-bar-orientation",
+    (event) => {
+      applyBarOrientation(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "waveform-bar-mirror",
     (event) => {
       applyBarMirrorEnabled(event.payload);
@@ -365,7 +413,7 @@ async function init() {
   await listen(
     "waveform-bar-peak-hold",
     (event) => {
-      applyBarPeakHoldEnabled(event.payload);
+      applyBarPeakHoldMode(event.payload);
     },
     { target: thisWebviewTarget },
   );
@@ -380,6 +428,13 @@ async function init() {
     "waveform-bar-peak-thickness",
     (event) => {
       applyBarPeakThickness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-freq-reversed",
+    (event) => {
+      applyFreqReversed(event.payload);
     },
     { target: thisWebviewTarget },
   );
@@ -472,10 +527,13 @@ async function init() {
     if (savedBarHeadroom) {
       applyBarHeadroomPercent(savedBarHeadroom);
     }
+    applyBarOrientation(readWindowStorageString(window.localStorage, windowLabel, "barOrientation"));
     applyBarMirrorEnabled(readWindowStorageString(window.localStorage, windowLabel, "barMirror"));
-    applyBarPeakHoldEnabled(readWindowStorageString(window.localStorage, windowLabel, "barPeakHold"));
+    applyBarPeakHoldMode(readBarPeakHoldMode(window.localStorage, windowLabel));
+    applyBarPeakColorHex(readWindowStorageString(window.localStorage, windowLabel, "barPeakColor"));
     applyBarPeakFallSpeed(readWindowStorageString(window.localStorage, windowLabel, "barPeakFallSpeed"));
     applyBarPeakThickness(readWindowStorageString(window.localStorage, windowLabel, "barPeakThickness"));
+    applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures
   }

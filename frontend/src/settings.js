@@ -7,6 +7,9 @@ import {
   PANEL_STYLES,
   STORAGE_KEYS,
   normalizeSpectrumWindowLabel,
+  normalizeBarOrientation,
+  normalizeBarPeakHoldMode,
+  readBarPeakHoldMode,
   parseBoolean,
   readWindowStorageString,
   writeWindowStorageString,
@@ -25,6 +28,7 @@ const freqMinRange = document.querySelector("#freqMinRange");
 const freqMinValue = document.querySelector("#freqMinValue");
 const freqMaxRange = document.querySelector("#freqMaxRange");
 const freqMaxValue = document.querySelector("#freqMaxValue");
+const freqReversedToggle = document.querySelector("#freqReversedToggle");
 const displayModeSelect = document.querySelector("#displayMode");
 const panelStyleModeSelect = document.querySelector("#panelStyleMode");
 const lineConfigPanel = document.querySelector("#lineConfigPanel");
@@ -47,8 +51,10 @@ const barGapRange = document.querySelector("#barGapRange");
 const barGapValue = document.querySelector("#barGapValue");
 const barHeadroomRange = document.querySelector("#barHeadroomRange");
 const barHeadroomValue = document.querySelector("#barHeadroomValue");
+const barOrientationSelect = document.querySelector("#barOrientation");
 const barMirrorToggle = document.querySelector("#barMirrorToggle");
-const barPeakHoldToggle = document.querySelector("#barPeakHoldToggle");
+const barPeakHoldModeSelect = document.querySelector("#barPeakHoldMode");
+const barPeakColor = document.querySelector("#barPeakColor");
 const barPeakFallSpeedRange = document.querySelector("#barPeakFallSpeedRange");
 const barPeakFallSpeedValue = document.querySelector("#barPeakFallSpeedValue");
 const barPeakThicknessRange = document.querySelector("#barPeakThicknessRange");
@@ -440,16 +446,33 @@ async function init() {
       barHeadroomRange.value = String(headroomPercent);
       barHeadroomValue.textContent = String(headroomPercent);
     }
+    if (barOrientationSelect) {
+      barOrientationSelect.value = normalizeBarOrientation(
+        readWindowStorageString(window.localStorage, v, "barOrientation"),
+        DEFAULT_CONFIG.bar.orientation,
+      );
+    }
     if (barMirrorToggle) {
       barMirrorToggle.checked = parseBoolean(
         readWindowStorageString(window.localStorage, v, "barMirror"),
         DEFAULT_CONFIG.bar.mirrorEnabled,
       );
     }
-    if (barPeakHoldToggle) {
-      barPeakHoldToggle.checked = parseBoolean(
-        readWindowStorageString(window.localStorage, v, "barPeakHold"),
-        DEFAULT_CONFIG.bar.peakHoldEnabled,
+    if (barPeakHoldModeSelect) {
+      barPeakHoldModeSelect.value = readBarPeakHoldMode(window.localStorage, v);
+    }
+    if (barPeakColor) {
+      const savedPeakColor = readWindowStorageString(window.localStorage, v, "barPeakColor");
+      if (savedPeakColor && /^#[0-9A-Fa-f]{6}$/.test(savedPeakColor)) {
+        barPeakColor.value = savedPeakColor.toLowerCase();
+      } else {
+        barPeakColor.value = DEFAULT_CONFIG.bar.peakColor;
+      }
+    }
+    if (freqReversedToggle) {
+      freqReversedToggle.checked = parseBoolean(
+        readWindowStorageString(window.localStorage, v, "freqReversed"),
+        DEFAULT_CONFIG.freqReversed,
       );
     }
     const savedPeakFall = readWindowStorageString(window.localStorage, v, "barPeakFallSpeed");
@@ -655,6 +678,15 @@ async function init() {
       statusEl.textContent = `更新顶部留白失败：${String(err)}`;
     }
   });
+  barOrientationSelect?.addEventListener("change", async (event) => {
+    const orientation = normalizeBarOrientation(event.target.value, DEFAULT_CONFIG.bar.orientation);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barOrientation", orientation);
+      await emitVisual("waveform-bar-orientation", orientation);
+    } catch (err) {
+      statusEl.textContent = `更新排列方向失败：${String(err)}`;
+    }
+  });
   barMirrorToggle?.addEventListener("change", async (event) => {
     const enabled = Boolean(event.target.checked);
     try {
@@ -664,13 +696,21 @@ async function init() {
       statusEl.textContent = `更新镜像模式失败：${String(err)}`;
     }
   });
-  barPeakHoldToggle?.addEventListener("change", async (event) => {
-    const enabled = Boolean(event.target.checked);
+  barPeakHoldModeSelect?.addEventListener("change", async (event) => {
+    const mode = normalizeBarPeakHoldMode(event.target.value, DEFAULT_CONFIG.bar.peakHoldMode);
     try {
-      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakHold", String(enabled));
-      await emitVisual("waveform-bar-peak-hold", enabled);
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakHoldMode", mode);
+      await emitVisual("waveform-bar-peak-hold", mode);
     } catch (err) {
-      statusEl.textContent = `更新峰值保持线开关失败：${String(err)}`;
+      statusEl.textContent = `更新峰值保持线失败：${String(err)}`;
+    }
+  });
+  barPeakColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "barPeakColor", barPeakColor.value);
+      await emitVisual("waveform-bar-peak-color", barPeakColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新峰值线颜色失败：${String(err)}`;
     }
   });
   barPeakFallSpeedRange?.addEventListener("input", async (event) => {
@@ -803,6 +843,15 @@ async function init() {
     freqMaxValue.textContent = String(maxHz);
     await syncFrequencyRange(minHz, maxHz);
   });
+  freqReversedToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "freqReversed", String(enabled));
+      await emitVisual("waveform-freq-reversed", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新频率方向失败：${String(err)}`;
+    }
+  });
 
   try {
     const [
@@ -930,10 +979,29 @@ async function init() {
       barHeadroomRange.value = String(headroomPercent);
       barHeadroomValue.textContent = String(headroomPercent);
     }
+    if (barOrientationSelect) {
+      barOrientationSelect.value = normalizeBarOrientation(
+        readWindowStorageString(window.localStorage, visualTargetLabel, "barOrientation"),
+        DEFAULT_CONFIG.bar.orientation,
+      );
+    }
     const savedBarMirror = readWindowStorageString(window.localStorage, visualTargetLabel, "barMirror");
     barMirrorToggle.checked = parseBoolean(savedBarMirror, DEFAULT_CONFIG.bar.mirrorEnabled);
-    const savedBarPeakHold = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakHold");
-    barPeakHoldToggle.checked = parseBoolean(savedBarPeakHold, DEFAULT_CONFIG.bar.peakHoldEnabled);
+    if (barPeakHoldModeSelect) {
+      barPeakHoldModeSelect.value = readBarPeakHoldMode(window.localStorage, visualTargetLabel);
+    }
+    if (barPeakColor) {
+      const savedPeakColor = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakColor");
+      barPeakColor.value = savedPeakColor && /^#[0-9A-Fa-f]{6}$/.test(savedPeakColor)
+        ? savedPeakColor.toLowerCase()
+        : DEFAULT_CONFIG.bar.peakColor;
+    }
+    if (freqReversedToggle) {
+      freqReversedToggle.checked = parseBoolean(
+        readWindowStorageString(window.localStorage, visualTargetLabel, "freqReversed"),
+        DEFAULT_CONFIG.freqReversed,
+      );
+    }
     const savedPeakFallSpeed = readWindowStorageString(window.localStorage, visualTargetLabel, "barPeakFallSpeed");
     if (savedPeakFallSpeed) {
       const speed = clampInt(savedPeakFallSpeed, 5, 120);
@@ -955,10 +1023,19 @@ async function init() {
   await emitVisual("waveform-bar-width", clampInt(barWidthRange.value, 20, 100));
   await emitVisual("waveform-bar-gap", clampInt(barGapRange.value, 0, 70));
   await emitVisual("waveform-bar-headroom", clampInt(barHeadroomRange.value, 0, 40));
+  await emitVisual(
+    "waveform-bar-orientation",
+    normalizeBarOrientation(barOrientationSelect?.value, DEFAULT_CONFIG.bar.orientation),
+  );
   await emitVisual("waveform-bar-mirror", Boolean(barMirrorToggle.checked));
-  await emitVisual("waveform-bar-peak-hold", Boolean(barPeakHoldToggle.checked));
+  await emitVisual(
+    "waveform-bar-peak-hold",
+    normalizeBarPeakHoldMode(barPeakHoldModeSelect?.value, DEFAULT_CONFIG.bar.peakHoldMode),
+  );
+  await emitVisual("waveform-bar-peak-color", barPeakColor?.value ?? DEFAULT_CONFIG.bar.peakColor);
   await emitVisual("waveform-bar-peak-fall-speed", clampInt(barPeakFallSpeedRange.value, 5, 120));
   await emitVisual("waveform-bar-peak-thickness", clampInt(barPeakThicknessRange.value, 1, 8));
+  await emitVisual("waveform-freq-reversed", Boolean(freqReversedToggle?.checked));
   await emitVisual("waveform-line-color", waveformColor.value);
   await emitVisual("waveform-line-width", clampInt(waveformWidthRange.value, 1, 12));
 
