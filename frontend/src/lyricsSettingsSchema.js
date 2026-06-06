@@ -73,7 +73,8 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   renderer: LYRICS_RENDERER.classic,
   amAutoscroll: true,
   amInterpolate: true,
-  amFontSizePx: 32,
+  amActiveFontSizePx: 32,
+  amInactiveFontSizePx: 26,
   amHighlightColor: "#edd6ad",
   amTextPrimaryColor: "#edd6ad",
   amTextSecondaryColor: "#c4a574",
@@ -194,7 +195,12 @@ export function normalizeLyricsWindowConfig(raw) {
 
   base.amAutoscroll = o.amAutoscroll !== false;
   base.amInterpolate = o.amInterpolate !== false;
-  base.amFontSizePx = clampInt(o.amFontSizePx, 16, 56);
+  base.amActiveFontSizePx = clampInt(o.amActiveFontSizePx ?? o.amFontSizePx, 16, 56);
+  if (o.amInactiveFontSizePx != null) {
+    base.amInactiveFontSizePx = clampInt(o.amInactiveFontSizePx, 12, 48);
+  } else {
+    base.amInactiveFontSizePx = clampInt(base.amActiveFontSizePx - 6, 12, 48);
+  }
   base.amHighlightColor = normalizeHexColor(o.amHighlightColor, base.amHighlightColor);
   base.amTextPrimaryColor = normalizeHexColor(o.amTextPrimaryColor, base.amTextPrimaryColor);
   base.amTextSecondaryColor = normalizeHexColor(o.amTextSecondaryColor, base.amTextSecondaryColor);
@@ -269,7 +275,8 @@ export function applyLyricsWindowStyle(root, config) {
   root.style.setProperty("--lyrics-current-size", `${c.currentFontSizePx}px`);
   root.style.setProperty("--lyrics-current-color", c.currentColor);
   root.style.setProperty("--lyrics-am-highlight-color", c.amHighlightColor);
-  root.style.setProperty("--lyrics-am-font-size", `${c.amFontSizePx}px`);
+  root.style.setProperty("--lyrics-am-active-font-size", `${c.amActiveFontSizePx}px`);
+  root.style.setProperty("--lyrics-am-inactive-font-size", `${c.amInactiveFontSizePx}px`);
   root.style.setProperty("--lyrics-am-text-primary", c.amTextPrimaryColor);
   root.style.setProperty("--lyrics-am-text-secondary", c.amTextSecondaryColor);
   root.style.setProperty("--lyrics-am-blur", `${c.amBlurAmountEm}em`);

@@ -42,8 +42,10 @@ const amHighlightColor = document.querySelector("#lyricsAmHighlightColor");
 const amTextPrimaryColor = document.querySelector("#lyricsAmTextPrimaryColor");
 const amTextSecondaryColor = document.querySelector("#lyricsAmTextSecondaryColor");
 const amFontPreset = document.querySelector("#lyricsAmFontPreset");
-const amFontSize = document.querySelector("#lyricsAmFontSize");
-const amFontSizeVal = document.querySelector("#lyricsAmFontSizeVal");
+const amActiveFontSize = document.querySelector("#lyricsAmActiveFontSize");
+const amActiveFontSizeVal = document.querySelector("#lyricsAmActiveFontSizeVal");
+const amInactiveFontSize = document.querySelector("#lyricsAmInactiveFontSize");
+const amInactiveFontSizeVal = document.querySelector("#lyricsAmInactiveFontSizeVal");
 const amBlur = document.querySelector("#lyricsAmBlur");
 const amBlurVal = document.querySelector("#lyricsAmBlurVal");
 const amBlurNear = document.querySelector("#lyricsAmBlurNear");
@@ -95,8 +97,12 @@ function syncFormFromConfig() {
   if (amTextPrimaryColor) amTextPrimaryColor.value = config.amTextPrimaryColor;
   if (amTextSecondaryColor) amTextSecondaryColor.value = config.amTextSecondaryColor;
   if (amFontPreset) amFontPreset.value = config.fontPresetId;
-  if (amFontSize) amFontSize.value = String(config.amFontSizePx);
-  if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+  if (amActiveFontSize) amActiveFontSize.value = String(config.amActiveFontSizePx);
+  if (amActiveFontSizeVal) amActiveFontSizeVal.textContent = String(config.amActiveFontSizePx);
+  if (amInactiveFontSize) amInactiveFontSize.value = String(config.amInactiveFontSizePx);
+  if (amInactiveFontSizeVal) {
+    amInactiveFontSizeVal.textContent = String(config.amInactiveFontSizePx);
+  }
   if (amBlur) amBlur.value = String(config.amBlurAmountEm);
   if (amBlurVal) amBlurVal.textContent = String(config.amBlurAmountEm);
   if (amBlurNear) amBlurNear.value = String(config.amBlurAmountNearEm);
@@ -193,10 +199,22 @@ async function init() {
     });
   }
 
-  if (amFontSize) {
-    amFontSize.addEventListener("input", async () => {
-      config.amFontSizePx = Number(amFontSize.value);
-      if (amFontSizeVal) amFontSizeVal.textContent = String(config.amFontSizePx);
+  if (amActiveFontSize) {
+    amActiveFontSize.addEventListener("input", async () => {
+      config.amActiveFontSizePx = Number(amActiveFontSize.value);
+      if (amActiveFontSizeVal) {
+        amActiveFontSizeVal.textContent = String(config.amActiveFontSizePx);
+      }
+      await persistAndNotify();
+    });
+  }
+
+  if (amInactiveFontSize) {
+    amInactiveFontSize.addEventListener("input", async () => {
+      config.amInactiveFontSizePx = Number(amInactiveFontSize.value);
+      if (amInactiveFontSizeVal) {
+        amInactiveFontSizeVal.textContent = String(config.amInactiveFontSizePx);
+      }
       await persistAndNotify();
     });
   }

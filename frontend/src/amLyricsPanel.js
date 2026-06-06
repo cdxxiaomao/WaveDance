@@ -73,24 +73,115 @@ function watchAmLyricsReady(elapsedSec) {
   lyricsReadyObserver.observe(sr, { childList: true, subtree: true });
 }
 
-/** 隐藏 am-lyrics 底部推广信息，并临时开启 Shadow DOM 内点击与选中 */
-function injectAmLyricsShadowOverrides() {
+/** 隐藏 am-lyrics 顶部/底部推广区，并注入字号缓动与边缘淡出样式 */
+/** @type {{ activePx: number, inactivePx: number, activeScale: number }} */
+let lastAmFontSizes = { activePx: 32, inactivePx: 26, activeScale: 32 / 26 };
+
+/** @param {{ activePx?: number, inactivePx?: number }} [sizes] */
+function injectAmLyricsShadowOverrides(sizes = lastAmFontSizes) {
+  const activePx = sizes.activePx ?? lastAmFontSizes.activePx;
+  const inactivePx = sizes.inactivePx ?? lastAmFontSizes.inactivePx;
+  const activeScale = inactivePx > 0 ? activePx / inactivePx : 1;
+  lastAmFontSizes = { activePx, inactivePx, activeScale };
   const css = `
+    .lyrics-header,
     .lyrics-footer { display: none !important; }
+
+    /* 上下边缘：透明 → 不透明，避免硬裁切半行 */
+    .lyrics-container {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--wd-lyrics-fade-top, 80px),
+        #000 calc(100% - var(--wd-lyrics-fade-bottom, 80px)),
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0,
+        #000 var(--wd-lyrics-fade-top, 80px),
+        #000 calc(100% - var(--wd-lyrics-fade-bottom, 80px)),
+        transparent 100%
+      );
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      pointer-events: none !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
+
     .lyrics-line,
     .lyrics-line-container,
     .lyrics-syllable,
-    .lyrics-char {
-      user-select: text !important;
-      -webkit-user-select: text !important;
-      pointer-events: auto !important;
-    }
+    .lyrics-char,
     .lyrics-syllable.transliteration,
     .lyrics-translation-container,
     .lyrics-romanization-container {
-      user-select: text !important;
-      -webkit-user-select: text !important;
-      pointer-events: auto !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      cursor: default !important;
+    }
+
+    @keyframes wd-am-scale-up {
+      from { transform: scale(1) translateZ(0); }
+      to { transform: scale(var(--wd-am-active-scale, ${activeScale})) translateZ(0); }
+    }
+    @keyframes wd-am-scale-down {
+      from { transform: scale(var(--wd-am-active-scale, ${activeScale})) translateZ(0); }
+      to { transform: scale(1) translateZ(0); }
+    }
+
+    .lyrics-line .lyrics-line-container {
+      transform: scale(1) translateZ(0);
+      transform-origin: left center;
+      transition:
+        transform var(--scroll-duration, 450ms) cubic-bezier(0.41, 0, 0.12, 0.99)
+          var(--lyrics-line-delay, 0ms),
+        background-color 0.18s,
+        color 0.18s !important;
+    }
+
+    /* 滚动批次内不用 transition，改由 keyframes 与 scroll 同步 */
+    .lyrics-line.scroll-animate .lyrics-line-container {
+      transition: background-color 0.18s, color 0.18s !important;
+    }
+
+    /* 稳定播放中 */
+    .lyrics-line.active:not(.scroll-animate) .lyrics-line-container {
+      transform: scale(var(--wd-am-active-scale, ${activeScale})) translateZ(0) !important;
+    }
+
+    /* 滚动中：当前播放行保持大图（上一行 post-active 除外，见下方缩小规则） */
+    .lyrics-line.active.scroll-animate:not(.post-active-line) .lyrics-line-container {
+      transform: scale(var(--wd-am-active-scale, ${activeScale})) translateZ(0) !important;
+      animation: none !important;
+    }
+
+    /* 预备行：与上一行缩小同时放大（不用 scroll 错峰 delay） */
+    .lyrics-line.pre-active.scroll-animate .lyrics-line-container {
+      animation: wd-am-scale-up var(--scroll-duration, 450ms)
+        cubic-bezier(0.41, 0, 0.12, 0.99) 0ms both !important;
+    }
+
+    /* 上一行：predictive scroll 时可能仍为 .active，须同步缩小，不可等失去 active */
+    .lyrics-line.post-active-line.scroll-animate:not(.pre-active) .lyrics-line-container {
+      animation: wd-am-scale-down var(--scroll-duration, 450ms)
+        cubic-bezier(0.41, 0, 0.12, 0.99) 0ms forwards !important;
+    }
+
+    /* 非播放行：滚动结束后保持小字（post-active-line 会残留，不可再锁大图） */
+    .lyrics-line:not(.active):not(.pre-active):not(.scroll-animate) .lyrics-line-container {
+      transform: scale(1) translateZ(0) !important;
+      animation: none !important;
+    }
+
+    .lyrics-container.user-scrolling .lyrics-line .lyrics-line-container,
+    .lyrics-container.touch-scrolling .lyrics-line .lyrics-line-container {
+      transition: none !important;
+      animation: none !important;
     }
   `;
   const inject = () => {
@@ -187,19 +278,25 @@ export function applyAmLyricsStyle(cfg) {
   }
   amEl.autoscroll = cfg.amAutoscroll !== false;
   amEl.interpolate = cfg.amInterpolate !== false;
-  const fontSize = cfg.amFontSizePx || 32;
+  const activePx = cfg.amActiveFontSizePx ?? cfg.amFontSizePx ?? 32;
+  const inactivePx = cfg.amInactiveFontSizePx ?? Math.max(12, activePx - 6);
+  const activeScale = inactivePx > 0 ? activePx / inactivePx : 1;
   const textPrimary = cfg.amTextPrimaryColor || highlight;
   const textSecondary = cfg.amTextSecondaryColor || cfg.nextColor || "#c4a574";
   const blurNear =
     typeof cfg.amBlurAmountNearEm === "number" ? cfg.amBlurAmountNearEm : 0.035;
   const blur = typeof cfg.amBlurAmountEm === "number" ? cfg.amBlurAmountEm : 0.07;
   const lyplusVars = {
-    "--lyrics-am-font-size": `${fontSize}px`,
-    "--lyplus-font-size-base": `${fontSize}px`,
+    "--lyrics-am-active-font-size": `${activePx}px`,
+    "--lyrics-am-inactive-font-size": `${inactivePx}px`,
+    "--wd-am-active-scale": String(activeScale),
+    "--lyplus-font-size-base": `${inactivePx}px`,
     "--lyplus-text-primary": textPrimary,
     "--lyplus-text-secondary": textSecondary,
     "--lyplus-blur-amount": `${blur}em`,
     "--lyplus-blur-amount-near": `${blurNear}em`,
+    "--wd-lyrics-fade-top": "80px",
+    "--wd-lyrics-fade-bottom": "80px",
   };
   for (const el of [hostEl, mountEl, amEl]) {
     if (!el) continue;
@@ -207,7 +304,7 @@ export function applyAmLyricsStyle(cfg) {
       el.style.setProperty(name, value);
     }
   }
-  if (amEl.isConnected) injectAmLyricsShadowOverrides();
+  if (amEl.isConnected) injectAmLyricsShadowOverrides({ activePx, inactivePx });
 }
 
 /**

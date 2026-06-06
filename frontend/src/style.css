@@ -323,23 +323,21 @@ body.lyrics-dedicated.lyrics-clone {
 body.lyrics-dedicated .app.lyrics-only {
   position: fixed;
   inset: 0;
-  display: flex;
-  flex-direction: column;
+  display: block;
   width: 100vw;
   height: 100vh;
   margin: 0;
-  z-index: 10;
-  padding: 36px 14px 14px;
+  padding: 0;
   box-sizing: border-box;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 body.lyrics-dedicated .lyrics-toolbar {
   position: fixed;
   top: 8px;
   right: 8px;
-  z-index: 9002;
+  z-index: 10000;
   display: flex;
   gap: 6px;
   align-items: center;
@@ -361,10 +359,12 @@ body.lyrics-dedicated.mouse-passthrough-locked .lyrics-toolbar {
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   left: auto;
   bottom: auto;
-  flex: 1;
+  flex: none;
   display: flex;
   flex-direction: row;
   justify-content: var(--lyrics-justify-content, center);
@@ -372,6 +372,7 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
   gap: var(--lyrics-block-gap, 12px);
   max-width: none;
   width: 100%;
+  height: 100%;
   min-height: 0;
   margin: 0;
   padding: 8px 4px;
@@ -381,10 +382,7 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body {
   -webkit-backdrop-filter: none;
   opacity: 1;
   overflow: visible;
-  /* 临时：允许歌词区接收点击与文字选中（独立歌词窗覆盖 .now-playing-lyrics 的 pointer-events:none） */
-  pointer-events: auto;
-  user-select: text;
-  -webkit-user-select: text;
+  pointer-events: none;
   font-family: var(
     --lyrics-font-family,
     system-ui,
@@ -411,21 +409,18 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics .am-
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  pointer-events: auto;
-  user-select: text;
-  -webkit-user-select: text;
+  pointer-events: none;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.uses-am-lyrics am-lyrics {
   flex: 1;
   width: 100%;
   min-height: 0;
-  pointer-events: auto;
-  user-select: text;
-  -webkit-user-select: text;
+  pointer-events: none;
   --highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
   --am-lyrics-highlight-color: var(--lyrics-am-highlight-color, #edd6ad);
-  --lyplus-font-size-base: var(--lyrics-am-font-size, 32px);
+  --lyplus-font-size-base: var(--lyrics-am-inactive-font-size, 26px);
+  --wd-am-active-scale: calc(var(--lyrics-am-active-font-size, 32px) / var(--lyrics-am-inactive-font-size, 26px));
   --lyplus-text-primary: var(--lyrics-am-text-primary, var(--lyrics-am-highlight-color, #edd6ad));
   --lyplus-text-secondary: var(--lyrics-am-text-secondary, #c4a574);
   --lyplus-blur-amount: var(--lyrics-am-blur, 0.07em);
@@ -529,9 +524,7 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-vertical .no
 body.lyrics-dedicated .now-playing-lyrics-line {
   flex: 0 1 auto;
   min-width: 0;
-  user-select: text;
-  -webkit-user-select: text;
-  pointer-events: auto;
+  pointer-events: none;
   font-size: var(--lyrics-current-size, 18px);
   color: var(--lyrics-current-color, rgba(237, 214, 173, 0.98));
   text-align: var(--lyrics-text-align, center);
