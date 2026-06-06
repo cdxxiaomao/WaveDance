@@ -122,7 +122,6 @@ pub struct NowPlayingMonitor {
     app: AppHandle,
     artwork_cache: Arc<Mutex<ArtworkCache>>,
     playback_clock: Arc<Mutex<PlaybackClock>>,
-    last: Arc<Mutex<LastFingerprint>>,
     /// 最近一次成功推送给前端的快照（新开窗时优先复用，避免错过事件）。
     last_payload: Arc<Mutex<Option<NowPlayingPayload>>>,
     _token: ListenerToken,
@@ -455,7 +454,6 @@ pub fn spawn_monitor(app: AppHandle) -> NowPlayingMonitor {
         app,
         artwork_cache,
         playback_clock,
-        last,
         last_payload,
         _token: token,
     }

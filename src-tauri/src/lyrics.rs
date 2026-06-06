@@ -754,58 +754,6 @@ async fn search_lrclib_list(
     Ok(filtered)
 }
 
-async fn fetch_lyrics_multi_source(
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-) -> Result<LyricsUpdatePayload, String> {
-    let key = format!(
-        "{title}|{artist}|{album}|{}",
-        duration_secs.unwrap_or(0.0).round() as i64
-    );
-    let target_dur = duration_secs.filter(|d| *d >= 1.0);
-
-    // 国内优先：已知时长时先 jsonapi 多结果 + 时长评分，避免 `/lyrics` 单条误命中。
-    if target_dur.is_some() {
-        if let Some(payload) = try_lyrics_source(fetch_lrc_cx_jsonapi(
-            title,
-            artist,
-            album,
-            duration_secs,
-            &key,
-        ))
-        .await
-        {
-            return Ok(payload);
-        }
-    }
-
-    if let Some(payload) =
-        try_lyrics_source(fetch_lrc_cx_lyrics(title, artist, album, target_dur)).await
-    {
-        return Ok(payload);
-    }
-
-    if target_dur.is_none() {
-        if let Some(payload) = try_lyrics_source(fetch_lrc_cx_jsonapi(
-            title,
-            artist,
-            album,
-            duration_secs,
-            &key,
-        ))
-        .await
-        {
-            return Ok(payload);
-        }
-    }
-
-    try_lyrics_source(fetch_lrclib(title, artist, album, duration_secs, &key))
-        .await
-        .ok_or_else(|| "所有歌词源均未在时限内返回结果".into())
-}
-
 /// LrcApi 公开 `/lyrics`：直接返回 LRC 文本（酷狗/网易等聚合）。
 async fn fetch_lrc_cx_lyrics(
     title: &str,
@@ -835,64 +783,6 @@ async fn fetch_lrc_cx_lyrics(
         }
     }
     lrc_text_to_payload(&body, "lrc.cx")
-}
-
-/// LrcApi `/jsonapi`：搜索多条结果，取最匹配且带 `lrc` 字段的一条。
-async fn fetch_lrc_cx_jsonapi(
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-    track_key: &str,
-) -> Result<LyricsUpdatePayload, String> {
-    let base = lrc_cx_base();
-    let url = format!(
-        "{base}/jsonapi?title={}&artist={}&album={}",
-        urlencoding::encode(title),
-        urlencoding::encode(artist),
-        urlencoding::encode(album),
-    );
-    let client = build_http_client()?;
-    let resp = apply_auth(client.get(&url))
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err("lrc.cx jsonapi http error".into());
-    }
-    let list: Vec<LrcCxJsonItem> = resp.json().await.map_err(|e| e.to_string())?;
-    let best = pick_best_lrc_cx_item(&list, title, artist, album, duration_secs);
-    let Some(item) = best else {
-        return Err("lrc.cx jsonapi no match".into());
-    };
-    let lrc = item.lrc.as_deref().unwrap_or("").trim();
-    if lrc.is_empty() {
-        return Err("lrc.cx jsonapi empty lrc".into());
-    }
-    let mut payload = lrc_text_to_payload(lrc, "lrc.cx")?;
-    payload.track_key = track_key.to_string();
-    Ok(payload)
-}
-
-fn pick_best_lrc_cx_item<'a>(
-    list: &'a [LrcCxJsonItem],
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-) -> Option<&'a LrcCxJsonItem> {
-    let title_l = title.to_lowercase();
-    let artist_l = artist.to_lowercase();
-    let album_l = album.to_lowercase();
-    let target_dur = duration_secs.filter(|d| *d >= 1.0);
-
-    list.iter()
-        .filter(|i| i.lrc.as_ref().is_some_and(|s| !s.trim().is_empty()))
-        .max_by(|a, b| {
-            let sa = score_lrc_cx_item(a, &title_l, &artist_l, &album_l, target_dur);
-            let sb = score_lrc_cx_item(b, &title_l, &artist_l, &album_l, target_dur);
-            sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
-        })
 }
 
 fn score_lrc_cx_item(
@@ -1006,104 +896,6 @@ fn lrc_text_to_payload(lrc: &str, source: &str) -> Result<LyricsUpdatePayload, S
         plain_lyrics: plain,
         lyrics_source: Some(source.to_string()),
     })
-}
-
-async fn fetch_lrclib(
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-    track_key: &str,
-) -> Result<LyricsUpdatePayload, String> {
-    let client = build_http_client()?;
-
-    if let Some(dur) = duration_secs.filter(|d| *d >= 1.0) {
-        let duration = dur.round() as u64;
-        if let Some(rec) = get_lrclib(&client, title, artist, album, duration, true).await? {
-            return record_to_payload(track_key, rec);
-        }
-        if let Some(rec) = get_lrclib(&client, title, artist, album, duration, false).await? {
-            return record_to_payload(track_key, rec);
-        }
-    }
-
-    if let Some(rec) = search_lrclib(&client, title, artist, album, duration_secs).await? {
-        return record_to_payload(track_key, rec);
-    }
-
-    Err("lrclib not found".into())
-}
-
-async fn get_lrclib(
-    client: &reqwest::Client,
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration: u64,
-    cached_only: bool,
-) -> Result<Option<LrclibRecord>, String> {
-    let path = if cached_only { "get-cached" } else { "get" };
-    let url = format!(
-        "{LRCLIB_BASE}/{path}?track_name={}&artist_name={}&album_name={}&duration={duration}",
-        urlencoding::encode(title),
-        urlencoding::encode(artist),
-        urlencoding::encode(album),
-    );
-    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        return Ok(None);
-    }
-    if !resp.status().is_success() {
-        return Ok(None);
-    }
-    resp.json::<LrclibRecord>().await.map(Some).map_err(|e| e.to_string())
-}
-
-async fn search_lrclib(
-    client: &reqwest::Client,
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-) -> Result<Option<LrclibRecord>, String> {
-    let mut url = format!(
-        "{LRCLIB_BASE}/search?track_name={}",
-        urlencoding::encode(title),
-    );
-    if !artist.is_empty() {
-        url.push_str(&format!("&artist_name={}", urlencoding::encode(artist)));
-    }
-    if !album.is_empty() {
-        url.push_str(&format!("&album_name={}", urlencoding::encode(album)));
-    }
-    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Ok(None);
-    }
-    let list: Vec<LrclibRecord> = resp.json().await.map_err(|e| e.to_string())?;
-    Ok(pick_best_lrclib_record(&list, title, artist, album, duration_secs))
-}
-
-fn pick_best_lrclib_record(
-    list: &[LrclibRecord],
-    title: &str,
-    artist: &str,
-    album: &str,
-    duration_secs: Option<f64>,
-) -> Option<LrclibRecord> {
-    let title_l = title.to_lowercase();
-    let artist_l = artist.to_lowercase();
-    let album_l = album.to_lowercase();
-    let target_dur = duration_secs.filter(|d| *d >= 1.0);
-
-    list.iter()
-        .filter(|rec| has_usable_lyrics(rec))
-        .max_by(|a, b| {
-            let sa = score_lrclib_record(a, &title_l, &artist_l, &album_l, target_dur);
-            let sb = score_lrclib_record(b, &title_l, &artist_l, &album_l, target_dur);
-            sa.partial_cmp(&sb).unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .cloned()
 }
 
 fn has_usable_lyrics(rec: &LrclibRecord) -> bool {
@@ -1288,26 +1080,26 @@ mod tests {
     }
 
     #[test]
-    fn pick_best_lrc_cx_item_uses_duration() {
-        let list = vec![
-            LrcCxJsonItem {
-                title: Some("Song".into()),
-                artist: Some("Artist".into()),
-                album: None,
-                duration: Some(180.0),
-                lrc: Some("[00:01.00] wrong version\n".into()),
-                score: Some(80.0),
-            },
-            LrcCxJsonItem {
-                title: Some("Song".into()),
-                artist: Some("Artist".into()),
-                album: None,
-                duration: Some(240.0),
-                lrc: Some("[00:01.00] right version\n".into()),
-                score: Some(80.0),
-            },
-        ];
-        let best = pick_best_lrc_cx_item(&list, "Song", "Artist", "", Some(241.0));
-        assert_eq!(best.and_then(|i| i.duration), Some(240.0));
+    fn score_lrc_cx_item_prefers_duration_match() {
+        let wrong = LrcCxJsonItem {
+            title: Some("Song".into()),
+            artist: Some("Artist".into()),
+            album: None,
+            duration: Some(180.0),
+            lrc: Some("[00:01.00] wrong version\n".into()),
+            score: Some(80.0),
+        };
+        let right = LrcCxJsonItem {
+            title: Some("Song".into()),
+            artist: Some("Artist".into()),
+            album: None,
+            duration: Some(240.0),
+            lrc: Some("[00:01.00] right version\n".into()),
+            score: Some(80.0),
+        };
+        let target = Some(241.0);
+        let wrong_score = score_lrc_cx_item(&wrong, "song", "artist", "", target);
+        let right_score = score_lrc_cx_item(&right, "song", "artist", "", target);
+        assert!(right_score > wrong_score);
     }
 }
