@@ -56,19 +56,21 @@ export function createLyricsLineTransition(root, nextEl) {
     if (text) v.textContent = text;
   }
 
-  /** 竖排 vertical-rl 在 grid 重排后宽度偶发塌陷，用实测宽度兜底 */
-  function syncVerticalStageMinWidth() {
-    if (!root.classList.contains("layout-vertical")) return;
+  /** 切换时预锁 stage 宽度，避免新行较长时左侧被裁切 */
+  function syncStageMinWidth() {
+    const measure = () => {
+      let maxW = 0;
+      for (const el of [slotA, slotB]) {
+        if (el.hidden) continue;
+        maxW = Math.max(maxW, el.scrollWidth, el.offsetWidth);
+      }
+      if (maxW > 0) stage.style.minWidth = `${maxW}px`;
+      else stage.style.removeProperty("min-width");
+    };
+    measure();
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        let maxW = 0;
-        for (const el of [slotA, slotB]) {
-          if (el.hidden) continue;
-          maxW = Math.max(maxW, el.scrollWidth, el.offsetWidth);
-        }
-        if (maxW > 0) stage.style.minWidth = `${maxW}px`;
-        else stage.style.removeProperty("min-width");
-      });
+      measure();
+      requestAnimationFrame(measure);
     });
   }
 
@@ -105,7 +107,7 @@ export function createLyricsLineTransition(root, nextEl) {
     showSlot(activeSlot(), Boolean(displayedCurrent));
     animating = false;
     detachEnterEnd();
-    syncVerticalStageMinWidth();
+    syncStageMinWidth();
   }
 
   function abortAnimation() {
@@ -137,7 +139,7 @@ export function createLyricsLineTransition(root, nextEl) {
     showSlot(slotB, false);
     displayedCurrent = current;
     updateNextLine(next);
-    syncVerticalStageMinWidth();
+    syncStageMinWidth();
   }
 
   /** @param {HTMLElement} outgoing @param {HTMLElement} incoming @param {string} current */
@@ -163,11 +165,11 @@ export function createLyricsLineTransition(root, nextEl) {
 
     stage.classList.add("is-animating");
     setSlotText(incoming, current);
+    showSlot(incoming, true);
+    syncStageMinWidth();
     outgoing.classList.add("is-exiting");
     incoming.classList.add("is-entering");
-    showSlot(incoming, true);
     animating = true;
-    syncVerticalStageMinWidth();
     watchEnterAnimationEnd(outgoing, incoming, current);
   }
 

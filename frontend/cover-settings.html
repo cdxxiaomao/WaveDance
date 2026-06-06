@@ -13,7 +13,7 @@
           <span class="settings-header__mark" aria-hidden="true"></span>
           <div>
             <h1 class="settings-header__title">封面窗口</h1>
-            <p class="settings-header__subtitle">边框与阴影</p>
+            <p class="settings-header__subtitle">边框、阴影与旋转</p>
             <p id="coverTargetBanner" class="settings-visual-target"></p>
           </div>
         </div>
@@ -26,7 +26,7 @@
             <label for="coverBorderEnabled" class="settings-label">显示边框</label>
             <label class="settings-toggle">
               <input id="coverBorderEnabled" type="checkbox" checked />
-              <span>启用</span>
+              <span class="settings-toggle__ui" aria-hidden="true"></span>
             </label>
           </div>
           <div class="settings-field">
@@ -79,6 +79,26 @@
               阴影透明度 <span class="settings-value" id="coverShadowOpacityVal">35</span>%
             </label>
             <input id="coverShadowOpacity" type="range" min="0" max="100" step="1" value="35" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-cover-rotation">
+        <h2 id="sec-cover-rotation" class="settings-card__title">旋转</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="coverRotationEnabled" class="settings-label">封面旋转</label>
+            <label class="settings-toggle">
+              <input id="coverRotationEnabled" type="checkbox" />
+              <span class="settings-toggle__ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="settings-field">
+            <label for="coverRotationSpeed" class="settings-label">
+              旋转速度 <span class="settings-value" id="coverRotationSpeedVal">30</span>
+            </label>
+            <input id="coverRotationSpeed" type="range" min="1" max="100" step="1" value="30" />
+            <p class="settings-muted">数值越大旋转越快，仅作用于封面图片</p>
           </div>
         </div>
       </section>

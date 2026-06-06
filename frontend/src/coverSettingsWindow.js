@@ -26,6 +26,9 @@ const shadowBlur = document.querySelector("#coverShadowBlur");
 const shadowBlurVal = document.querySelector("#coverShadowBlurVal");
 const shadowOpacity = document.querySelector("#coverShadowOpacity");
 const shadowOpacityVal = document.querySelector("#coverShadowOpacityVal");
+const rotationEnabled = document.querySelector("#coverRotationEnabled");
+const rotationSpeed = document.querySelector("#coverRotationSpeed");
+const rotationSpeedVal = document.querySelector("#coverRotationSpeedVal");
 
 let coverTargetLabel = "";
 /** @type {import("./coverSettingsSchema.js").CoverWindowConfig} */
@@ -55,6 +58,10 @@ function syncFormFromConfig() {
   if (shadowBlurVal) shadowBlurVal.textContent = String(config.shadowBlurPx);
   if (shadowOpacity) shadowOpacity.value = String(config.shadowOpacity);
   if (shadowOpacityVal) shadowOpacityVal.textContent = String(config.shadowOpacity);
+  if (rotationEnabled) rotationEnabled.checked = config.rotationEnabled;
+  if (rotationSpeed) rotationSpeed.value = String(config.rotationSpeed);
+  if (rotationSpeedVal) rotationSpeedVal.textContent = String(config.rotationSpeed);
+  if (rotationSpeed) rotationSpeed.disabled = !config.rotationEnabled;
 }
 
 async function persistAndNotify() {
@@ -147,6 +154,18 @@ async function init() {
   shadowOpacity?.addEventListener("input", async () => {
     config.shadowOpacity = Number(shadowOpacity.value);
     if (shadowOpacityVal) shadowOpacityVal.textContent = String(config.shadowOpacity);
+    await persistAndNotify();
+  });
+
+  rotationEnabled?.addEventListener("change", async () => {
+    config.rotationEnabled = Boolean(rotationEnabled.checked);
+    if (rotationSpeed) rotationSpeed.disabled = !config.rotationEnabled;
+    await persistAndNotify();
+  });
+
+  rotationSpeed?.addEventListener("input", async () => {
+    config.rotationSpeed = Number(rotationSpeed.value);
+    if (rotationSpeedVal) rotationSpeedVal.textContent = String(config.rotationSpeed);
     await persistAndNotify();
   });
 

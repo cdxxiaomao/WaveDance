@@ -69,6 +69,11 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   layout: LYRICS_LAYOUT.horizontal,
   lineHeightPercent: 140,
   blockGapPx: 12,
+  textShadowPercent: 100,
+  currentTextStrokeWidthPx: 0,
+  currentTextStrokeColor: "#000000",
+  nextTextStrokeWidthPx: 0,
+  nextTextStrokeColor: "#000000",
   transitionEffect: LYRICS_TRANSITION.crossfade,
   renderer: LYRICS_RENDERER.classic,
   amAutoscroll: true,
@@ -184,6 +189,19 @@ export function normalizeLyricsWindowConfig(raw) {
 
   base.lineHeightPercent = clampInt(o.lineHeightPercent, 100, 250);
   base.blockGapPx = clampInt(o.blockGapPx, 0, 48);
+  base.textShadowPercent = clampInt(o.textShadowPercent, 0, 100);
+  if (typeof o.currentTextStrokeWidthPx === "number") {
+    base.currentTextStrokeWidthPx = clampInt(o.currentTextStrokeWidthPx, 0, 8);
+  } else if (typeof o.textStrokeWidthPx === "number") {
+    base.currentTextStrokeWidthPx = clampInt(o.textStrokeWidthPx, 0, 8);
+  }
+  if (typeof o.currentTextStrokeColor === "string") {
+    base.currentTextStrokeColor = normalizeHexColor(o.currentTextStrokeColor, base.currentTextStrokeColor);
+  } else if (typeof o.textStrokeColor === "string") {
+    base.currentTextStrokeColor = normalizeHexColor(o.textStrokeColor, base.currentTextStrokeColor);
+  }
+  base.nextTextStrokeWidthPx = clampInt(o.nextTextStrokeWidthPx, 0, 8);
+  base.nextTextStrokeColor = normalizeHexColor(o.nextTextStrokeColor, base.nextTextStrokeColor);
 
   const transition = String(o.transitionEffect ?? "");
   const allowed = new Set(LYRICS_TRANSITION_OPTIONS.map((item) => item.id));
@@ -267,6 +285,29 @@ export function buildLyricsStyleEventPayload(windowLabel, config) {
   };
 }
 
+/** @param {LyricsWindowConfig} config */
+export function computeLyricsTextBleedPx(config) {
+  const c = normalizeLyricsWindowConfig(config);
+  let bleed = Math.max(c.currentTextStrokeWidthPx, c.nextTextStrokeWidthPx);
+  if (c.textShadowPercent > 0) {
+    bleed = Math.max(bleed, Math.ceil(1 + (8 * c.textShadowPercent) / 100));
+  }
+  return bleed;
+}
+
+/** @param {number} percent 0–100，0 为无阴影，100 为默认强度 */
+export function buildClassicLyricsTextShadows(percent) {
+  const p = clampInt(percent, 0, 100);
+  if (p <= 0) {
+    return { current: "none", next: "none" };
+  }
+  const s = p / 100;
+  return {
+    current: `0 1px ${8 * s}px rgba(0, 0, 0, ${(0.45 * s).toFixed(3)})`,
+    next: `0 1px ${6 * s}px rgba(0, 0, 0, ${(0.35 * s).toFixed(3)})`,
+  };
+}
+
 /** @param {HTMLElement | null} root @param {LyricsWindowConfig} config */
 export function applyLyricsWindowStyle(root, config) {
   if (!root) return;
@@ -286,6 +327,21 @@ export function applyLyricsWindowStyle(root, config) {
   root.style.setProperty("--lyrics-text-align", c.alignHorizontal);
   root.style.setProperty("--lyrics-line-height", String(c.lineHeightPercent / 100));
   root.style.setProperty("--lyrics-block-gap", `${c.blockGapPx}px`);
+
+  const shadows = buildClassicLyricsTextShadows(c.textShadowPercent);
+  root.style.setProperty("--lyrics-text-shadow-current", shadows.current);
+  root.style.setProperty("--lyrics-text-shadow-next", shadows.next);
+  root.style.setProperty("--lyrics-current-text-stroke-width", `${c.currentTextStrokeWidthPx}px`);
+  root.style.setProperty(
+    "--lyrics-current-text-stroke-color",
+    c.currentTextStrokeWidthPx > 0 ? c.currentTextStrokeColor : "transparent",
+  );
+  root.style.setProperty("--lyrics-next-text-stroke-width", `${c.nextTextStrokeWidthPx}px`);
+  root.style.setProperty(
+    "--lyrics-next-text-stroke-color",
+    c.nextTextStrokeWidthPx > 0 ? c.nextTextStrokeColor : "transparent",
+  );
+  root.style.setProperty("--lyrics-text-bleed", `${computeLyricsTextBleedPx(c)}px`);
 
   const hFlex = alignHorizontalToFlex(c.alignHorizontal, c.layout);
   const vFlex = alignVerticalToFlex(c.alignVertical);

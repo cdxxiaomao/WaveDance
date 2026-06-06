@@ -535,17 +535,34 @@ body.lyrics-dedicated .now-playing-lyrics-line {
   word-break: break-word;
   overflow-wrap: break-word;
   overflow: visible;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  text-shadow: var(--lyrics-text-shadow-current, 0 1px 8px rgba(0, 0, 0, 0.45));
 }
 
 body.lyrics-dedicated .now-playing-lyrics-line.is-next {
   font-size: var(--lyrics-next-size, 14px);
   color: var(--lyrics-next-color, rgba(237, 214, 173, 0.52));
   font-weight: 400;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  text-shadow: var(--lyrics-text-shadow-next, 0 1px 6px rgba(0, 0, 0, 0.35));
   transition:
     opacity var(--lyrics-transition-duration) var(--lyrics-transition-ease),
     color var(--lyrics-transition-duration) ease;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-vtext {
+  display: inline-block;
+  padding: var(--lyrics-text-bleed, 9px);
+  margin: calc(-1 * var(--lyrics-text-bleed, 9px));
+  paint-order: stroke fill;
+}
+
+body.lyrics-dedicated .now-playing-lyrics-line.is-current .now-playing-lyrics-vtext {
+  -webkit-text-stroke: var(--lyrics-current-text-stroke-width, 0)
+    var(--lyrics-current-text-stroke-color, transparent);
+}
+
+body.lyrics-dedicated .now-playing-lyrics-line.is-next .now-playing-lyrics-vtext {
+  -webkit-text-stroke: var(--lyrics-next-text-stroke-width, 0)
+    var(--lyrics-next-text-stroke-color, transparent);
 }
 
 body.lyrics-dedicated .now-playing-lyrics.layout-vertical .now-playing-lyrics-line.is-next {
@@ -584,7 +601,8 @@ body.lyrics-dedicated .now-playing-lyrics-current-stage {
 
 body.lyrics-dedicated .now-playing-lyrics-current-stage > .now-playing-lyrics-line.is-current {
   grid-area: 1 / 1;
-  min-width: 0;
+  min-width: max-content;
+  max-width: 100%;
   align-self: var(--lyrics-stage-align, start);
   justify-self: var(--lyrics-stage-justify, start);
   backface-visibility: hidden;
@@ -598,10 +616,11 @@ body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .
   width: fit-content;
   max-width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 body.lyrics-dedicated .now-playing-lyrics.lyrics-window-body.layout-horizontal .now-playing-lyrics-current-stage.is-animating {
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* 纵向 stage：始终同一套 grid，切换时不改 display，避免 block→grid 宽度塌陷 */
@@ -916,6 +935,19 @@ body.cover-dedicated .cover-placeholder[hidden] {
 
 body.cover-dedicated .cover-window-body.is-idle .cover-art-frame {
   opacity: 0.55;
+}
+
+body.cover-dedicated .cover-art-frame.cover-rotation-enabled .cover-art:not([hidden]) {
+  animation: cover-art-rotate var(--cover-rotation-duration, 4s) linear infinite;
+}
+
+@keyframes cover-art-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* —— 独立歌曲信息浮层窗 —— */

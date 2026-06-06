@@ -37,6 +37,14 @@ const lineHeight = document.querySelector("#lyricsLineHeight");
 const lineHeightVal = document.querySelector("#lyricsLineHeightVal");
 const blockGap = document.querySelector("#lyricsBlockGap");
 const blockGapVal = document.querySelector("#lyricsBlockGapVal");
+const textShadow = document.querySelector("#lyricsTextShadow");
+const textShadowVal = document.querySelector("#lyricsTextShadowVal");
+const currentTextStrokeWidth = document.querySelector("#lyricsCurrentTextStrokeWidth");
+const currentTextStrokeWidthVal = document.querySelector("#lyricsCurrentTextStrokeWidthVal");
+const currentTextStrokeColor = document.querySelector("#lyricsCurrentTextStrokeColor");
+const nextTextStrokeWidth = document.querySelector("#lyricsNextTextStrokeWidth");
+const nextTextStrokeWidthVal = document.querySelector("#lyricsNextTextStrokeWidthVal");
+const nextTextStrokeColor = document.querySelector("#lyricsNextTextStrokeColor");
 const transitionEffect = document.querySelector("#lyricsTransitionEffect");
 const amHighlightColor = document.querySelector("#lyricsAmHighlightColor");
 const amTextPrimaryColor = document.querySelector("#lyricsAmTextPrimaryColor");
@@ -91,6 +99,20 @@ function syncFormFromConfig() {
   if (lineHeightVal) lineHeightVal.textContent = String(config.lineHeightPercent);
   if (blockGap) blockGap.value = String(config.blockGapPx);
   if (blockGapVal) blockGapVal.textContent = String(config.blockGapPx);
+  if (textShadow) textShadow.value = String(config.textShadowPercent);
+  if (textShadowVal) textShadowVal.textContent = String(config.textShadowPercent);
+  if (currentTextStrokeWidth) currentTextStrokeWidth.value = String(config.currentTextStrokeWidthPx);
+  if (currentTextStrokeWidthVal) {
+    currentTextStrokeWidthVal.textContent = String(config.currentTextStrokeWidthPx);
+  }
+  if (currentTextStrokeColor) currentTextStrokeColor.value = config.currentTextStrokeColor;
+  if (currentTextStrokeColor) {
+    currentTextStrokeColor.disabled = config.currentTextStrokeWidthPx <= 0;
+  }
+  if (nextTextStrokeWidth) nextTextStrokeWidth.value = String(config.nextTextStrokeWidthPx);
+  if (nextTextStrokeWidthVal) nextTextStrokeWidthVal.textContent = String(config.nextTextStrokeWidthPx);
+  if (nextTextStrokeColor) nextTextStrokeColor.value = config.nextTextStrokeColor;
+  if (nextTextStrokeColor) nextTextStrokeColor.disabled = config.nextTextStrokeWidthPx <= 0;
   if (transitionEffect) transitionEffect.value = config.transitionEffect;
 
   if (amHighlightColor) amHighlightColor.value = config.amHighlightColor;
@@ -300,6 +322,58 @@ async function init() {
     blockGap.addEventListener("input", async () => {
       config.blockGapPx = Number(blockGap.value);
       if (blockGapVal) blockGapVal.textContent = String(config.blockGapPx);
+      await persistAndNotify();
+    });
+  }
+
+  if (textShadow) {
+    textShadow.addEventListener("input", async () => {
+      config.textShadowPercent = Number(textShadow.value);
+      if (textShadowVal) textShadowVal.textContent = String(config.textShadowPercent);
+      await persistAndNotify();
+    });
+  }
+
+  if (currentTextStrokeWidth) {
+    currentTextStrokeWidth.addEventListener("input", async () => {
+      config.currentTextStrokeWidthPx = Number(currentTextStrokeWidth.value);
+      if (currentTextStrokeWidthVal) {
+        currentTextStrokeWidthVal.textContent = String(config.currentTextStrokeWidthPx);
+      }
+      if (currentTextStrokeColor) {
+        currentTextStrokeColor.disabled = config.currentTextStrokeWidthPx <= 0;
+      }
+      await persistAndNotify();
+    });
+  }
+
+  if (currentTextStrokeColor) {
+    currentTextStrokeColor.addEventListener("input", async () => {
+      config.currentTextStrokeColor = normalizeHexColor(
+        currentTextStrokeColor.value,
+        config.currentTextStrokeColor,
+      );
+      await persistAndNotify();
+    });
+  }
+
+  if (nextTextStrokeWidth) {
+    nextTextStrokeWidth.addEventListener("input", async () => {
+      config.nextTextStrokeWidthPx = Number(nextTextStrokeWidth.value);
+      if (nextTextStrokeWidthVal) {
+        nextTextStrokeWidthVal.textContent = String(config.nextTextStrokeWidthPx);
+      }
+      if (nextTextStrokeColor) nextTextStrokeColor.disabled = config.nextTextStrokeWidthPx <= 0;
+      await persistAndNotify();
+    });
+  }
+
+  if (nextTextStrokeColor) {
+    nextTextStrokeColor.addEventListener("input", async () => {
+      config.nextTextStrokeColor = normalizeHexColor(
+        nextTextStrokeColor.value,
+        config.nextTextStrokeColor,
+      );
       await persistAndNotify();
     });
   }

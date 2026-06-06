@@ -13,6 +13,8 @@ export const DEFAULT_COVER_WINDOW_CONFIG = {
   shadowBlurPx: 24,
   shadowColor: "#000000",
   shadowOpacity: 35,
+  rotationEnabled: false,
+  rotationSpeed: 30,
 };
 
 const STORAGE_PREFIX = "wavedance.coverWin.";
@@ -101,8 +103,16 @@ export function normalizeCoverWindowConfig(raw) {
   base.shadowBlurPx = clampInt(o.shadowBlurPx, 0, 80);
   base.shadowColor = normalizeHexColor(o.shadowColor, base.shadowColor);
   base.shadowOpacity = clampInt(o.shadowOpacity, 0, 100);
+  base.rotationEnabled = o.rotationEnabled === true;
+  base.rotationSpeed = clampInt(o.rotationSpeed, 1, 100);
 
   return base;
+}
+
+/** 旋转速度 1–100，数值越大转得越快；返回一圈所需秒数 */
+export function coverRotationDurationSec(speed) {
+  const s = clampInt(speed, 1, 100);
+  return 120 / s;
 }
 
 /** @param {Storage} ls @param {string} windowLabel */
@@ -170,4 +180,10 @@ export function applyCoverWindowStyle(frame, config) {
 
   frame.style.setProperty("--cover-box-shadow", buildCoverBoxShadow(c));
   frame.classList.toggle("cover-frame-no-shadow", c.shadowBlurPx <= 0);
+
+  frame.style.setProperty(
+    "--cover-rotation-duration",
+    `${coverRotationDurationSec(c.rotationSpeed)}s`,
+  );
+  frame.classList.toggle("cover-rotation-enabled", c.rotationEnabled);
 }
