@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 4 已完成，Phase 5 待实施  
+> **状态**：Phase 6 已完成，Phase 7 待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -387,12 +387,12 @@ waterfall: {
 
 #### 5.2 新建 `waterfallRenderer.js`
 
-- [ ] 内部状态：`history: Float32Array[historyRows * bucketCount]` 环形缓冲
-- [ ] 每帧：processSpectrumPoints → 写入当前行 → 指针下移
-- [ ] 渲染：
+- [x] 内部状态：`history: Float32Array[historyRows * bucketCount]` 环形缓冲
+- [x] 每帧：processSpectrumPoints → 写入当前行 → 指针下移
+- [x] 渲染：
   - **方案 A**：`gl.TEXTURE_2D` 动态纹理 + 单个 fullscreen quad，fragment 按 UV 查 history
   - **方案 B**：每行一个 narrow quad（行数少时可接受）
-- [ ] 颜色映射在 fragment shader：`mix(lowColor, highColor, amp)`
+- [x] 颜色映射在 fragment shader：`mix(lowColor, highColor, amp)`
 
 #### 5.3 性能注意
 
@@ -407,9 +407,9 @@ waterfall: {
 
 #### 5.5 验收标准
 
-- [ ] 音乐播放时可见向下滚动
-- [ ] 停止后逐渐静止而非花屏
-- [ ] 切换分桶数量不 crash
+- [x] 音乐播放时可见向下滚动
+- [x] 停止后逐渐静止而非花屏
+- [x] 切换分桶数量不 crash
 
 ---
 
@@ -432,10 +432,10 @@ dotRing: {
 
 #### 6.2 新建 `dotRingRenderer.js`
 
-- [ ] 聚合：`aggregateBands(points, dotCount)` → 长度 dotCount 数组
-- [ ] 每点：小 square quad 或 `POINTS`（Mac WebGL 点大小有限制，**推荐 quad**）
-- [ ] 点中心位置：`polar.js`；点半径 = baseSize * (0.3 + 0.7 * amp)
-- [ ] 可选 alpha = amp
+- [x] 聚合：`aggregateBands(points, dotCount)` → 长度 dotCount 数组
+- [x] 每点：小 square quad 或 `POINTS`（Mac WebGL 点大小有限制，**推荐 quad**）
+- [x] 点中心位置：`polar.js`；点半径 = baseSize * (0.3 + 0.7 * amp)
+- [x] 可选 alpha = amp
 
 #### 6.3 集成与设置页
 
@@ -443,8 +443,8 @@ dotRing: {
 
 #### 6.4 验收标准
 
-- [ ] dotCount 调小后仍跟音乐节奏
-- [ ] 与 radial 模式视觉差异明显（点 vs 条）
+- [x] dotCount 调小后仍跟音乐节奏
+- [x] 与 radial 模式视觉差异明显（点 vs 条）
 
 ---
 
@@ -566,12 +566,12 @@ oscilloscope: {
 | 2 | 渐变频谱柱 Gradient Bar | `[x]` 已完成 | 2026-06-09 |
 | 3 | 霓虹发光线 Glow Line | `[x]` 已完成 | 2026-06-09 |
 | 4 | 圆形频谱 Radial | `[x]` 已完成 | 2026-06-09 |
-| 5 | 瀑布频谱 Waterfall | `[ ]` 未开始 | |
-| 6 | 环形圆点 Dot Ring | `[ ]` 未开始 | |
+| 5 | 瀑布频谱 Waterfall | `[x]` 已完成 | 2026-06-09 |
+| 6 | 环形圆点 Dot Ring | `[x]` 已完成 | 2026-06-09 |
 | 7 | 文档与 README | `[ ]` 未开始 | |
 | 8 | 示波器 Oscilloscope（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 5（瀑布频谱 Waterfall）
+**当前建议下一步**：Phase 7（文档与 README 更新）
 
 ---
 

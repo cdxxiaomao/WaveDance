@@ -7,6 +7,8 @@ import { createAreaRenderer } from "./renderers/areaRenderer.js";
 import { createGradientBarRenderer } from "./renderers/gradientBarRenderer.js";
 import { createGlowLineRenderer } from "./renderers/glowLineRenderer.js";
 import { createRadialRenderer } from "./renderers/radialRenderer.js";
+import { createWaterfallRenderer } from "./renderers/waterfallRenderer.js";
+import { createDotRingRenderer } from "./renderers/dotRingRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -37,6 +39,8 @@ const areaRenderer = createAreaRenderer(gl);
 const gradientBarRenderer = createGradientBarRenderer(gl);
 const glowLineRenderer = createGlowLineRenderer(gl);
 const radialRenderer = createRadialRenderer(gl);
+const waterfallRenderer = createWaterfallRenderer(gl);
+const dotRingRenderer = createDotRingRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -45,6 +49,8 @@ const RENDERERS = {
   [DISPLAY_MODES.gradientBar]: gradientBarRenderer,
   [DISPLAY_MODES.glowLine]: glowLineRenderer,
   [DISPLAY_MODES.radial]: radialRenderer,
+  [DISPLAY_MODES.waterfall]: waterfallRenderer,
+  [DISPLAY_MODES.dotRing]: dotRingRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -53,6 +59,8 @@ const areaShapeConfig = { ...DEFAULT_CONFIG.area.shape };
 const gradientBarShapeConfig = { ...DEFAULT_CONFIG.gradientBar.shape };
 const glowLineShapeConfig = { ...DEFAULT_CONFIG.glowLine.shape };
 const radialShapeConfig = { ...DEFAULT_CONFIG.radial.shape };
+const waterfallShapeConfig = { ...DEFAULT_CONFIG.waterfall.shape };
+const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
 
 let latestPoints = [];
 let displayMode = DEFAULT_CONFIG.displayMode;
@@ -105,6 +113,22 @@ function applyRadialShapeConfig(payload) {
   radialShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyWaterfallShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  waterfallShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  waterfallShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  waterfallShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  waterfallShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
+function applyDotRingShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  dotRingShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  dotRingShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  dotRingShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  dotRingShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -119,6 +143,10 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (glowLineRaw) applyGlowLineShapeConfig(JSON.parse(glowLineRaw));
     const radialRaw = readWindowStorageString(window.localStorage, windowLabel, "radialShape");
     if (radialRaw) applyRadialShapeConfig(JSON.parse(radialRaw));
+    const waterfallRaw = readWindowStorageString(window.localStorage, windowLabel, "waterfallShape");
+    if (waterfallRaw) applyWaterfallShapeConfig(JSON.parse(waterfallRaw));
+    const dotRingRaw = readWindowStorageString(window.localStorage, windowLabel, "dotRingShape");
+    if (dotRingRaw) applyDotRingShapeConfig(JSON.parse(dotRingRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -147,6 +175,9 @@ const gradientBarPeakRgb = { r: 1, g: 1, b: 1 };
 const glowLineCoreRgb = { r: 0, g: 0, b: 0 };
 const glowLineGlowRgb = { r: 0, g: 0, b: 0 };
 const radialBarRgb = { r: 0, g: 0, b: 0 };
+const waterfallColorLowRgb = { r: 0, g: 0, b: 0 };
+const waterfallColorHighRgb = { r: 0, g: 0, b: 0 };
+const dotRingDotRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -168,6 +199,9 @@ applyGradientBarPeakColorHex(DEFAULT_CONFIG.gradientBar.peakColor);
 applyGlowLineCoreColorHex(DEFAULT_CONFIG.glowLine.coreColor);
 applyGlowLineGlowColorHex(DEFAULT_CONFIG.glowLine.glowColor);
 applyRadialBarColorHex(DEFAULT_CONFIG.radial.barColor);
+applyWaterfallColorLowHex(DEFAULT_CONFIG.waterfall.colorLow);
+applyWaterfallColorHighHex(DEFAULT_CONFIG.waterfall.colorHigh);
+applyDotRingDotColorHex(DEFAULT_CONFIG.dotRing.dotColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -202,6 +236,13 @@ let radialBarThicknessPercent = DEFAULT_CONFIG.radial.barThicknessPercent;
 let radialMirrorEnabled = DEFAULT_CONFIG.radial.mirrorEnabled;
 let radialRotationOffsetDeg = DEFAULT_CONFIG.radial.rotationOffsetDeg;
 let radialClockwise = DEFAULT_CONFIG.radial.clockwise;
+let waterfallHistoryRows = DEFAULT_CONFIG.waterfall.historyRows;
+let waterfallScrollEveryNFrames = DEFAULT_CONFIG.waterfall.scrollEveryNFrames;
+let waterfallRowGapPercent = DEFAULT_CONFIG.waterfall.rowGapPercent;
+let dotRingRadiusPercent = DEFAULT_CONFIG.dotRing.ringRadiusPercent;
+let dotRingDotCount = DEFAULT_CONFIG.dotRing.dotCount;
+let dotRingDotSizePx = DEFAULT_CONFIG.dotRing.dotSizePx;
+let dotRingPulseEnabled = DEFAULT_CONFIG.dotRing.pulseEnabled;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -388,6 +429,61 @@ function applyRadialClockwise(value) {
   radialClockwise = parseBoolean(value, DEFAULT_CONFIG.radial.clockwise);
 }
 
+function applyWaterfallColorLowHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.waterfall.colorLow;
+  const { r, g, b } = hexToRgb(safe);
+  waterfallColorLowRgb.r = r / 255;
+  waterfallColorLowRgb.g = g / 255;
+  waterfallColorLowRgb.b = b / 255;
+}
+
+function applyWaterfallColorHighHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.waterfall.colorHigh;
+  const { r, g, b } = hexToRgb(safe);
+  waterfallColorHighRgb.r = r / 255;
+  waterfallColorHighRgb.g = g / 255;
+  waterfallColorHighRgb.b = b / 255;
+}
+
+function applyWaterfallHistoryRows(n) {
+  waterfallHistoryRows = clampInt(n, 16, 128);
+}
+
+function applyWaterfallScrollEveryNFrames(n) {
+  waterfallScrollEveryNFrames = clampInt(n, 1, 8);
+}
+
+function applyWaterfallRowGapPercent(n) {
+  waterfallRowGapPercent = clampInt(n, 0, 50);
+}
+
+function applyDotRingDotColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.dotRing.dotColor;
+  const { r, g, b } = hexToRgb(safe);
+  dotRingDotRgb.r = r / 255;
+  dotRingDotRgb.g = g / 255;
+  dotRingDotRgb.b = b / 255;
+}
+
+function applyDotRingRadiusPercent(n) {
+  dotRingRadiusPercent = clampInt(n, 10, 95);
+}
+
+function applyDotRingDotCount(n) {
+  dotRingDotCount = clampInt(n, 4, 128);
+}
+
+function applyDotRingDotSizePx(n) {
+  dotRingDotSizePx = clampInt(n, 2, 24);
+}
+
+function applyDotRingPulseEnabled(value) {
+  dotRingPulseEnabled = parseBoolean(value, DEFAULT_CONFIG.dotRing.pulseEnabled);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -472,6 +568,8 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.gradientBar) return gradientBarShapeConfig;
   if (mode === DISPLAY_MODES.glowLine) return glowLineShapeConfig;
   if (mode === DISPLAY_MODES.radial) return radialShapeConfig;
+  if (mode === DISPLAY_MODES.waterfall) return waterfallShapeConfig;
+  if (mode === DISPLAY_MODES.dotRing) return dotRingShapeConfig;
   return waveShapeConfig;
 }
 
@@ -538,6 +636,26 @@ function getStyleConfigForMode(mode) {
       mirrorEnabled: radialMirrorEnabled,
       rotationOffsetDeg: radialRotationOffsetDeg,
       clockwise: radialClockwise,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.waterfall) {
+    return {
+      colorLow: waterfallColorLowRgb,
+      colorHigh: waterfallColorHighRgb,
+      historyRows: waterfallHistoryRows,
+      scrollEveryNFrames: waterfallScrollEveryNFrames,
+      rowGapPercent: waterfallRowGapPercent,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.dotRing) {
+    return {
+      dotColor: dotRingDotRgb,
+      ringRadiusPercent: dotRingRadiusPercent,
+      dotCount: dotRingDotCount,
+      dotSizePx: dotRingDotSizePx,
+      pulseEnabled: dotRingPulseEnabled,
       freqReversed,
     };
   }
@@ -1031,6 +1149,96 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-waterfall-color-low",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyWaterfallColorLowHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-waterfall-color-high",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyWaterfallColorHighHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-waterfall-history-rows",
+    (event) => {
+      applyWaterfallHistoryRows(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-waterfall-scroll-every-n-frames",
+    (event) => {
+      applyWaterfallScrollEveryNFrames(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-waterfall-row-gap",
+    (event) => {
+      applyWaterfallRowGapPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-waterfall-shape-config",
+    (event) => {
+      applyWaterfallShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyDotRingDotColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-radius",
+    (event) => {
+      applyDotRingRadiusPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-count",
+    (event) => {
+      applyDotRingDotCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-size",
+    (event) => {
+      applyDotRingDotSizePx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-pulse",
+    (event) => {
+      applyDotRingPulseEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-dot-ring-shape-config",
+    (event) => {
+      applyDotRingShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -1172,6 +1380,34 @@ async function init() {
       applyRadialRotationOffsetDeg(savedRadialRotation);
     }
     applyRadialClockwise(readWindowStorageString(window.localStorage, windowLabel, "radialClockwise"));
+    applyWaterfallColorLowHex(readWindowStorageString(window.localStorage, windowLabel, "waterfallColorLow"));
+    applyWaterfallColorHighHex(readWindowStorageString(window.localStorage, windowLabel, "waterfallColorHigh"));
+    const savedWaterfallHistoryRows = readWindowStorageString(window.localStorage, windowLabel, "waterfallHistoryRows");
+    if (savedWaterfallHistoryRows != null && savedWaterfallHistoryRows !== "") {
+      applyWaterfallHistoryRows(savedWaterfallHistoryRows);
+    }
+    const savedWaterfallScroll = readWindowStorageString(window.localStorage, windowLabel, "waterfallScrollEveryNFrames");
+    if (savedWaterfallScroll != null && savedWaterfallScroll !== "") {
+      applyWaterfallScrollEveryNFrames(savedWaterfallScroll);
+    }
+    const savedWaterfallRowGap = readWindowStorageString(window.localStorage, windowLabel, "waterfallRowGap");
+    if (savedWaterfallRowGap != null && savedWaterfallRowGap !== "") {
+      applyWaterfallRowGapPercent(savedWaterfallRowGap);
+    }
+    applyDotRingDotColorHex(readWindowStorageString(window.localStorage, windowLabel, "dotRingColor"));
+    const savedDotRingRadius = readWindowStorageString(window.localStorage, windowLabel, "dotRingRadius");
+    if (savedDotRingRadius != null && savedDotRingRadius !== "") {
+      applyDotRingRadiusPercent(savedDotRingRadius);
+    }
+    const savedDotRingCount = readWindowStorageString(window.localStorage, windowLabel, "dotRingCount");
+    if (savedDotRingCount != null && savedDotRingCount !== "") {
+      applyDotRingDotCount(savedDotRingCount);
+    }
+    const savedDotRingSize = readWindowStorageString(window.localStorage, windowLabel, "dotRingSize");
+    if (savedDotRingSize != null && savedDotRingSize !== "") {
+      applyDotRingDotSizePx(savedDotRingSize);
+    }
+    applyDotRingPulseEnabled(readWindowStorageString(window.localStorage, windowLabel, "dotRingPulse"));
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

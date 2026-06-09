@@ -42,6 +42,8 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.gradientBar]: "gradientBarConfigPanel",
   [DISPLAY_MODES.glowLine]: "glowLineConfigPanel",
   [DISPLAY_MODES.radial]: "radialConfigPanel",
+  [DISPLAY_MODES.waterfall]: "waterfallConfigPanel",
+  [DISPLAY_MODES.dotRing]: "dotRingConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -152,6 +154,38 @@ const radialSoftClipRange = document.querySelector("#radialSoftClipRange");
 const radialSoftClipValue = document.querySelector("#radialSoftClipValue");
 const radialFallEaseRange = document.querySelector("#radialFallEaseRange");
 const radialFallEaseValue = document.querySelector("#radialFallEaseValue");
+const waterfallColorLow = document.querySelector("#waterfallColorLow");
+const waterfallColorHigh = document.querySelector("#waterfallColorHigh");
+const waterfallHistoryRowsRange = document.querySelector("#waterfallHistoryRowsRange");
+const waterfallHistoryRowsValue = document.querySelector("#waterfallHistoryRowsValue");
+const waterfallScrollRange = document.querySelector("#waterfallScrollRange");
+const waterfallScrollValue = document.querySelector("#waterfallScrollValue");
+const waterfallRowGapRange = document.querySelector("#waterfallRowGapRange");
+const waterfallRowGapValue = document.querySelector("#waterfallRowGapValue");
+const waterfallGainRange = document.querySelector("#waterfallGainRange");
+const waterfallGainValue = document.querySelector("#waterfallGainValue");
+const waterfallSmoothRange = document.querySelector("#waterfallSmoothRange");
+const waterfallSmoothValue = document.querySelector("#waterfallSmoothValue");
+const waterfallSoftClipRange = document.querySelector("#waterfallSoftClipRange");
+const waterfallSoftClipValue = document.querySelector("#waterfallSoftClipValue");
+const waterfallFallEaseRange = document.querySelector("#waterfallFallEaseRange");
+const waterfallFallEaseValue = document.querySelector("#waterfallFallEaseValue");
+const dotRingDotColor = document.querySelector("#dotRingDotColor");
+const dotRingRadiusRange = document.querySelector("#dotRingRadiusRange");
+const dotRingRadiusValue = document.querySelector("#dotRingRadiusValue");
+const dotRingCountRange = document.querySelector("#dotRingCountRange");
+const dotRingCountValue = document.querySelector("#dotRingCountValue");
+const dotRingSizeRange = document.querySelector("#dotRingSizeRange");
+const dotRingSizeValue = document.querySelector("#dotRingSizeValue");
+const dotRingPulseToggle = document.querySelector("#dotRingPulseToggle");
+const dotRingGainRange = document.querySelector("#dotRingGainRange");
+const dotRingGainValue = document.querySelector("#dotRingGainValue");
+const dotRingSmoothRange = document.querySelector("#dotRingSmoothRange");
+const dotRingSmoothValue = document.querySelector("#dotRingSmoothValue");
+const dotRingSoftClipRange = document.querySelector("#dotRingSoftClipRange");
+const dotRingSoftClipValue = document.querySelector("#dotRingSoftClipValue");
+const dotRingFallEaseRange = document.querySelector("#dotRingFallEaseRange");
+const dotRingFallEaseValue = document.querySelector("#dotRingFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -648,6 +682,196 @@ function applyRadialFormFromStorage(v) {
   }
 }
 
+function readWaterfallShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "waterfallShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncWaterfallShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(waterfallGainRange?.value, 10, 150),
+    smoothPercent: clampInt(waterfallSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(waterfallSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(waterfallFallEaseRange?.value, 0, 100),
+  };
+  if (waterfallGainValue) waterfallGainValue.textContent = String(config.gainPercent);
+  if (waterfallSmoothValue) waterfallSmoothValue.textContent = String(config.smoothPercent);
+  if (waterfallSoftClipValue) waterfallSoftClipValue.textContent = String(config.softClipPercent);
+  if (waterfallFallEaseValue) waterfallFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "waterfallShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-waterfall-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步瀑布频谱参数失败：${String(err)}`;
+  }
+}
+
+function applyWaterfallFormFromStorage(v) {
+  const sg = readWaterfallShapeConfig(v) ?? { ...DEFAULT_CONFIG.waterfall.shape };
+  if (waterfallGainRange) waterfallGainRange.value = String(sg.gainPercent);
+  if (waterfallSmoothRange) waterfallSmoothRange.value = String(sg.smoothPercent);
+  if (waterfallSoftClipRange) waterfallSoftClipRange.value = String(sg.softClipPercent);
+  if (waterfallFallEaseRange) waterfallFallEaseRange.value = String(sg.fallEasePercent);
+  if (waterfallGainValue) waterfallGainValue.textContent = String(sg.gainPercent);
+  if (waterfallSmoothValue) waterfallSmoothValue.textContent = String(sg.smoothPercent);
+  if (waterfallSoftClipValue) waterfallSoftClipValue.textContent = String(sg.softClipPercent);
+  if (waterfallFallEaseValue) waterfallFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "waterfallColorLow");
+  if (waterfallColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    waterfallColorLow.value = savedColorLow.toLowerCase();
+  } else if (waterfallColorLow) {
+    waterfallColorLow.value = DEFAULT_CONFIG.waterfall.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "waterfallColorHigh");
+  if (waterfallColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    waterfallColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (waterfallColorHigh) {
+    waterfallColorHigh.value = DEFAULT_CONFIG.waterfall.colorHigh;
+  }
+
+  const savedHistoryRows = readWindowStorageString(window.localStorage, v, "waterfallHistoryRows");
+  if (waterfallHistoryRowsRange) {
+    const historyRows =
+      savedHistoryRows != null && savedHistoryRows !== ""
+        ? clampInt(savedHistoryRows, 16, 128)
+        : DEFAULT_CONFIG.waterfall.historyRows;
+    waterfallHistoryRowsRange.value = String(historyRows);
+    if (waterfallHistoryRowsValue) waterfallHistoryRowsValue.textContent = String(historyRows);
+  }
+
+  const savedScroll = readWindowStorageString(window.localStorage, v, "waterfallScrollEveryNFrames");
+  if (waterfallScrollRange) {
+    const scrollEveryNFrames =
+      savedScroll != null && savedScroll !== ""
+        ? clampInt(savedScroll, 1, 8)
+        : DEFAULT_CONFIG.waterfall.scrollEveryNFrames;
+    waterfallScrollRange.value = String(scrollEveryNFrames);
+    if (waterfallScrollValue) waterfallScrollValue.textContent = String(scrollEveryNFrames);
+  }
+
+  const savedRowGap = readWindowStorageString(window.localStorage, v, "waterfallRowGap");
+  if (waterfallRowGapRange) {
+    const rowGapPercent =
+      savedRowGap != null && savedRowGap !== ""
+        ? clampInt(savedRowGap, 0, 50)
+        : DEFAULT_CONFIG.waterfall.rowGapPercent;
+    waterfallRowGapRange.value = String(rowGapPercent);
+    if (waterfallRowGapValue) waterfallRowGapValue.textContent = String(rowGapPercent);
+  }
+}
+
+function readDotRingShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "dotRingShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncDotRingShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(dotRingGainRange?.value, 10, 150),
+    smoothPercent: clampInt(dotRingSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(dotRingSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(dotRingFallEaseRange?.value, 0, 100),
+  };
+  if (dotRingGainValue) dotRingGainValue.textContent = String(config.gainPercent);
+  if (dotRingSmoothValue) dotRingSmoothValue.textContent = String(config.smoothPercent);
+  if (dotRingSoftClipValue) dotRingSoftClipValue.textContent = String(config.softClipPercent);
+  if (dotRingFallEaseValue) dotRingFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-dot-ring-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步环形圆点参数失败：${String(err)}`;
+  }
+}
+
+function applyDotRingFormFromStorage(v) {
+  const sg = readDotRingShapeConfig(v) ?? { ...DEFAULT_CONFIG.dotRing.shape };
+  if (dotRingGainRange) dotRingGainRange.value = String(sg.gainPercent);
+  if (dotRingSmoothRange) dotRingSmoothRange.value = String(sg.smoothPercent);
+  if (dotRingSoftClipRange) dotRingSoftClipRange.value = String(sg.softClipPercent);
+  if (dotRingFallEaseRange) dotRingFallEaseRange.value = String(sg.fallEasePercent);
+  if (dotRingGainValue) dotRingGainValue.textContent = String(sg.gainPercent);
+  if (dotRingSmoothValue) dotRingSmoothValue.textContent = String(sg.smoothPercent);
+  if (dotRingSoftClipValue) dotRingSoftClipValue.textContent = String(sg.softClipPercent);
+  if (dotRingFallEaseValue) dotRingFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "dotRingColor");
+  if (dotRingDotColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    dotRingDotColor.value = savedColor.toLowerCase();
+  } else if (dotRingDotColor) {
+    dotRingDotColor.value = DEFAULT_CONFIG.dotRing.dotColor;
+  }
+
+  const savedRadius = readWindowStorageString(window.localStorage, v, "dotRingRadius");
+  if (dotRingRadiusRange) {
+    const radiusPercent =
+      savedRadius != null && savedRadius !== ""
+        ? clampInt(savedRadius, 10, 95)
+        : DEFAULT_CONFIG.dotRing.ringRadiusPercent;
+    dotRingRadiusRange.value = String(radiusPercent);
+    if (dotRingRadiusValue) dotRingRadiusValue.textContent = String(radiusPercent);
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "dotRingCount");
+  if (dotRingCountRange) {
+    const dotCount =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 4, 128)
+        : DEFAULT_CONFIG.dotRing.dotCount;
+    dotRingCountRange.value = String(dotCount);
+    if (dotRingCountValue) dotRingCountValue.textContent = String(dotCount);
+  }
+
+  const savedSize = readWindowStorageString(window.localStorage, v, "dotRingSize");
+  if (dotRingSizeRange) {
+    const dotSizePx =
+      savedSize != null && savedSize !== ""
+        ? clampInt(savedSize, 2, 24)
+        : DEFAULT_CONFIG.dotRing.dotSizePx;
+    dotRingSizeRange.value = String(dotSizePx);
+    if (dotRingSizeValue) dotRingSizeValue.textContent = String(dotSizePx);
+  }
+
+  if (dotRingPulseToggle) {
+    dotRingPulseToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "dotRingPulse"),
+      DEFAULT_CONFIG.dotRing.pulseEnabled,
+    );
+  }
+}
+
 function applyAreaFormFromStorage(v) {
   const sa = readAreaShapeConfig(v) ?? { ...DEFAULT_CONFIG.area.shape };
   if (areaGainRange) areaGainRange.value = String(sa.gainPercent);
@@ -925,6 +1149,8 @@ async function init() {
     applyGradientBarFormFromStorage(v);
     applyGlowLineFormFromStorage(v);
     applyRadialFormFromStorage(v);
+    applyWaterfallFormFromStorage(v);
+    applyDotRingFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -1585,6 +1811,128 @@ async function init() {
   radialFallEaseRange?.addEventListener("input", () => {
     void syncRadialShapeConfig(visualTargetLabel, emitVisual);
   });
+  waterfallColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "waterfallColorLow", waterfallColorLow.value);
+      await emitVisual("waveform-waterfall-color-low", waterfallColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  waterfallColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "waterfallColorHigh", waterfallColorHigh.value);
+      await emitVisual("waveform-waterfall-color-high", waterfallColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  waterfallHistoryRowsRange?.addEventListener("input", async (event) => {
+    const historyRows = clampInt(event.target.value, 16, 128);
+    if (waterfallHistoryRowsValue) waterfallHistoryRowsValue.textContent = String(historyRows);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "waterfallHistoryRows", String(historyRows));
+      await emitVisual("waveform-waterfall-history-rows", historyRows);
+    } catch (err) {
+      statusEl.textContent = `更新历史深度失败：${String(err)}`;
+    }
+  });
+  waterfallScrollRange?.addEventListener("input", async (event) => {
+    const scrollEveryNFrames = clampInt(event.target.value, 1, 8);
+    if (waterfallScrollValue) waterfallScrollValue.textContent = String(scrollEveryNFrames);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "waterfallScrollEveryNFrames",
+        String(scrollEveryNFrames),
+      );
+      await emitVisual("waveform-waterfall-scroll-every-n-frames", scrollEveryNFrames);
+    } catch (err) {
+      statusEl.textContent = `更新滚动速度失败：${String(err)}`;
+    }
+  });
+  waterfallRowGapRange?.addEventListener("input", async (event) => {
+    const rowGapPercent = clampInt(event.target.value, 0, 50);
+    if (waterfallRowGapValue) waterfallRowGapValue.textContent = String(rowGapPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "waterfallRowGap", String(rowGapPercent));
+      await emitVisual("waveform-waterfall-row-gap", rowGapPercent);
+    } catch (err) {
+      statusEl.textContent = `更新行间距失败：${String(err)}`;
+    }
+  });
+  waterfallGainRange?.addEventListener("input", () => {
+    void syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
+  });
+  waterfallSmoothRange?.addEventListener("input", () => {
+    void syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
+  });
+  waterfallSoftClipRange?.addEventListener("input", () => {
+    void syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
+  });
+  waterfallFallEaseRange?.addEventListener("input", () => {
+    void syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
+  });
+  dotRingDotColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingColor", dotRingDotColor.value);
+      await emitVisual("waveform-dot-ring-color", dotRingDotColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新圆点颜色失败：${String(err)}`;
+    }
+  });
+  dotRingRadiusRange?.addEventListener("input", async (event) => {
+    const radiusPercent = clampInt(event.target.value, 10, 95);
+    if (dotRingRadiusValue) dotRingRadiusValue.textContent = String(radiusPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingRadius", String(radiusPercent));
+      await emitVisual("waveform-dot-ring-radius", radiusPercent);
+    } catch (err) {
+      statusEl.textContent = `更新圆环半径失败：${String(err)}`;
+    }
+  });
+  dotRingCountRange?.addEventListener("input", async (event) => {
+    const dotCount = clampInt(event.target.value, 4, 128);
+    if (dotRingCountValue) dotRingCountValue.textContent = String(dotCount);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingCount", String(dotCount));
+      await emitVisual("waveform-dot-ring-count", dotCount);
+    } catch (err) {
+      statusEl.textContent = `更新圆点数量失败：${String(err)}`;
+    }
+  });
+  dotRingSizeRange?.addEventListener("input", async (event) => {
+    const dotSizePx = clampInt(event.target.value, 2, 24);
+    if (dotRingSizeValue) dotRingSizeValue.textContent = String(dotSizePx);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingSize", String(dotSizePx));
+      await emitVisual("waveform-dot-ring-size", dotSizePx);
+    } catch (err) {
+      statusEl.textContent = `更新圆点大小失败：${String(err)}`;
+    }
+  });
+  dotRingPulseToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "dotRingPulse", String(enabled));
+      await emitVisual("waveform-dot-ring-pulse", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新强拍脉冲失败：${String(err)}`;
+    }
+  });
+  dotRingGainRange?.addEventListener("input", () => {
+    void syncDotRingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  dotRingSmoothRange?.addEventListener("input", () => {
+    void syncDotRingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  dotRingSoftClipRange?.addEventListener("input", () => {
+    void syncDotRingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  dotRingFallEaseRange?.addEventListener("input", () => {
+    void syncDotRingShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -1800,6 +2148,10 @@ async function init() {
   await syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
   applyRadialFormFromStorage(visualTargetLabel);
   await syncRadialShapeConfig(visualTargetLabel, emitVisual);
+  applyWaterfallFormFromStorage(visualTargetLabel);
+  await syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
+  applyDotRingFormFromStorage(visualTargetLabel);
+  await syncDotRingShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -1978,6 +2330,39 @@ async function init() {
   }
   if (radialClockwiseToggle) {
     await emitVisual("waveform-radial-clockwise", Boolean(radialClockwiseToggle.checked));
+  }
+  if (waterfallColorLow) {
+    await emitVisual("waveform-waterfall-color-low", waterfallColorLow.value);
+  }
+  if (waterfallColorHigh) {
+    await emitVisual("waveform-waterfall-color-high", waterfallColorHigh.value);
+  }
+  if (waterfallHistoryRowsRange) {
+    await emitVisual("waveform-waterfall-history-rows", clampInt(waterfallHistoryRowsRange.value, 16, 128));
+  }
+  if (waterfallScrollRange) {
+    await emitVisual(
+      "waveform-waterfall-scroll-every-n-frames",
+      clampInt(waterfallScrollRange.value, 1, 8),
+    );
+  }
+  if (waterfallRowGapRange) {
+    await emitVisual("waveform-waterfall-row-gap", clampInt(waterfallRowGapRange.value, 0, 50));
+  }
+  if (dotRingDotColor) {
+    await emitVisual("waveform-dot-ring-color", dotRingDotColor.value);
+  }
+  if (dotRingRadiusRange) {
+    await emitVisual("waveform-dot-ring-radius", clampInt(dotRingRadiusRange.value, 10, 95));
+  }
+  if (dotRingCountRange) {
+    await emitVisual("waveform-dot-ring-count", clampInt(dotRingCountRange.value, 4, 128));
+  }
+  if (dotRingSizeRange) {
+    await emitVisual("waveform-dot-ring-size", clampInt(dotRingSizeRange.value, 2, 24));
+  }
+  if (dotRingPulseToggle) {
+    await emitVisual("waveform-dot-ring-pulse", Boolean(dotRingPulseToggle.checked));
   }
 
   if (closeSettingsBtn) {

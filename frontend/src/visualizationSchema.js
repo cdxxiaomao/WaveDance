@@ -50,6 +50,18 @@ export const STORAGE_KEYS = {
   radialRotation: "wavedance.radialRotationOffsetDeg",
   radialClockwise: "wavedance.radialClockwise",
   radialShape: "wavedance.radialShapeConfig",
+  waterfallColorLow: "wavedance.waterfallColorLow",
+  waterfallColorHigh: "wavedance.waterfallColorHigh",
+  waterfallHistoryRows: "wavedance.waterfallHistoryRows",
+  waterfallScrollEveryNFrames: "wavedance.waterfallScrollEveryNFrames",
+  waterfallRowGap: "wavedance.waterfallRowGapPercent",
+  waterfallShape: "wavedance.waterfallShapeConfig",
+  dotRingColor: "wavedance.dotRingDotColor",
+  dotRingRadius: "wavedance.dotRingRadiusPercent",
+  dotRingCount: "wavedance.dotRingDotCount",
+  dotRingSize: "wavedance.dotRingDotSizePx",
+  dotRingPulse: "wavedance.dotRingPulseEnabled",
+  dotRingShape: "wavedance.dotRingShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -62,6 +74,8 @@ export const DISPLAY_MODES = {
   gradientBar: "gradientBar",
   glowLine: "glowLine",
   radial: "radial",
+  waterfall: "waterfall",
+  dotRing: "dotRing",
 };
 
 export const PANEL_STYLES = {
@@ -174,6 +188,32 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  waterfall: {
+    colorLow: "#0a0a12",
+    colorHigh: "#8f7cff",
+    historyRows: 64,
+    scrollEveryNFrames: 1,
+    rowGapPercent: 0,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 12,
+      softClipPercent: 10,
+      fallEasePercent: 40,
+    },
+  },
+  dotRing: {
+    dotColor: "#8f7cff",
+    ringRadiusPercent: 75,
+    dotCount: 32,
+    dotSizePx: 6,
+    pulseEnabled: true,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 22,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -184,6 +224,8 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.gradientBar) return DISPLAY_MODES.gradientBar;
   if (s === DISPLAY_MODES.glowLine) return DISPLAY_MODES.glowLine;
   if (s === DISPLAY_MODES.radial) return DISPLAY_MODES.radial;
+  if (s === DISPLAY_MODES.waterfall) return DISPLAY_MODES.waterfall;
+  if (s === DISPLAY_MODES.dotRing) return DISPLAY_MODES.dotRing;
   return DISPLAY_MODES.line;
 }
 
@@ -317,6 +359,18 @@ export function windowStorageKeys(windowLabel) {
     radialRotation: `${pre}.radialRotationOffsetDeg`,
     radialClockwise: `${pre}.radialClockwise`,
     radialShape: `${pre}.radialShapeConfig`,
+    waterfallColorLow: `${pre}.waterfallColorLow`,
+    waterfallColorHigh: `${pre}.waterfallColorHigh`,
+    waterfallHistoryRows: `${pre}.waterfallHistoryRows`,
+    waterfallScrollEveryNFrames: `${pre}.waterfallScrollEveryNFrames`,
+    waterfallRowGap: `${pre}.waterfallRowGapPercent`,
+    waterfallShape: `${pre}.waterfallShapeConfig`,
+    dotRingColor: `${pre}.dotRingDotColor`,
+    dotRingRadius: `${pre}.dotRingRadiusPercent`,
+    dotRingCount: `${pre}.dotRingDotCount`,
+    dotRingSize: `${pre}.dotRingDotSizePx`,
+    dotRingPulse: `${pre}.dotRingPulseEnabled`,
+    dotRingShape: `${pre}.dotRingShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

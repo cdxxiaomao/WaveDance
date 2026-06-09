@@ -162,3 +162,17 @@
 - `visualizationSchema.js`：新增 `DISPLAY_MODES.radial`、`DEFAULT_CONFIG.radial` 及 radial 相关 storage keys。
 - `main.js`：注册 radialRenderer，监听 `waveform-radial-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「圆形频谱」、`#radialConfigPanel`（柱体色/内径/外径/柱宽/旋转/镜像/顺时针 + 形状四件套）。
+
+### 可视化模式扩展 — Phase 5：瀑布频谱 Waterfall
+
+- 新建 `frontend/src/renderers/waterfallRenderer.js`：`Float32Array` 环形历史缓冲 + `gl.TEXTURE_2D` 动态纹理 + 全屏 quad；fragment shader 按幅度 `mix(colorLow, colorHigh)` 着色；支持历史深度、滚动速度、行间距、`freqReversed`；分桶数变化时自动重置 history。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.waterfall`、`DEFAULT_CONFIG.waterfall` 及 waterfall 相关 storage keys。
+- `main.js`：注册 waterfallRenderer，监听 `waveform-waterfall-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「瀑布频谱」、`#waterfallConfigPanel`（低/高能量色/历史深度/滚动速度/行间距 + 形状四件套）。
+
+### 可视化模式扩展 — Phase 6：环形圆点 Dot Ring
+
+- 新建 `frontend/src/renderers/dotRingRenderer.js`：`aggregateBands` 频段聚合 + 屏幕对齐 square quad；复用 `polar.js` 定位圆环；点大小 `baseSize * (0.3 + 0.7 * amp)`、alpha 随幅度；强拍脉冲全局缩放。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.dotRing`、`DEFAULT_CONFIG.dotRing` 及 dotRing 相关 storage keys。
+- `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。

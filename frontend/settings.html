@@ -85,6 +85,8 @@
               <option value="gradientBar">渐变频谱柱</option>
               <option value="glowLine">霓虹发光线</option>
               <option value="radial">圆形频谱</option>
+              <option value="waterfall">瀑布频谱</option>
+              <option value="dotRing">环形圆点</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -437,6 +439,91 @@
           <div class="settings-field">
             <label for="radialFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="radialFallEaseValue">52</span>%</label>
             <input id="radialFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="waterfallConfigPanel" aria-labelledby="sec-waterfall-display" hidden>
+        <h2 id="sec-waterfall-display" class="settings-card__title">瀑布频谱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--waterfall" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="waterfallColorLow" class="settings-label">低能量色</label>
+            <input id="waterfallColorLow" type="color" value="#0a0a12" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="waterfallColorHigh" class="settings-label">高能量色</label>
+            <input id="waterfallColorHigh" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallHistoryRowsRange" class="settings-label">历史深度 <span class="settings-value" id="waterfallHistoryRowsValue">64</span> 行</label>
+            <input id="waterfallHistoryRowsRange" type="range" min="16" max="128" step="1" value="64" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallScrollRange" class="settings-label">滚动速度 <span class="settings-value" id="waterfallScrollValue">1</span> 帧/行</label>
+            <input id="waterfallScrollRange" type="range" min="1" max="8" step="1" value="1" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallRowGapRange" class="settings-label">行间距 <span class="settings-value" id="waterfallRowGapValue">0</span>%</label>
+            <input id="waterfallRowGapRange" type="range" min="0" max="50" step="1" value="0" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallGainRange" class="settings-label">增益 <span class="settings-value" id="waterfallGainValue">55</span>%</label>
+            <input id="waterfallGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="waterfallSmoothValue">12</span>%</label>
+            <input id="waterfallSmoothRange" type="range" min="0" max="400" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="waterfallSoftClipValue">10</span>%</label>
+            <input id="waterfallSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="waterfallFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="waterfallFallEaseValue">40</span>%</label>
+            <input id="waterfallFallEaseRange" type="range" min="0" max="100" step="1" value="40" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="dotRingConfigPanel" aria-labelledby="sec-dot-ring-display" hidden>
+        <h2 id="sec-dot-ring-display" class="settings-card__title">环形圆点配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--dot-ring" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="dotRingDotColor" class="settings-label">圆点颜色</label>
+            <input id="dotRingDotColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingRadiusRange" class="settings-label">圆环半径 <span class="settings-value" id="dotRingRadiusValue">75</span>%</label>
+            <input id="dotRingRadiusRange" type="range" min="10" max="95" step="1" value="75" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingCountRange" class="settings-label">圆点数量 <span class="settings-value" id="dotRingCountValue">32</span></label>
+            <input id="dotRingCountRange" type="range" min="4" max="128" step="1" value="32" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingSizeRange" class="settings-label">圆点大小 <span class="settings-value" id="dotRingSizeValue">6</span> px</label>
+            <input id="dotRingSizeRange" type="range" min="2" max="24" step="1" value="6" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="dotRingPulseToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>强拍脉冲缩放</span>
+          </label>
+          <div class="settings-field">
+            <label for="dotRingGainRange" class="settings-label">增益 <span class="settings-value" id="dotRingGainValue">62</span>%</label>
+            <input id="dotRingGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="dotRingSmoothValue">22</span>%</label>
+            <input id="dotRingSmoothRange" type="range" min="0" max="400" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="dotRingSoftClipValue">12</span>%</label>
+            <input id="dotRingSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="dotRingFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="dotRingFallEaseValue">55</span>%</label>
+            <input id="dotRingFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>
