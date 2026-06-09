@@ -82,6 +82,7 @@
               <option value="line" selected>线状图</option>
               <option value="bar">柱状图</option>
               <option value="area">填充波形</option>
+              <option value="gradientBar">渐变频谱柱</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -266,6 +267,80 @@
           <div class="settings-field">
             <label for="barFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="barFallEaseValue">52</span>%</label>
             <input id="barFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="gradientBarConfigPanel" aria-labelledby="sec-gradient-bar-display" hidden>
+        <h2 id="sec-gradient-bar-display" class="settings-card__title">渐变频谱柱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--gradient-bar" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="gradientBarColorLow" class="settings-label">低频颜色</label>
+            <input id="gradientBarColorLow" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="gradientBarColorHigh" class="settings-label">高频颜色</label>
+            <input id="gradientBarColorHigh" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarWidthRange" class="settings-label">柱体宽度 <span class="settings-value" id="gradientBarWidthValue">76</span>%</label>
+            <input id="gradientBarWidthRange" type="range" min="20" max="100" step="1" value="76" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarGapRange" class="settings-label">柱间距 <span class="settings-value" id="gradientBarGapValue">18</span>%</label>
+            <input id="gradientBarGapRange" type="range" min="0" max="70" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarHeadroomRange" class="settings-label">顶部留白 <span class="settings-value" id="gradientBarHeadroomValue">6</span>%</label>
+            <input id="gradientBarHeadroomRange" type="range" min="0" max="40" step="1" value="6" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="gradientBarOrientation" class="settings-label">排列方向</label>
+            <select id="gradientBarOrientation" class="settings-select">
+              <option value="horizontal" selected>左右排列</option>
+              <option value="vertical">上下排列</option>
+            </select>
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="gradientBarMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像柱体（中心对称）</span>
+          </label>
+          <div class="settings-field settings-field--row">
+            <label for="gradientBarPeakHoldMode" class="settings-label">峰值保持线</label>
+            <select id="gradientBarPeakHoldMode" class="settings-select">
+              <option value="off">全部关闭</option>
+              <option value="single" selected>仅一面</option>
+              <option value="both">两面开启</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="gradientBarPeakColor" class="settings-label">峰值线颜色</label>
+            <input id="gradientBarPeakColor" type="color" value="#ffffff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarPeakFallSpeedRange" class="settings-label">峰值线回落速度 <span class="settings-value" id="gradientBarPeakFallSpeedValue">35</span></label>
+            <input id="gradientBarPeakFallSpeedRange" type="range" min="5" max="120" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarPeakThicknessRange" class="settings-label">峰值线粗细 <span class="settings-value" id="gradientBarPeakThicknessValue">2</span> px</label>
+            <input id="gradientBarPeakThicknessRange" type="range" min="1" max="8" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarGainRange" class="settings-label">增益 <span class="settings-value" id="gradientBarGainValue">62</span>%</label>
+            <input id="gradientBarGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="gradientBarSmoothValue">18</span>%</label>
+            <input id="gradientBarSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="gradientBarSoftClipValue">12</span>%</label>
+            <input id="gradientBarSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="gradientBarFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="gradientBarFallEaseValue">52</span>%</label>
+            <input id="gradientBarFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

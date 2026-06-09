@@ -24,6 +24,18 @@ export const STORAGE_KEYS = {
   areaMirror: "wavedance.areaMirrorEnabled",
   areaGradient: "wavedance.areaGradientEnabled",
   areaShape: "wavedance.areaShapeConfig",
+  gradientBarColorLow: "wavedance.gradientBarColorLow",
+  gradientBarColorHigh: "wavedance.gradientBarColorHigh",
+  gradientBarWidth: "wavedance.gradientBarWidthPercent",
+  gradientBarGap: "wavedance.gradientBarGapPercent",
+  gradientBarHeadroom: "wavedance.gradientBarHeadroomPercent",
+  gradientBarOrientation: "wavedance.gradientBarOrientation",
+  gradientBarMirror: "wavedance.gradientBarMirrorEnabled",
+  gradientBarPeakHoldMode: "wavedance.gradientBarPeakHoldMode",
+  gradientBarPeakColor: "wavedance.gradientBarPeakColor",
+  gradientBarPeakFallSpeed: "wavedance.gradientBarPeakFallSpeed",
+  gradientBarPeakThickness: "wavedance.gradientBarPeakThickness",
+  gradientBarShape: "wavedance.gradientBarShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -33,6 +45,7 @@ export const DISPLAY_MODES = {
   line: "line",
   bar: "bar",
   area: "area",
+  gradientBar: "gradientBar",
 };
 
 export const PANEL_STYLES = {
@@ -97,6 +110,25 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 68,
     },
   },
+  gradientBar: {
+    colorLow: "#3b82f6",
+    colorHigh: "#ec4899",
+    widthPercent: 76,
+    gapPercent: 18,
+    headroomPercent: 6,
+    orientation: BAR_ORIENTATIONS.horizontal,
+    mirrorEnabled: false,
+    peakHoldMode: PEAK_HOLD_MODES.single,
+    peakColor: "#ffffff",
+    peakFallSpeed: 35,
+    peakThickness: 2,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -104,6 +136,7 @@ export function normalizeDisplayMode(mode) {
   const s = String(mode ?? "").trim();
   if (s === DISPLAY_MODES.bar) return DISPLAY_MODES.bar;
   if (s === DISPLAY_MODES.area) return DISPLAY_MODES.area;
+  if (s === DISPLAY_MODES.gradientBar) return DISPLAY_MODES.gradientBar;
   return DISPLAY_MODES.line;
 }
 
@@ -152,6 +185,23 @@ export function readBarPeakHoldMode(ls, windowLabel) {
   return DEFAULT_CONFIG.bar.peakHoldMode;
 }
 
+/**
+ * 读取渐变频谱柱峰值保持线模式；兼容旧版 boolean 存储 `gradientBarPeakHold`。
+ * @param {Storage} ls
+ * @param {string} windowLabel
+ */
+export function readGradientBarPeakHoldMode(ls, windowLabel) {
+  const modeRaw = readWindowStorageString(ls, windowLabel, "gradientBarPeakHoldMode");
+  if (modeRaw === PEAK_HOLD_MODES.off || modeRaw === PEAK_HOLD_MODES.single || modeRaw === PEAK_HOLD_MODES.both) {
+    return modeRaw;
+  }
+  const legacyRaw = readWindowStorageString(ls, windowLabel, "gradientBarPeakHold");
+  if (legacyRaw != null && legacyRaw !== "") {
+    return parseBoolean(legacyRaw, true) ? PEAK_HOLD_MODES.single : PEAK_HOLD_MODES.off;
+  }
+  return DEFAULT_CONFIG.gradientBar.peakHoldMode;
+}
+
 /** 仅允许主窗与频谱副窗作为「每窗配置」的存储分区。 */
 export function normalizeSpectrumWindowLabel(label) {
   const s = String(label ?? "").trim();
@@ -194,6 +244,18 @@ export function windowStorageKeys(windowLabel) {
     areaMirror: `${pre}.areaMirrorEnabled`,
     areaGradient: `${pre}.areaGradientEnabled`,
     areaShape: `${pre}.areaShapeConfig`,
+    gradientBarColorLow: `${pre}.gradientBarColorLow`,
+    gradientBarColorHigh: `${pre}.gradientBarColorHigh`,
+    gradientBarWidth: `${pre}.gradientBarWidthPercent`,
+    gradientBarGap: `${pre}.gradientBarGapPercent`,
+    gradientBarHeadroom: `${pre}.gradientBarHeadroomPercent`,
+    gradientBarOrientation: `${pre}.gradientBarOrientation`,
+    gradientBarMirror: `${pre}.gradientBarMirrorEnabled`,
+    gradientBarPeakHoldMode: `${pre}.gradientBarPeakHoldMode`,
+    gradientBarPeakColor: `${pre}.gradientBarPeakColor`,
+    gradientBarPeakFallSpeed: `${pre}.gradientBarPeakFallSpeed`,
+    gradientBarPeakThickness: `${pre}.gradientBarPeakThickness`,
+    gradientBarShape: `${pre}.gradientBarShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

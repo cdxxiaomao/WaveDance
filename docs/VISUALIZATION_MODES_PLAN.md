@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 1 已完成，Phase 2 待实施  
+> **状态**：Phase 2 已完成，Phase 3 待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -260,10 +260,10 @@ gradientBar: {
 
 #### 2.2 新建 `gradientBarRenderer.js`
 
-- [ ] 顶点布局：复用 `barRenderer` 的 rect 生成
-- [ ] 每个顶点 attribute `a_freqT`（0~1 归一化频率位置）
-- [ ] Fragment：`mix(u_colorLow, u_colorHigh, a_freqT)` 或 smoothstep 彩虹
-- [ ] 峰值保持线：可直接 import barRenderer 内相关函数，或抽成 `peakHold.js`
+- [x] 顶点布局：复用 `barRenderer` 的 rect 生成
+- [x] 每个顶点 attribute `a_freqT`（0~1 归一化频率位置）
+- [x] Fragment：`mix(u_colorLow, u_colorHigh, a_freqT)` 或 smoothstep 彩虹
+- [x] 峰值保持线：可直接 import barRenderer 内相关函数，或抽成 `peakHold.js`
 
 #### 2.3 集成与设置页
 
@@ -273,9 +273,9 @@ gradientBar: {
 
 #### 2.4 验收标准
 
-- [ ] 渐变随频率变化，反转频率方向后渐变方向同步
-- [ ] 峰值线仍可用
-- [ ] 与原生 bar 模式可自由切换
+- [x] 渐变随频率变化，反转频率方向后渐变方向同步
+- [x] 峰值线仍可用
+- [x] 与原生 bar 模式可自由切换
 
 ---
 
@@ -563,7 +563,7 @@ oscilloscope: {
 |-------|------|------|----------|
 | 0 | 公共基础重构 | `[x]` 已完成 | 2026-06-09 |
 | 1 | 填充波形 Area | `[x]` 已完成 | 2026-06-09 |
-| 2 | 渐变频谱柱 Gradient Bar | `[ ]` 未开始 | |
+| 2 | 渐变频谱柱 Gradient Bar | `[x]` 已完成 | 2026-06-09 |
 | 3 | 霓虹发光线 Glow Line | `[ ]` 未开始 | |
 | 4 | 圆形频谱 Radial | `[ ]` 未开始 | |
 | 5 | 瀑布频谱 Waterfall | `[ ]` 未开始 | |
@@ -571,7 +571,7 @@ oscilloscope: {
 | 7 | 文档与 README | `[ ]` 未开始 | |
 | 8 | 示波器 Oscilloscope（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 2（渐变频谱柱 Gradient Bar）
+**当前建议下一步**：Phase 3（霓虹发光线 Glow Line）
 
 ---
 

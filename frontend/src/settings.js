@@ -11,6 +11,7 @@ import {
   normalizeBarPeakHoldMode,
   normalizeDisplayMode,
   readBarPeakHoldMode,
+  readGradientBarPeakHoldMode,
   parseBoolean,
   readWindowStorageString,
   writeWindowStorageString,
@@ -38,6 +39,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.line]: "lineConfigPanel",
   [DISPLAY_MODES.bar]: "barConfigPanel",
   [DISPLAY_MODES.area]: "areaConfigPanel",
+  [DISPLAY_MODES.gradientBar]: "gradientBarConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -89,6 +91,30 @@ const areaSoftClipRange = document.querySelector("#areaSoftClipRange");
 const areaSoftClipValue = document.querySelector("#areaSoftClipValue");
 const areaFallEaseRange = document.querySelector("#areaFallEaseRange");
 const areaFallEaseValue = document.querySelector("#areaFallEaseValue");
+const gradientBarColorLow = document.querySelector("#gradientBarColorLow");
+const gradientBarColorHigh = document.querySelector("#gradientBarColorHigh");
+const gradientBarWidthRange = document.querySelector("#gradientBarWidthRange");
+const gradientBarWidthValue = document.querySelector("#gradientBarWidthValue");
+const gradientBarGapRange = document.querySelector("#gradientBarGapRange");
+const gradientBarGapValue = document.querySelector("#gradientBarGapValue");
+const gradientBarHeadroomRange = document.querySelector("#gradientBarHeadroomRange");
+const gradientBarHeadroomValue = document.querySelector("#gradientBarHeadroomValue");
+const gradientBarOrientationSelect = document.querySelector("#gradientBarOrientation");
+const gradientBarMirrorToggle = document.querySelector("#gradientBarMirrorToggle");
+const gradientBarPeakHoldModeSelect = document.querySelector("#gradientBarPeakHoldMode");
+const gradientBarPeakColor = document.querySelector("#gradientBarPeakColor");
+const gradientBarPeakFallSpeedRange = document.querySelector("#gradientBarPeakFallSpeedRange");
+const gradientBarPeakFallSpeedValue = document.querySelector("#gradientBarPeakFallSpeedValue");
+const gradientBarPeakThicknessRange = document.querySelector("#gradientBarPeakThicknessRange");
+const gradientBarPeakThicknessValue = document.querySelector("#gradientBarPeakThicknessValue");
+const gradientBarGainRange = document.querySelector("#gradientBarGainRange");
+const gradientBarGainValue = document.querySelector("#gradientBarGainValue");
+const gradientBarSmoothRange = document.querySelector("#gradientBarSmoothRange");
+const gradientBarSmoothValue = document.querySelector("#gradientBarSmoothValue");
+const gradientBarSoftClipRange = document.querySelector("#gradientBarSoftClipRange");
+const gradientBarSoftClipValue = document.querySelector("#gradientBarSoftClipValue");
+const gradientBarFallEaseRange = document.querySelector("#gradientBarFallEaseRange");
+const gradientBarFallEaseValue = document.querySelector("#gradientBarFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -245,6 +271,137 @@ async function syncAreaShapeConfig(visualTargetLabel, emitVisual) {
     await emitVisual("waveform-area-shape-config", config);
   } catch (err) {
     statusEl.textContent = `同步填充波形参数失败：${String(err)}`;
+  }
+}
+
+function readGradientBarShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncGradientBarShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(gradientBarGainRange?.value, 10, 150),
+    smoothPercent: clampInt(gradientBarSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(gradientBarSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(gradientBarFallEaseRange?.value, 0, 100),
+  };
+  gradientBarGainValue.textContent = String(config.gainPercent);
+  gradientBarSmoothValue.textContent = String(config.smoothPercent);
+  gradientBarSoftClipValue.textContent = String(config.softClipPercent);
+  gradientBarFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-gradient-bar-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步渐变频谱柱参数失败：${String(err)}`;
+  }
+}
+
+function applyGradientBarFormFromStorage(v) {
+  const sg = readGradientBarShapeConfig(v) ?? { ...DEFAULT_CONFIG.gradientBar.shape };
+  if (gradientBarGainRange) gradientBarGainRange.value = String(sg.gainPercent);
+  if (gradientBarSmoothRange) gradientBarSmoothRange.value = String(sg.smoothPercent);
+  if (gradientBarSoftClipRange) gradientBarSoftClipRange.value = String(sg.softClipPercent);
+  if (gradientBarFallEaseRange) gradientBarFallEaseRange.value = String(sg.fallEasePercent);
+  if (gradientBarGainValue) gradientBarGainValue.textContent = String(sg.gainPercent);
+  if (gradientBarSmoothValue) gradientBarSmoothValue.textContent = String(sg.smoothPercent);
+  if (gradientBarSoftClipValue) gradientBarSoftClipValue.textContent = String(sg.softClipPercent);
+  if (gradientBarFallEaseValue) gradientBarFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "gradientBarColorLow");
+  if (gradientBarColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    gradientBarColorLow.value = savedColorLow.toLowerCase();
+  } else if (gradientBarColorLow) {
+    gradientBarColorLow.value = DEFAULT_CONFIG.gradientBar.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "gradientBarColorHigh");
+  if (gradientBarColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    gradientBarColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (gradientBarColorHigh) {
+    gradientBarColorHigh.value = DEFAULT_CONFIG.gradientBar.colorHigh;
+  }
+
+  const savedWidth = readWindowStorageString(window.localStorage, v, "gradientBarWidth");
+  if (gradientBarWidthRange) {
+    const widthPercent =
+      savedWidth != null && savedWidth !== ""
+        ? clampInt(savedWidth, 20, 100)
+        : DEFAULT_CONFIG.gradientBar.widthPercent;
+    gradientBarWidthRange.value = String(widthPercent);
+    if (gradientBarWidthValue) gradientBarWidthValue.textContent = String(widthPercent);
+  }
+
+  const savedGap = readWindowStorageString(window.localStorage, v, "gradientBarGap");
+  if (gradientBarGapRange) {
+    const gapPercent =
+      savedGap != null && savedGap !== ""
+        ? clampInt(savedGap, 0, 70)
+        : DEFAULT_CONFIG.gradientBar.gapPercent;
+    gradientBarGapRange.value = String(gapPercent);
+    if (gradientBarGapValue) gradientBarGapValue.textContent = String(gapPercent);
+  }
+
+  const savedHeadroom = readWindowStorageString(window.localStorage, v, "gradientBarHeadroom");
+  if (gradientBarHeadroomRange) {
+    const headroomPercent =
+      savedHeadroom != null && savedHeadroom !== ""
+        ? clampInt(savedHeadroom, 0, 40)
+        : DEFAULT_CONFIG.gradientBar.headroomPercent;
+    gradientBarHeadroomRange.value = String(headroomPercent);
+    if (gradientBarHeadroomValue) gradientBarHeadroomValue.textContent = String(headroomPercent);
+  }
+
+  if (gradientBarOrientationSelect) {
+    gradientBarOrientationSelect.value = normalizeBarOrientation(
+      readWindowStorageString(window.localStorage, v, "gradientBarOrientation"),
+      DEFAULT_CONFIG.gradientBar.orientation,
+    );
+  }
+  if (gradientBarMirrorToggle) {
+    gradientBarMirrorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "gradientBarMirror"),
+      DEFAULT_CONFIG.gradientBar.mirrorEnabled,
+    );
+  }
+  if (gradientBarPeakHoldModeSelect) {
+    gradientBarPeakHoldModeSelect.value = readGradientBarPeakHoldMode(window.localStorage, v);
+  }
+  if (gradientBarPeakColor) {
+    const savedPeakColor = readWindowStorageString(window.localStorage, v, "gradientBarPeakColor");
+    if (savedPeakColor && /^#[0-9A-Fa-f]{6}$/.test(savedPeakColor)) {
+      gradientBarPeakColor.value = savedPeakColor.toLowerCase();
+    } else {
+      gradientBarPeakColor.value = DEFAULT_CONFIG.gradientBar.peakColor;
+    }
+  }
+  const savedPeakFall = readWindowStorageString(window.localStorage, v, "gradientBarPeakFallSpeed");
+  if (savedPeakFall && gradientBarPeakFallSpeedRange) {
+    const speed = clampInt(savedPeakFall, 5, 120);
+    gradientBarPeakFallSpeedRange.value = String(speed);
+    if (gradientBarPeakFallSpeedValue) gradientBarPeakFallSpeedValue.textContent = String(speed);
+  }
+  const savedPeakTh = readWindowStorageString(window.localStorage, v, "gradientBarPeakThickness");
+  if (savedPeakTh && gradientBarPeakThicknessRange) {
+    const thickness = clampInt(savedPeakTh, 1, 8);
+    gradientBarPeakThicknessRange.value = String(thickness);
+    if (gradientBarPeakThicknessValue) gradientBarPeakThicknessValue.textContent = String(thickness);
   }
 }
 
@@ -522,6 +679,7 @@ async function init() {
     barFallEaseValue.textContent = String(sb.fallEasePercent);
 
     applyAreaFormFromStorage(v);
+    applyGradientBarFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -933,6 +1091,119 @@ async function init() {
   areaFallEaseRange?.addEventListener("input", () => {
     void syncAreaShapeConfig(visualTargetLabel, emitVisual);
   });
+  gradientBarColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarColorLow", gradientBarColorLow.value);
+      await emitVisual("waveform-gradient-bar-color-low", gradientBarColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低频颜色失败：${String(err)}`;
+    }
+  });
+  gradientBarColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarColorHigh", gradientBarColorHigh.value);
+      await emitVisual("waveform-gradient-bar-color-high", gradientBarColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高频颜色失败：${String(err)}`;
+    }
+  });
+  gradientBarWidthRange?.addEventListener("input", async (event) => {
+    const widthPercent = clampInt(event.target.value, 20, 100);
+    gradientBarWidthValue.textContent = String(widthPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarWidth", String(widthPercent));
+      await emitVisual("waveform-gradient-bar-width", widthPercent);
+    } catch (err) {
+      statusEl.textContent = `更新柱体宽度失败：${String(err)}`;
+    }
+  });
+  gradientBarGapRange?.addEventListener("input", async (event) => {
+    const gapPercent = clampInt(event.target.value, 0, 70);
+    gradientBarGapValue.textContent = String(gapPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarGap", String(gapPercent));
+      await emitVisual("waveform-gradient-bar-gap", gapPercent);
+    } catch (err) {
+      statusEl.textContent = `更新柱间距失败：${String(err)}`;
+    }
+  });
+  gradientBarHeadroomRange?.addEventListener("input", async (event) => {
+    const headroomPercent = clampInt(event.target.value, 0, 40);
+    gradientBarHeadroomValue.textContent = String(headroomPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarHeadroom", String(headroomPercent));
+      await emitVisual("waveform-gradient-bar-headroom", headroomPercent);
+    } catch (err) {
+      statusEl.textContent = `更新顶部留白失败：${String(err)}`;
+    }
+  });
+  gradientBarOrientationSelect?.addEventListener("change", async (event) => {
+    const orientation = normalizeBarOrientation(event.target.value, DEFAULT_CONFIG.gradientBar.orientation);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarOrientation", orientation);
+      await emitVisual("waveform-gradient-bar-orientation", orientation);
+    } catch (err) {
+      statusEl.textContent = `更新排列方向失败：${String(err)}`;
+    }
+  });
+  gradientBarMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarMirror", String(enabled));
+      await emitVisual("waveform-gradient-bar-mirror", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新镜像模式失败：${String(err)}`;
+    }
+  });
+  gradientBarPeakHoldModeSelect?.addEventListener("change", async (event) => {
+    const mode = normalizeBarPeakHoldMode(event.target.value, DEFAULT_CONFIG.gradientBar.peakHoldMode);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarPeakHoldMode", mode);
+      await emitVisual("waveform-gradient-bar-peak-hold", mode);
+    } catch (err) {
+      statusEl.textContent = `更新峰值保持线失败：${String(err)}`;
+    }
+  });
+  gradientBarPeakColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarPeakColor", gradientBarPeakColor.value);
+      await emitVisual("waveform-gradient-bar-peak-color", gradientBarPeakColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新峰值线颜色失败：${String(err)}`;
+    }
+  });
+  gradientBarPeakFallSpeedRange?.addEventListener("input", async (event) => {
+    const speed = clampInt(event.target.value, 5, 120);
+    gradientBarPeakFallSpeedValue.textContent = String(speed);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarPeakFallSpeed", String(speed));
+      await emitVisual("waveform-gradient-bar-peak-fall-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新峰值线回落速度失败：${String(err)}`;
+    }
+  });
+  gradientBarPeakThicknessRange?.addEventListener("input", async (event) => {
+    const thickness = clampInt(event.target.value, 1, 8);
+    gradientBarPeakThicknessValue.textContent = String(thickness);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "gradientBarPeakThickness", String(thickness));
+      await emitVisual("waveform-gradient-bar-peak-thickness", thickness);
+    } catch (err) {
+      statusEl.textContent = `更新峰值线粗细失败：${String(err)}`;
+    }
+  });
+  gradientBarGainRange?.addEventListener("input", () => {
+    void syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  gradientBarSmoothRange?.addEventListener("input", () => {
+    void syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  gradientBarSoftClipRange?.addEventListener("input", () => {
+    void syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  gradientBarFallEaseRange?.addEventListener("input", () => {
+    void syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -1142,6 +1413,8 @@ async function init() {
   await syncBarShapeConfig(visualTargetLabel, emitVisual);
   applyAreaFormFromStorage(visualTargetLabel);
   await syncAreaShapeConfig(visualTargetLabel, emitVisual);
+  applyGradientBarFormFromStorage(visualTargetLabel);
+  await syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -1245,6 +1518,45 @@ async function init() {
   }
   if (areaGradientToggle) {
     await emitVisual("waveform-area-gradient", Boolean(areaGradientToggle.checked));
+  }
+  if (gradientBarColorLow) {
+    await emitVisual("waveform-gradient-bar-color-low", gradientBarColorLow.value);
+  }
+  if (gradientBarColorHigh) {
+    await emitVisual("waveform-gradient-bar-color-high", gradientBarColorHigh.value);
+  }
+  if (gradientBarWidthRange) {
+    await emitVisual("waveform-gradient-bar-width", clampInt(gradientBarWidthRange.value, 20, 100));
+  }
+  if (gradientBarGapRange) {
+    await emitVisual("waveform-gradient-bar-gap", clampInt(gradientBarGapRange.value, 0, 70));
+  }
+  if (gradientBarHeadroomRange) {
+    await emitVisual("waveform-gradient-bar-headroom", clampInt(gradientBarHeadroomRange.value, 0, 40));
+  }
+  if (gradientBarOrientationSelect) {
+    await emitVisual(
+      "waveform-gradient-bar-orientation",
+      normalizeBarOrientation(gradientBarOrientationSelect.value, DEFAULT_CONFIG.gradientBar.orientation),
+    );
+  }
+  if (gradientBarMirrorToggle) {
+    await emitVisual("waveform-gradient-bar-mirror", Boolean(gradientBarMirrorToggle.checked));
+  }
+  if (gradientBarPeakHoldModeSelect) {
+    await emitVisual(
+      "waveform-gradient-bar-peak-hold",
+      normalizeBarPeakHoldMode(gradientBarPeakHoldModeSelect.value, DEFAULT_CONFIG.gradientBar.peakHoldMode),
+    );
+  }
+  if (gradientBarPeakColor) {
+    await emitVisual("waveform-gradient-bar-peak-color", gradientBarPeakColor.value);
+  }
+  if (gradientBarPeakFallSpeedRange) {
+    await emitVisual("waveform-gradient-bar-peak-fall-speed", clampInt(gradientBarPeakFallSpeedRange.value, 5, 120));
+  }
+  if (gradientBarPeakThicknessRange) {
+    await emitVisual("waveform-gradient-bar-peak-thickness", clampInt(gradientBarPeakThicknessRange.value, 1, 8));
   }
 
   if (closeSettingsBtn) {

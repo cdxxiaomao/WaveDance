@@ -140,3 +140,10 @@
 - `visualizationSchema.js`：新增 `DISPLAY_MODES.area`、`DEFAULT_CONFIG.area` 及 area 相关 storage keys；导出 `normalizeDisplayMode()`。
 - `main.js`：注册 areaRenderer，监听 `waveform-area-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「填充波形」、`#areaConfigPanel` 及全套控件。
+
+### 可视化模式扩展 — Phase 2：渐变频谱柱 Gradient Bar
+
+- 新建 `frontend/src/renderers/gradientBarRenderer.js`：复用柱状图几何布局，顶点 attribute `a_freqT` 驱动 `mix(colorLow, colorHigh)` 频率渐变；峰值保持线独立纯色 shader。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.gradientBar`、`DEFAULT_CONFIG.gradientBar` 及全套 storage keys；导出 `readGradientBarPeakHoldMode()`。
+- `main.js`：注册 gradientBarRenderer，监听 `waveform-gradient-bar-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「渐变频谱柱」、`#gradientBarConfigPanel`（双色选择器 + 柱宽/间距/方向/镜像/峰值线 + 形状四件套）。
