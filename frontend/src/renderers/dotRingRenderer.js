@@ -1,6 +1,6 @@
 import { createProgram } from "./shaderUtils.js";
 import { processSpectrumPoints } from "./shapePipeline.js";
-import { minNdcForPixels } from "./common.js";
+import { applyAdaptiveSmooth, minNdcForPixels } from "./common.js";
 import { getAspectScale, polarToNdc, slotToAngle } from "./polar.js";
 
 /**
@@ -25,40 +25,37 @@ export function aggregateBands(values, dotCount) {
   return result;
 }
 
-function writeQuad(vertices, alphaAttr, offset, cx, cy, halfW, halfH, alpha) {
-  const x0 = cx - halfW;
-  const x1 = cx + halfW;
-  const y0 = cy - halfH;
-  const y1 = cy + halfH;
+/** 每个顶点：position(2) + localCoord(2) + alpha(1) */
+function writeCircleQuad(vertices, offset, cx, cy, halfW, halfH, alpha) {
+  const corners = [
+    { lx: -1, ly: -1 },
+    { lx: 1, ly: -1 },
+    { lx: 1, ly: 1 },
+    { lx: -1, ly: 1 },
+  ];
+  const indices = [0, 1, 2, 0, 2, 3];
 
-  vertices[offset] = x0;
-  vertices[offset + 1] = y0;
-  vertices[offset + 2] = x1;
-  vertices[offset + 3] = y0;
-  vertices[offset + 4] = x1;
-  vertices[offset + 5] = y1;
-  alphaAttr[offset / 2] = alpha;
-  alphaAttr[offset / 2 + 1] = alpha;
-  alphaAttr[offset / 2 + 2] = alpha;
-
-  vertices[offset + 6] = x0;
-  vertices[offset + 7] = y0;
-  vertices[offset + 8] = x1;
-  vertices[offset + 9] = y1;
-  vertices[offset + 10] = x0;
-  vertices[offset + 11] = y1;
-  alphaAttr[offset / 2 + 3] = alpha;
-  alphaAttr[offset / 2 + 4] = alpha;
-  alphaAttr[offset / 2 + 5] = alpha;
+  for (let i = 0; i < 6; i++) {
+    const c = corners[indices[i]];
+    const base = offset + i * 5;
+    vertices[base] = cx + c.lx * halfW;
+    vertices[base + 1] = cy + c.ly * halfH;
+    vertices[base + 2] = c.lx;
+    vertices[base + 3] = c.ly;
+    vertices[base + 4] = alpha;
+  }
 }
 
 export function createDotRingRenderer(gl) {
   const vertexShaderSource = `
 attribute vec2 a_position;
+attribute vec2 a_localCoord;
 attribute float a_alpha;
+varying vec2 v_localCoord;
 varying float v_alpha;
 void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
+  v_localCoord = a_localCoord;
   v_alpha = a_alpha;
 }
 `;
@@ -66,32 +63,54 @@ void main() {
   const fragmentShaderSource = `
 precision mediump float;
 uniform vec3 u_dotColor;
+varying vec2 v_localCoord;
 varying float v_alpha;
 void main() {
-  gl_FragColor = vec4(u_dotColor, v_alpha);
+  float dist = length(v_localCoord);
+  if (dist > 1.0) {
+    discard;
+  }
+  float edge = smoothstep(1.0, 0.82, dist);
+  gl_FragColor = vec4(u_dotColor, v_alpha * edge);
 }
 `;
 
   const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   const positionLoc = gl.getAttribLocation(program, "a_position");
+  const localCoordLoc = gl.getAttribLocation(program, "a_localCoord");
   const alphaLoc = gl.getAttribLocation(program, "a_alpha");
   const colorLoc = gl.getUniformLocation(program, "u_dotColor");
   const buffer = gl.createBuffer();
-  const alphaBuffer = gl.createBuffer();
+  const stride = 5 * 4;
   let easedPoints = [];
+  let easedBandAmps = [];
   let pulseEased = 0;
 
   const render = (points, shapeConfig, styleConfig) => {
     if (!Array.isArray(points) || points.length === 0) return;
 
     const len = points.length;
-    const normalized = processSpectrumPoints(points, shapeConfig, easedPoints);
+    const normalized = processSpectrumPoints(points, shapeConfig, easedPoints, { circular: true });
     const dotCount = Math.max(4, Math.min(128, Math.round(Number(styleConfig.dotCount) || 32)));
     const bandAmps = aggregateBands(normalized, dotCount);
+    applyAdaptiveSmooth(bandAmps, shapeConfig.smoothPercent, { circular: true });
+
+    if (easedBandAmps.length !== dotCount) {
+      easedBandAmps = new Array(dotCount).fill(0);
+    }
+
+    const fallEasePercent = Number(shapeConfig?.fallEasePercent);
+    const fallBlend = Number.isFinite(fallEasePercent)
+      ? Math.max(0.02, Math.min(1, fallEasePercent / 100))
+      : 0.55;
 
     let globalMax = 0;
-    for (let i = 0; i < bandAmps.length; i++) {
-      if (bandAmps[i] > globalMax) globalMax = bandAmps[i];
+    for (let i = 0; i < dotCount; i++) {
+      const raw = bandAmps[i];
+      const prev = easedBandAmps[i] ?? 0;
+      const eased = raw >= prev ? raw : prev + (raw - prev) * fallBlend;
+      easedBandAmps[i] = eased;
+      if (eased > globalMax) globalMax = eased;
     }
     if (globalMax < 0.002) return;
 
@@ -111,29 +130,34 @@ void main() {
     } else {
       pulseEased = 0;
     }
-    const pulseScale = pulseEnabled ? 1 + 0.45 * pulseEased : 1;
+    const pulseBoost = pulseEnabled ? 1 + 0.25 * pulseEased : 1;
+
+    // 振幅向外推的最大径向行程（相对 min 维度）
+    const radialSpreadNdc = Math.min(0.38, Math.max(0.08, (0.96 - ringRadiusNdc) * 0.92));
 
     const halfWBase = minNdcForPixels(baseSizePx * 0.5, canvasW);
     const halfHBase = minNdcForPixels(baseSizePx * 0.5, canvasH);
 
     const polarOpts = { freqReversed, rotationOffsetDeg: 0, clockwise: true };
-    const vertices = new Float32Array(dotCount * 12);
-    const alphaAttr = new Float32Array(dotCount * 6);
+    const vertices = new Float32Array(dotCount * 30);
     let writeOffset = 0;
 
     for (let slot = 0; slot < dotCount; slot++) {
-      const amp = bandAmps[slot];
+      const amp = easedBandAmps[slot];
       if (amp <= 0.001) continue;
 
       const angle = slotToAngle(slot, dotCount, polarOpts);
-      const center = polarToNdc(angle, ringRadiusNdc, aspectScale);
-      const sizeScale = (0.3 + 0.7 * amp) * pulseScale;
-      const alpha = Math.max(0.15, Math.min(1, amp));
+      const radialOffset = amp * radialSpreadNdc * pulseBoost;
+      const effectiveRadius = Math.min(0.98, ringRadiusNdc + radialOffset);
+      const center = polarToNdc(angle, effectiveRadius, aspectScale);
+
+      const sizeScale = (0.55 + 0.45 * amp) * (pulseEnabled ? 1 + 0.15 * pulseEased : 1);
+      const alpha = Math.max(0.2, Math.min(1, 0.35 + 0.65 * amp));
       const halfW = halfWBase * sizeScale;
       const halfH = halfHBase * sizeScale;
 
-      writeQuad(vertices, alphaAttr, writeOffset, center.x, center.y, halfW, halfH, alpha);
-      writeOffset += 12;
+      writeCircleQuad(vertices, writeOffset, center.x, center.y, halfW, halfH, alpha);
+      writeOffset += 30;
     }
 
     if (writeOffset === 0) return;
@@ -146,14 +170,13 @@ void main() {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices.subarray(0, writeOffset), gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(positionLoc);
-    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, alphaBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, alphaAttr.subarray(0, writeOffset / 2), gl.DYNAMIC_DRAW);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, stride, 0);
+    gl.enableVertexAttribArray(localCoordLoc);
+    gl.vertexAttribPointer(localCoordLoc, 2, gl.FLOAT, false, stride, 8);
     gl.enableVertexAttribArray(alphaLoc);
-    gl.vertexAttribPointer(alphaLoc, 1, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(alphaLoc, 1, gl.FLOAT, false, stride, 16);
 
-    gl.drawArrays(gl.TRIANGLES, 0, writeOffset / 2);
+    gl.drawArrays(gl.TRIANGLES, 0, writeOffset / 5);
   };
 
   return { render };

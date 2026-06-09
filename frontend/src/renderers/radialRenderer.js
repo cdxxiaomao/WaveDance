@@ -37,7 +37,7 @@ void main() {
     if (!Array.isArray(points) || points.length === 0) return;
 
     const len = points.length;
-    const normalized = processSpectrumPoints(points, shapeConfig, easedBars);
+    const normalized = processSpectrumPoints(points, shapeConfig, easedBars, { circular: true });
 
     let maxAmp = 0;
     for (let i = 0; i < len; i++) {

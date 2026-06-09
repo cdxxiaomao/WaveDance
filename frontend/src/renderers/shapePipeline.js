@@ -5,7 +5,8 @@ import { applyAdaptiveSmooth, clamp01 } from "./common.js";
  * @param {number[]} points
  * @param {{ gainPercent: number, smoothPercent: number, softClipPercent: number, fallEasePercent: number }} shapeConfig
  * @param {number[]} easedStateRef 调用方持有的缓落状态数组（原地更新）
- * @param {{ mapToNdcLine?: boolean }} [options] line 模式需在 smooth 前映射到 NDC，与旧行为一致
+ * @param {{ mapToNdcLine?: boolean, circular?: boolean }} [options]
+ *   mapToNdcLine: line 模式需在 smooth 前映射到 NDC；circular: 环形模式首尾邻接平滑
  * @returns {Float32Array}
  */
 export function processSpectrumPoints(points, shapeConfig, easedStateRef, options = {}) {
@@ -34,6 +35,6 @@ export function processSpectrumPoints(points, shapeConfig, easedStateRef, option
     }
   }
 
-  applyAdaptiveSmooth(result, shapeConfig.smoothPercent);
+  applyAdaptiveSmooth(result, shapeConfig.smoothPercent, { circular: Boolean(options.circular) });
   return result;
 }
