@@ -95,6 +95,15 @@ export const STORAGE_KEYS = {
   depthLayersLineWidth: "wavedance.depthLayersLineWidthPx",
   depthLayersRenderStyle: "wavedance.depthLayersRenderStyle",
   depthLayersShape: "wavedance.depthLayersShapeConfig",
+  isometricSkylineFaceTop: "wavedance.isometricSkylineFaceTopColor",
+  isometricSkylineFaceLeft: "wavedance.isometricSkylineFaceLeftColor",
+  isometricSkylineFaceRight: "wavedance.isometricSkylineFaceRightColor",
+  isometricSkylineBuildingWidth: "wavedance.isometricSkylineBuildingWidthPx",
+  isometricSkylineBuildingGap: "wavedance.isometricSkylineBuildingGapPx",
+  isometricSkylineBaseline: "wavedance.isometricSkylineBaselinePercent",
+  isometricSkylineBuildingCount: "wavedance.isometricSkylineDisplayBuildingCount",
+  isometricSkylineGroundPlane: "wavedance.isometricSkylineShowGroundPlane",
+  isometricSkylineShape: "wavedance.isometricSkylineShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -113,6 +122,7 @@ export const DISPLAY_MODES = {
   oscilloscope: "oscilloscope",
   obliqueBar: "obliqueBar",
   depthLayers: "depthLayers",
+  isometricSkyline: "isometricSkyline",
 };
 
 export const PANEL_STYLES = {
@@ -308,6 +318,22 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 58,
     },
   },
+  isometricSkyline: {
+    faceTopColor: "#8f7cff",
+    faceLeftColor: "#6b5fd4",
+    faceRightColor: "#a898ff",
+    buildingWidthPx: 8,
+    buildingGapPx: 2,
+    skylineBaselinePercent: 15,
+    displayBuildingCount: 48,
+    showGroundPlane: true,
+    shape: {
+      gainPercent: 60,
+      smoothPercent: 16,
+      softClipPercent: 10,
+      fallEasePercent: 50,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -324,6 +350,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.oscilloscope) return DISPLAY_MODES.oscilloscope;
   if (s === DISPLAY_MODES.obliqueBar) return DISPLAY_MODES.obliqueBar;
   if (s === DISPLAY_MODES.depthLayers) return DISPLAY_MODES.depthLayers;
+  if (s === DISPLAY_MODES.isometricSkyline) return DISPLAY_MODES.isometricSkyline;
   return DISPLAY_MODES.line;
 }
 
@@ -510,6 +537,15 @@ export function windowStorageKeys(windowLabel) {
     depthLayersLineWidth: `${pre}.depthLayersLineWidthPx`,
     depthLayersRenderStyle: `${pre}.depthLayersRenderStyle`,
     depthLayersShape: `${pre}.depthLayersShapeConfig`,
+    isometricSkylineFaceTop: `${pre}.isometricSkylineFaceTopColor`,
+    isometricSkylineFaceLeft: `${pre}.isometricSkylineFaceLeftColor`,
+    isometricSkylineFaceRight: `${pre}.isometricSkylineFaceRightColor`,
+    isometricSkylineBuildingWidth: `${pre}.isometricSkylineBuildingWidthPx`,
+    isometricSkylineBuildingGap: `${pre}.isometricSkylineBuildingGapPx`,
+    isometricSkylineBaseline: `${pre}.isometricSkylineBaselinePercent`,
+    isometricSkylineBuildingCount: `${pre}.isometricSkylineDisplayBuildingCount`,
+    isometricSkylineGroundPlane: `${pre}.isometricSkylineShowGroundPlane`,
+    isometricSkylineShape: `${pre}.isometricSkylineShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

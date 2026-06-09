@@ -49,6 +49,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.oscilloscope]: "oscilloscopeConfigPanel",
   [DISPLAY_MODES.obliqueBar]: "obliqueBarConfigPanel",
   [DISPLAY_MODES.depthLayers]: "depthLayersConfigPanel",
+  [DISPLAY_MODES.isometricSkyline]: "isometricSkylineConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -262,6 +263,26 @@ const depthLayersSoftClipRange = document.querySelector("#depthLayersSoftClipRan
 const depthLayersSoftClipValue = document.querySelector("#depthLayersSoftClipValue");
 const depthLayersFallEaseRange = document.querySelector("#depthLayersFallEaseRange");
 const depthLayersFallEaseValue = document.querySelector("#depthLayersFallEaseValue");
+const isometricSkylineFaceTopColor = document.querySelector("#isometricSkylineFaceTopColor");
+const isometricSkylineFaceLeftColor = document.querySelector("#isometricSkylineFaceLeftColor");
+const isometricSkylineFaceRightColor = document.querySelector("#isometricSkylineFaceRightColor");
+const isometricSkylineBuildingWidthRange = document.querySelector("#isometricSkylineBuildingWidthRange");
+const isometricSkylineBuildingWidthValue = document.querySelector("#isometricSkylineBuildingWidthValue");
+const isometricSkylineBuildingGapRange = document.querySelector("#isometricSkylineBuildingGapRange");
+const isometricSkylineBuildingGapValue = document.querySelector("#isometricSkylineBuildingGapValue");
+const isometricSkylineBuildingCountRange = document.querySelector("#isometricSkylineBuildingCountRange");
+const isometricSkylineBuildingCountValue = document.querySelector("#isometricSkylineBuildingCountValue");
+const isometricSkylineBaselineRange = document.querySelector("#isometricSkylineBaselineRange");
+const isometricSkylineBaselineValue = document.querySelector("#isometricSkylineBaselineValue");
+const isometricSkylineGroundPlaneToggle = document.querySelector("#isometricSkylineGroundPlaneToggle");
+const isometricSkylineGainRange = document.querySelector("#isometricSkylineGainRange");
+const isometricSkylineGainValue = document.querySelector("#isometricSkylineGainValue");
+const isometricSkylineSmoothRange = document.querySelector("#isometricSkylineSmoothRange");
+const isometricSkylineSmoothValue = document.querySelector("#isometricSkylineSmoothValue");
+const isometricSkylineSoftClipRange = document.querySelector("#isometricSkylineSoftClipRange");
+const isometricSkylineSoftClipValue = document.querySelector("#isometricSkylineSoftClipValue");
+const isometricSkylineFallEaseRange = document.querySelector("#isometricSkylineFallEaseRange");
+const isometricSkylineFallEaseValue = document.querySelector("#isometricSkylineFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1158,6 +1179,130 @@ async function syncDepthLayersShapeConfig(visualTargetLabel, emitVisual) {
   }
 }
 
+function readIsometricSkylineShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "isometricSkylineShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(isometricSkylineGainRange?.value, 10, 150),
+    smoothPercent: clampInt(isometricSkylineSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(isometricSkylineSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(isometricSkylineFallEaseRange?.value, 0, 100),
+  };
+  if (isometricSkylineGainValue) isometricSkylineGainValue.textContent = String(config.gainPercent);
+  if (isometricSkylineSmoothValue) isometricSkylineSmoothValue.textContent = String(config.smoothPercent);
+  if (isometricSkylineSoftClipValue) isometricSkylineSoftClipValue.textContent = String(config.softClipPercent);
+  if (isometricSkylineFallEaseValue) isometricSkylineFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "isometricSkylineShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-isometric-skyline-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步天际线参数失败：${String(err)}`;
+  }
+}
+
+function applyIsometricSkylineFormFromStorage(v) {
+  const sg = readIsometricSkylineShapeConfig(v) ?? { ...DEFAULT_CONFIG.isometricSkyline.shape };
+  if (isometricSkylineGainRange) isometricSkylineGainRange.value = String(sg.gainPercent);
+  if (isometricSkylineSmoothRange) isometricSkylineSmoothRange.value = String(sg.smoothPercent);
+  if (isometricSkylineSoftClipRange) isometricSkylineSoftClipRange.value = String(sg.softClipPercent);
+  if (isometricSkylineFallEaseRange) isometricSkylineFallEaseRange.value = String(sg.fallEasePercent);
+  if (isometricSkylineGainValue) isometricSkylineGainValue.textContent = String(sg.gainPercent);
+  if (isometricSkylineSmoothValue) isometricSkylineSmoothValue.textContent = String(sg.smoothPercent);
+  if (isometricSkylineSoftClipValue) isometricSkylineSoftClipValue.textContent = String(sg.softClipPercent);
+  if (isometricSkylineFallEaseValue) isometricSkylineFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedFaceTop = readWindowStorageString(window.localStorage, v, "isometricSkylineFaceTop");
+  if (isometricSkylineFaceTopColor && savedFaceTop && /^#[0-9A-Fa-f]{6}$/.test(savedFaceTop)) {
+    isometricSkylineFaceTopColor.value = savedFaceTop.toLowerCase();
+  } else if (isometricSkylineFaceTopColor) {
+    isometricSkylineFaceTopColor.value = DEFAULT_CONFIG.isometricSkyline.faceTopColor;
+  }
+
+  const savedFaceLeft = readWindowStorageString(window.localStorage, v, "isometricSkylineFaceLeft");
+  if (isometricSkylineFaceLeftColor && savedFaceLeft && /^#[0-9A-Fa-f]{6}$/.test(savedFaceLeft)) {
+    isometricSkylineFaceLeftColor.value = savedFaceLeft.toLowerCase();
+  } else if (isometricSkylineFaceLeftColor) {
+    isometricSkylineFaceLeftColor.value = DEFAULT_CONFIG.isometricSkyline.faceLeftColor;
+  }
+
+  const savedFaceRight = readWindowStorageString(window.localStorage, v, "isometricSkylineFaceRight");
+  if (isometricSkylineFaceRightColor && savedFaceRight && /^#[0-9A-Fa-f]{6}$/.test(savedFaceRight)) {
+    isometricSkylineFaceRightColor.value = savedFaceRight.toLowerCase();
+  } else if (isometricSkylineFaceRightColor) {
+    isometricSkylineFaceRightColor.value = DEFAULT_CONFIG.isometricSkyline.faceRightColor;
+  }
+
+  const savedWidth = readWindowStorageString(window.localStorage, v, "isometricSkylineBuildingWidth");
+  if (isometricSkylineBuildingWidthRange) {
+    const buildingWidthPx =
+      savedWidth != null && savedWidth !== ""
+        ? clampInt(savedWidth, 4, 100)
+        : DEFAULT_CONFIG.isometricSkyline.buildingWidthPx;
+    isometricSkylineBuildingWidthRange.value = String(buildingWidthPx);
+    if (isometricSkylineBuildingWidthValue) isometricSkylineBuildingWidthValue.textContent = String(buildingWidthPx);
+  }
+
+  const savedGap = readWindowStorageString(window.localStorage, v, "isometricSkylineBuildingGap");
+  if (isometricSkylineBuildingGapRange) {
+    const buildingGapPx =
+      savedGap != null && savedGap !== ""
+        ? clampInt(savedGap, 0, 12)
+        : DEFAULT_CONFIG.isometricSkyline.buildingGapPx;
+    isometricSkylineBuildingGapRange.value = String(buildingGapPx);
+    if (isometricSkylineBuildingGapValue) isometricSkylineBuildingGapValue.textContent = String(buildingGapPx);
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "isometricSkylineBuildingCount");
+  if (isometricSkylineBuildingCountRange) {
+    const displayBuildingCount =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 16, 96)
+        : DEFAULT_CONFIG.isometricSkyline.displayBuildingCount;
+    isometricSkylineBuildingCountRange.value = String(displayBuildingCount);
+    if (isometricSkylineBuildingCountValue) isometricSkylineBuildingCountValue.textContent = String(displayBuildingCount);
+  }
+
+  const savedBaseline = readWindowStorageString(window.localStorage, v, "isometricSkylineBaseline");
+  if (isometricSkylineBaselineRange) {
+    const skylineBaselinePercent =
+      savedBaseline != null && savedBaseline !== ""
+        ? clampInt(savedBaseline, 5, 40)
+        : DEFAULT_CONFIG.isometricSkyline.skylineBaselinePercent;
+    isometricSkylineBaselineRange.value = String(skylineBaselinePercent);
+    if (isometricSkylineBaselineValue) isometricSkylineBaselineValue.textContent = String(skylineBaselinePercent);
+  }
+
+  if (isometricSkylineGroundPlaneToggle) {
+    isometricSkylineGroundPlaneToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "isometricSkylineGroundPlane"),
+      DEFAULT_CONFIG.isometricSkyline.showGroundPlane,
+    );
+  }
+}
+
 function applyDepthLayersFormFromStorage(v) {
   const sg = readDepthLayersShapeConfig(v) ?? { ...DEFAULT_CONFIG.depthLayers.shape };
   if (depthLayersGainRange) depthLayersGainRange.value = String(sg.gainPercent);
@@ -1662,6 +1807,7 @@ async function init() {
     applyOscilloscopeFormFromStorage(v);
     applyObliqueBarFormFromStorage(v);
     applyDepthLayersFormFromStorage(v);
+    applyIsometricSkylineFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -2877,6 +3023,131 @@ async function init() {
   depthLayersFallEaseRange?.addEventListener("input", () => {
     void syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
   });
+  isometricSkylineFaceTopColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineFaceTop",
+        isometricSkylineFaceTopColor.value,
+      );
+      await emitVisual("waveform-isometric-skyline-face-top-color", isometricSkylineFaceTopColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新顶面颜色失败：${String(err)}`;
+    }
+  });
+  isometricSkylineFaceLeftColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineFaceLeft",
+        isometricSkylineFaceLeftColor.value,
+      );
+      await emitVisual("waveform-isometric-skyline-face-left-color", isometricSkylineFaceLeftColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新左侧面颜色失败：${String(err)}`;
+    }
+  });
+  isometricSkylineFaceRightColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineFaceRight",
+        isometricSkylineFaceRightColor.value,
+      );
+      await emitVisual("waveform-isometric-skyline-face-right-color", isometricSkylineFaceRightColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新右侧面颜色失败：${String(err)}`;
+    }
+  });
+  isometricSkylineBuildingWidthRange?.addEventListener("input", async (event) => {
+    const buildingWidthPx = clampInt(event.target.value, 4, 100);
+    if (isometricSkylineBuildingWidthValue) isometricSkylineBuildingWidthValue.textContent = String(buildingWidthPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineBuildingWidth",
+        String(buildingWidthPx),
+      );
+      await emitVisual("waveform-isometric-skyline-building-width", buildingWidthPx);
+    } catch (err) {
+      statusEl.textContent = `更新建筑宽度失败：${String(err)}`;
+    }
+  });
+  isometricSkylineBuildingGapRange?.addEventListener("input", async (event) => {
+    const buildingGapPx = clampInt(event.target.value, 0, 12);
+    if (isometricSkylineBuildingGapValue) isometricSkylineBuildingGapValue.textContent = String(buildingGapPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineBuildingGap",
+        String(buildingGapPx),
+      );
+      await emitVisual("waveform-isometric-skyline-building-gap", buildingGapPx);
+    } catch (err) {
+      statusEl.textContent = `更新建筑间距失败：${String(err)}`;
+    }
+  });
+  isometricSkylineBuildingCountRange?.addEventListener("input", async (event) => {
+    const displayBuildingCount = clampInt(event.target.value, 16, 96);
+    if (isometricSkylineBuildingCountValue) isometricSkylineBuildingCountValue.textContent = String(displayBuildingCount);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineBuildingCount",
+        String(displayBuildingCount),
+      );
+      await emitVisual("waveform-isometric-skyline-building-count", displayBuildingCount);
+    } catch (err) {
+      statusEl.textContent = `更新建筑数量失败：${String(err)}`;
+    }
+  });
+  isometricSkylineBaselineRange?.addEventListener("input", async (event) => {
+    const skylineBaselinePercent = clampInt(event.target.value, 5, 40);
+    if (isometricSkylineBaselineValue) isometricSkylineBaselineValue.textContent = String(skylineBaselinePercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineBaseline",
+        String(skylineBaselinePercent),
+      );
+      await emitVisual("waveform-isometric-skyline-baseline", skylineBaselinePercent);
+    } catch (err) {
+      statusEl.textContent = `更新地平线位置失败：${String(err)}`;
+    }
+  });
+  isometricSkylineGroundPlaneToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(isometricSkylineGroundPlaneToggle.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "isometricSkylineGroundPlane",
+        String(enabled),
+      );
+      await emitVisual("waveform-isometric-skyline-ground-plane", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新地面显示失败：${String(err)}`;
+    }
+  });
+  isometricSkylineGainRange?.addEventListener("input", () => {
+    void syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  isometricSkylineSmoothRange?.addEventListener("input", () => {
+    void syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  isometricSkylineSoftClipRange?.addEventListener("input", () => {
+    void syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  isometricSkylineFallEaseRange?.addEventListener("input", () => {
+    void syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -3102,6 +3373,8 @@ async function init() {
   await syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
   applyDepthLayersFormFromStorage(visualTargetLabel);
   await syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
+  applyIsometricSkylineFormFromStorage(visualTargetLabel);
+  await syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -3412,6 +3685,42 @@ async function init() {
   }
   if (depthLayersLineWidthRange) {
     await emitVisual("waveform-depth-layers-line-width", clampInt(depthLayersLineWidthRange.value, 1, 12));
+  }
+  if (isometricSkylineFaceTopColor) {
+    await emitVisual("waveform-isometric-skyline-face-top-color", isometricSkylineFaceTopColor.value);
+  }
+  if (isometricSkylineFaceLeftColor) {
+    await emitVisual("waveform-isometric-skyline-face-left-color", isometricSkylineFaceLeftColor.value);
+  }
+  if (isometricSkylineFaceRightColor) {
+    await emitVisual("waveform-isometric-skyline-face-right-color", isometricSkylineFaceRightColor.value);
+  }
+  if (isometricSkylineBuildingWidthRange) {
+    await emitVisual(
+      "waveform-isometric-skyline-building-width",
+      clampInt(isometricSkylineBuildingWidthRange.value, 4, 100),
+    );
+  }
+  if (isometricSkylineBuildingGapRange) {
+    await emitVisual(
+      "waveform-isometric-skyline-building-gap",
+      clampInt(isometricSkylineBuildingGapRange.value, 0, 12),
+    );
+  }
+  if (isometricSkylineBuildingCountRange) {
+    await emitVisual(
+      "waveform-isometric-skyline-building-count",
+      clampInt(isometricSkylineBuildingCountRange.value, 16, 96),
+    );
+  }
+  if (isometricSkylineBaselineRange) {
+    await emitVisual(
+      "waveform-isometric-skyline-baseline",
+      clampInt(isometricSkylineBaselineRange.value, 5, 40),
+    );
+  }
+  if (isometricSkylineGroundPlaneToggle) {
+    await emitVisual("waveform-isometric-skyline-ground-plane", Boolean(isometricSkylineGroundPlaneToggle.checked));
   }
 
   if (closeSettingsBtn) {

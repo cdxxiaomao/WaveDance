@@ -91,6 +91,7 @@
               <option value="oscilloscope">示波器</option>
               <option value="obliqueBar">斜透视频谱柱</option>
               <option value="depthLayers">多层景深</option>
+              <option value="isometricSkyline">等距天际线</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -706,6 +707,61 @@
           <div class="settings-field">
             <label for="depthLayersFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="depthLayersFallEaseValue">58</span>%</label>
             <input id="depthLayersFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="isometricSkylineConfigPanel" aria-labelledby="sec-isometric-skyline-display" hidden>
+        <h2 id="sec-isometric-skyline-display" class="settings-card__title">等距天际线配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--isometric-skyline" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="isometricSkylineFaceTopColor" class="settings-label">顶面颜色</label>
+            <input id="isometricSkylineFaceTopColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="isometricSkylineFaceLeftColor" class="settings-label">左侧面颜色</label>
+            <input id="isometricSkylineFaceLeftColor" type="color" value="#6b5fd4" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="isometricSkylineFaceRightColor" class="settings-label">右侧面颜色</label>
+            <input id="isometricSkylineFaceRightColor" type="color" value="#a898ff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineBuildingWidthRange" class="settings-label">建筑宽度 <span class="settings-value" id="isometricSkylineBuildingWidthValue">8</span> px</label>
+            <input id="isometricSkylineBuildingWidthRange" type="range" min="4" max="100" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineBuildingGapRange" class="settings-label">建筑间距 <span class="settings-value" id="isometricSkylineBuildingGapValue">2</span> px</label>
+            <input id="isometricSkylineBuildingGapRange" type="range" min="0" max="12" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineBuildingCountRange" class="settings-label">建筑数量 <span class="settings-value" id="isometricSkylineBuildingCountValue">48</span></label>
+            <input id="isometricSkylineBuildingCountRange" type="range" min="16" max="96" step="1" value="48" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineBaselineRange" class="settings-label">地平线位置 <span class="settings-value" id="isometricSkylineBaselineValue">15</span>%</label>
+            <input id="isometricSkylineBaselineRange" type="range" min="5" max="40" step="1" value="15" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="isometricSkylineGroundPlaneToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>显示地面</span>
+          </label>
+          <div class="settings-field">
+            <label for="isometricSkylineGainRange" class="settings-label">增益 <span class="settings-value" id="isometricSkylineGainValue">60</span>%</label>
+            <input id="isometricSkylineGainRange" type="range" min="10" max="150" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="isometricSkylineSmoothValue">16</span>%</label>
+            <input id="isometricSkylineSmoothRange" type="range" min="0" max="400" step="1" value="16" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="isometricSkylineSoftClipValue">10</span>%</label>
+            <input id="isometricSkylineSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="isometricSkylineFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="isometricSkylineFallEaseValue">50</span>%</label>
+            <input id="isometricSkylineFallEaseRange" type="range" min="0" max="100" step="1" value="50" />
           </div>
         </div>
       </section>

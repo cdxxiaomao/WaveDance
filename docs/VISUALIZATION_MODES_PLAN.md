@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~10 已完成；Phase 11~14 3D/2.5D 扩展待实施  
+> **状态**：Phase 0~11 已完成；Phase 12~14 真 3D 扩展待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -691,11 +691,11 @@ isometricSkyline: {
 
 #### 11.3 新建 `isometricSkylineRenderer.js`
 
-- [ ] `aggregateBands(points, displayBuildingCount)` → 每栋高度
-- [ ] 每栋建筑：三个 quad（顶面菱形 + 左侧面 + 右侧面），`TRIANGLES` 绘制
-- [ ] 绘制顺序：按 `wx+ wz` 排序（画家算法，远建筑先画）
-- [ ] 地面：可选一个浅色等距平行四边形
-- [ ] 不支持 mirror；`freqReversed` 反转建筑左右排列
+- [x] `aggregateBands(points, displayBuildingCount)` → 每栋高度
+- [x] 每栋建筑：三个 quad（顶面菱形 + 左侧面 + 右侧面），`TRIANGLES` 绘制
+- [x] 绘制顺序：按 `wx+ wz` 排序（画家算法，远建筑先画）
+- [x] 地面：可选一个浅色等距平行四边形
+- [x] 不支持 mirror；`freqReversed` 反转建筑左右排列
 
 #### 11.4 集成与设置页
 
@@ -703,9 +703,9 @@ isometricSkyline: {
 
 #### 11.5 验收标准
 
-- [ ] 宽窗口下天际线连续，窄窗口聚合后仍可读
-- [ ] 三面明暗有体积感，不像 flat bar
-- [ ] 停止音乐后建筑高度缓落
+- [x] 宽窗口下天际线连续，窄窗口聚合后仍可读
+- [x] 三面明暗有体积感，不像 flat bar
+- [x] 停止音乐后建筑高度缓落
 
 ---
 
@@ -950,12 +950,12 @@ helix3d: {
 | 8 | 示波器 Oscilloscope（可选） | `[x]` 已完成 | 2026-06-09 |
 | 9 | 斜透视频谱柱 Oblique Bar（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 10 | 多层景深 Depth Layers（2.5D） | `[x]` 已完成 | 2026-06-09 |
-| 11 | 等距天际线 Isometric Skyline（2.5D） | `[ ]` 未开始 | |
+| 11 | 等距天际线 Isometric Skyline（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[ ]` 未开始 | |
 | 13 | 3D 频谱地形 Terrain3D（真 3D） | `[ ]` 未开始 | |
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 11（等距天际线 Isometric Skyline）
+**当前建议下一步**：Phase 12（3D 旋转圆环 Ring3D + gl3d.js）
 
 ---
 

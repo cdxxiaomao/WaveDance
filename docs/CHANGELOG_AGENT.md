@@ -177,6 +177,14 @@
 - `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。
 
+### 可视化模式扩展 — Phase 11：等距天际线 Isometric Skyline（2.5D）
+
+- 新建 `frontend/src/renderers/isometric.js`：等距投影 `isoProject`、建筑三面几何 `buildIsoBuilding`。
+- 新建 `frontend/src/renderers/isometricSkylineRenderer.js`：频谱聚合为建筑高度，三面明暗 + 画家算法排序，可选地面平行四边形；支持 `freqReversed`。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.isometricSkyline`、`DEFAULT_CONFIG.isometricSkyline` 及 storage keys。
+- `main.js`：注册 isometricSkylineRenderer，监听 `waveform-isometric-skyline-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「等距天际线」、`#isometricSkylineConfigPanel`（三面颜色、建筑宽/间距/数量、地平线、地面开关、形状四件套）。
+
 ### 可视化模式扩展 — Phase 10：多层景深 Depth Layers（2.5D）
 
 - 新建 `frontend/src/renderers/depthLayersRenderer.js`：多层视差（缩放/Y 偏移/透明度递减），支持低频靠前频段强调、`line`/`bar` 两种绘制样式，远→近绘制顺序。
