@@ -14,6 +14,7 @@ import { createOscilloscopeRenderer } from "./renderers/oscilloscopeRenderer.js"
 import { createObliqueBarRenderer } from "./renderers/obliqueBarRenderer.js";
 import { createDepthLayersRenderer } from "./renderers/depthLayersRenderer.js";
 import { createIsometricSkylineRenderer } from "./renderers/isometricSkylineRenderer.js";
+import { createRing3dRenderer } from "./renderers/ring3dRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -52,6 +53,7 @@ const oscilloscopeRenderer = createOscilloscopeRenderer(gl);
 const obliqueBarRenderer = createObliqueBarRenderer(gl);
 const depthLayersRenderer = createDepthLayersRenderer(gl);
 const isometricSkylineRenderer = createIsometricSkylineRenderer(gl);
+const ring3dRenderer = createRing3dRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -67,6 +69,7 @@ const RENDERERS = {
   [DISPLAY_MODES.obliqueBar]: obliqueBarRenderer,
   [DISPLAY_MODES.depthLayers]: depthLayersRenderer,
   [DISPLAY_MODES.isometricSkyline]: isometricSkylineRenderer,
+  [DISPLAY_MODES.ring3d]: ring3dRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -81,9 +84,12 @@ const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
 const obliqueBarShapeConfig = { ...DEFAULT_CONFIG.obliqueBar.shape };
 const depthLayersShapeConfig = { ...DEFAULT_CONFIG.depthLayers.shape };
 const isometricSkylineShapeConfig = { ...DEFAULT_CONFIG.isometricSkyline.shape };
+const ring3dShapeConfig = { ...DEFAULT_CONFIG.ring3d.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
+let latestPeak = 0;
+let latestRms = 0;
 let displayMode = DEFAULT_CONFIG.displayMode;
 
 function applyWaveShapeConfig(payload) {
@@ -182,6 +188,14 @@ function applyIsometricSkylineShapeConfig(payload) {
   isometricSkylineShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyRing3dShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  ring3dShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  ring3dShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  ring3dShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  ring3dShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -208,6 +222,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (depthLayersRaw) applyDepthLayersShapeConfig(JSON.parse(depthLayersRaw));
     const isometricSkylineRaw = readWindowStorageString(window.localStorage, windowLabel, "isometricSkylineShape");
     if (isometricSkylineRaw) applyIsometricSkylineShapeConfig(JSON.parse(isometricSkylineRaw));
+    const ring3dRaw = readWindowStorageString(window.localStorage, windowLabel, "ring3dShape");
+    if (ring3dRaw) applyRing3dShapeConfig(JSON.parse(ring3dRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -249,6 +265,7 @@ const depthLayersColorFarRgb = { r: 0, g: 0, b: 0 };
 const isometricSkylineFaceTopRgb = { r: 0, g: 0, b: 0 };
 const isometricSkylineFaceLeftRgb = { r: 0, g: 0, b: 0 };
 const isometricSkylineFaceRightRgb = { r: 0, g: 0, b: 0 };
+const ring3dBarRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -283,6 +300,7 @@ applyDepthLayersColorFarHex(DEFAULT_CONFIG.depthLayers.colorFar);
 applyIsometricSkylineFaceTopHex(DEFAULT_CONFIG.isometricSkyline.faceTopColor);
 applyIsometricSkylineFaceLeftHex(DEFAULT_CONFIG.isometricSkyline.faceLeftColor);
 applyIsometricSkylineFaceRightHex(DEFAULT_CONFIG.isometricSkyline.faceRightColor);
+applyRing3dBarColorHex(DEFAULT_CONFIG.ring3d.barColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -353,6 +371,18 @@ let isometricSkylineBuildingGapPx = DEFAULT_CONFIG.isometricSkyline.buildingGapP
 let isometricSkylineBaselinePercent = DEFAULT_CONFIG.isometricSkyline.skylineBaselinePercent;
 let isometricSkylineDisplayBuildingCount = DEFAULT_CONFIG.isometricSkyline.displayBuildingCount;
 let isometricSkylineShowGroundPlane = DEFAULT_CONFIG.isometricSkyline.showGroundPlane;
+let ring3dInnerRadius = DEFAULT_CONFIG.ring3d.innerRadius;
+let ring3dOuterRadius = DEFAULT_CONFIG.ring3d.outerRadius;
+let ring3dBarHeightScale = DEFAULT_CONFIG.ring3d.barHeightScale;
+let ring3dBarThicknessDeg = DEFAULT_CONFIG.ring3d.barThicknessDeg;
+let ring3dDisplayBarCount = DEFAULT_CONFIG.ring3d.displayBarCount;
+let ring3dWireframeEnabled = DEFAULT_CONFIG.ring3d.wireframeEnabled;
+let ring3dFillEnabled = DEFAULT_CONFIG.ring3d.fillEnabled;
+let ring3dAutoRotateEnabled = DEFAULT_CONFIG.ring3d.autoRotateEnabled;
+let ring3dAutoRotateSpeedDeg = DEFAULT_CONFIG.ring3d.autoRotateSpeedDeg;
+let ring3dCameraDistance = DEFAULT_CONFIG.ring3d.cameraDistance;
+let ring3dCameraFovDeg = DEFAULT_CONFIG.ring3d.cameraFovDeg;
+let ring3dBreatheWithPeak = DEFAULT_CONFIG.ring3d.breatheWithPeak;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -804,6 +834,71 @@ function applyIsometricSkylineShowGroundPlane(value) {
   isometricSkylineShowGroundPlane = parseBoolean(value, DEFAULT_CONFIG.isometricSkyline.showGroundPlane);
 }
 
+function applyRing3dBarColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.ring3d.barColor;
+  const { r, g, b } = hexToRgb(safe);
+  ring3dBarRgb.r = r / 255;
+  ring3dBarRgb.g = g / 255;
+  ring3dBarRgb.b = b / 255;
+}
+
+function applyRing3dInnerRadius(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  ring3dInnerRadius = Math.min(0.8, Math.max(0.1, n));
+}
+
+function applyRing3dOuterRadius(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  ring3dOuterRadius = Math.min(1.0, Math.max(0.15, n));
+}
+
+function applyRing3dBarHeightScale(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  ring3dBarHeightScale = Math.min(1.5, Math.max(0.1, n));
+}
+
+function applyRing3dBarThicknessDeg(value) {
+  ring3dBarThicknessDeg = clampInt(value, 1, 12);
+}
+
+function applyRing3dDisplayBarCount(value) {
+  ring3dDisplayBarCount = clampInt(value, 8, 128);
+}
+
+function applyRing3dWireframeEnabled(value) {
+  ring3dWireframeEnabled = parseBoolean(value, DEFAULT_CONFIG.ring3d.wireframeEnabled);
+}
+
+function applyRing3dFillEnabled(value) {
+  ring3dFillEnabled = parseBoolean(value, DEFAULT_CONFIG.ring3d.fillEnabled);
+}
+
+function applyRing3dAutoRotateEnabled(value) {
+  ring3dAutoRotateEnabled = parseBoolean(value, DEFAULT_CONFIG.ring3d.autoRotateEnabled);
+}
+
+function applyRing3dAutoRotateSpeedDeg(value) {
+  ring3dAutoRotateSpeedDeg = clampInt(value, 0, 20);
+}
+
+function applyRing3dCameraDistance(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  ring3dCameraDistance = Math.min(4.5, Math.max(1.2, n));
+}
+
+function applyRing3dCameraFovDeg(value) {
+  ring3dCameraFovDeg = clampInt(value, 30, 75);
+}
+
+function applyRing3dBreatheWithPeak(value) {
+  ring3dBreatheWithPeak = parseBoolean(value, DEFAULT_CONFIG.ring3d.breatheWithPeak);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -894,6 +989,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.obliqueBar) return obliqueBarShapeConfig;
   if (mode === DISPLAY_MODES.depthLayers) return depthLayersShapeConfig;
   if (mode === DISPLAY_MODES.isometricSkyline) return isometricSkylineShapeConfig;
+  if (mode === DISPLAY_MODES.ring3d) return ring3dShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1046,6 +1142,24 @@ function getStyleConfigForMode(mode) {
       freqReversed,
     };
   }
+  if (mode === DISPLAY_MODES.ring3d) {
+    return {
+      barColor: ring3dBarRgb,
+      innerRadius: ring3dInnerRadius,
+      outerRadius: ring3dOuterRadius,
+      barHeightScale: ring3dBarHeightScale,
+      barThicknessDeg: ring3dBarThicknessDeg,
+      displayBarCount: ring3dDisplayBarCount,
+      wireframeEnabled: ring3dWireframeEnabled,
+      fillEnabled: ring3dFillEnabled,
+      autoRotateEnabled: ring3dAutoRotateEnabled,
+      autoRotateSpeedDeg: ring3dAutoRotateSpeedDeg,
+      cameraDistance: ring3dCameraDistance,
+      cameraFovDeg: ring3dCameraFovDeg,
+      breatheWithPeak: ring3dBreatheWithPeak,
+      freqReversed,
+    };
+  }
   return {
     color: waveformLineRgb,
     lineWidthPx: waveformLineWidthPx,
@@ -1060,7 +1174,8 @@ function renderWaveform() {
   const renderer = RENDERERS[displayMode] ?? lineRenderer;
   const renderData =
     displayMode === DISPLAY_MODES.oscilloscope ? latestTimeSamples : latestPoints;
-  renderer.render(renderData, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode));
+  const frameMeta = { peak: latestPeak, rms: latestRms };
+  renderer.render(renderData, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode), frameMeta);
 
   requestAnimationFrame(renderWaveform);
 }
@@ -1159,6 +1274,12 @@ async function init() {
     }
     if (Array.isArray(payload.time_samples)) {
       latestTimeSamples = payload.time_samples;
+    }
+    if (typeof payload.peak === "number" && Number.isFinite(payload.peak)) {
+      latestPeak = payload.peak;
+    }
+    if (typeof payload.rms === "number" && Number.isFinite(payload.rms)) {
+      latestRms = payload.rms;
     }
   });
 
@@ -1948,6 +2069,106 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-ring3d-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyRing3dBarColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-inner-radius",
+    (event) => {
+      applyRing3dInnerRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-outer-radius",
+    (event) => {
+      applyRing3dOuterRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-bar-height-scale",
+    (event) => {
+      applyRing3dBarHeightScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-bar-thickness",
+    (event) => {
+      applyRing3dBarThicknessDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-display-count",
+    (event) => {
+      applyRing3dDisplayBarCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-wireframe",
+    (event) => {
+      applyRing3dWireframeEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-fill",
+    (event) => {
+      applyRing3dFillEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-auto-rotate",
+    (event) => {
+      applyRing3dAutoRotateEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-auto-rotate-speed",
+    (event) => {
+      applyRing3dAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-camera-distance",
+    (event) => {
+      applyRing3dCameraDistance(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-camera-fov",
+    (event) => {
+      applyRing3dCameraFovDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-breathe-peak",
+    (event) => {
+      applyRing3dBreatheWithPeak(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-ring3d-shape-config",
+    (event) => {
+      applyRing3dShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -2268,6 +2489,55 @@ async function init() {
     applyIsometricSkylineShowGroundPlane(
       readWindowStorageString(window.localStorage, windowLabel, "isometricSkylineGroundPlane"),
     );
+    applyRing3dBarColorHex(readWindowStorageString(window.localStorage, windowLabel, "ring3dColor"));
+    const savedRing3dInner = readWindowStorageString(window.localStorage, windowLabel, "ring3dInnerRadius");
+    if (savedRing3dInner != null && savedRing3dInner !== "") {
+      applyRing3dInnerRadius(savedRing3dInner);
+    }
+    const savedRing3dOuter = readWindowStorageString(window.localStorage, windowLabel, "ring3dOuterRadius");
+    if (savedRing3dOuter != null && savedRing3dOuter !== "") {
+      applyRing3dOuterRadius(savedRing3dOuter);
+    }
+    const savedRing3dHeight = readWindowStorageString(window.localStorage, windowLabel, "ring3dBarHeightScale");
+    if (savedRing3dHeight != null && savedRing3dHeight !== "") {
+      applyRing3dBarHeightScale(savedRing3dHeight);
+    }
+    const savedRing3dThickness = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "ring3dBarThicknessDeg",
+    );
+    if (savedRing3dThickness != null && savedRing3dThickness !== "") {
+      applyRing3dBarThicknessDeg(savedRing3dThickness);
+    }
+    const savedRing3dCount = readWindowStorageString(window.localStorage, windowLabel, "ring3dDisplayCount");
+    if (savedRing3dCount != null && savedRing3dCount !== "") {
+      applyRing3dDisplayBarCount(savedRing3dCount);
+    }
+    applyRing3dWireframeEnabled(readWindowStorageString(window.localStorage, windowLabel, "ring3dWireframe"));
+    applyRing3dFillEnabled(readWindowStorageString(window.localStorage, windowLabel, "ring3dFill"));
+    applyRing3dAutoRotateEnabled(readWindowStorageString(window.localStorage, windowLabel, "ring3dAutoRotate"));
+    const savedRing3dRotateSpeed = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "ring3dAutoRotateSpeed",
+    );
+    if (savedRing3dRotateSpeed != null && savedRing3dRotateSpeed !== "") {
+      applyRing3dAutoRotateSpeedDeg(savedRing3dRotateSpeed);
+    }
+    const savedRing3dCameraDistance = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "ring3dCameraDistance",
+    );
+    if (savedRing3dCameraDistance != null && savedRing3dCameraDistance !== "") {
+      applyRing3dCameraDistance(savedRing3dCameraDistance);
+    }
+    const savedRing3dCameraFov = readWindowStorageString(window.localStorage, windowLabel, "ring3dCameraFov");
+    if (savedRing3dCameraFov != null && savedRing3dCameraFov !== "") {
+      applyRing3dCameraFovDeg(savedRing3dCameraFov);
+    }
+    applyRing3dBreatheWithPeak(readWindowStorageString(window.localStorage, windowLabel, "ring3dBreathePeak"));
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

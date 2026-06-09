@@ -50,6 +50,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.obliqueBar]: "obliqueBarConfigPanel",
   [DISPLAY_MODES.depthLayers]: "depthLayersConfigPanel",
   [DISPLAY_MODES.isometricSkyline]: "isometricSkylineConfigPanel",
+  [DISPLAY_MODES.ring3d]: "ring3dConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -283,6 +284,36 @@ const isometricSkylineSoftClipRange = document.querySelector("#isometricSkylineS
 const isometricSkylineSoftClipValue = document.querySelector("#isometricSkylineSoftClipValue");
 const isometricSkylineFallEaseRange = document.querySelector("#isometricSkylineFallEaseRange");
 const isometricSkylineFallEaseValue = document.querySelector("#isometricSkylineFallEaseValue");
+
+const ring3dColor = document.querySelector("#ring3dColor");
+const ring3dInnerRadiusRange = document.querySelector("#ring3dInnerRadiusRange");
+const ring3dInnerRadiusValue = document.querySelector("#ring3dInnerRadiusValue");
+const ring3dOuterRadiusRange = document.querySelector("#ring3dOuterRadiusRange");
+const ring3dOuterRadiusValue = document.querySelector("#ring3dOuterRadiusValue");
+const ring3dBarHeightScaleRange = document.querySelector("#ring3dBarHeightScaleRange");
+const ring3dBarHeightScaleValue = document.querySelector("#ring3dBarHeightScaleValue");
+const ring3dBarThicknessRange = document.querySelector("#ring3dBarThicknessRange");
+const ring3dBarThicknessValue = document.querySelector("#ring3dBarThicknessValue");
+const ring3dDisplayCountRange = document.querySelector("#ring3dDisplayCountRange");
+const ring3dDisplayCountValue = document.querySelector("#ring3dDisplayCountValue");
+const ring3dWireframeToggle = document.querySelector("#ring3dWireframeToggle");
+const ring3dFillToggle = document.querySelector("#ring3dFillToggle");
+const ring3dAutoRotateToggle = document.querySelector("#ring3dAutoRotateToggle");
+const ring3dAutoRotateSpeedRange = document.querySelector("#ring3dAutoRotateSpeedRange");
+const ring3dAutoRotateSpeedValue = document.querySelector("#ring3dAutoRotateSpeedValue");
+const ring3dCameraDistanceRange = document.querySelector("#ring3dCameraDistanceRange");
+const ring3dCameraDistanceValue = document.querySelector("#ring3dCameraDistanceValue");
+const ring3dCameraFovRange = document.querySelector("#ring3dCameraFovRange");
+const ring3dCameraFovValue = document.querySelector("#ring3dCameraFovValue");
+const ring3dBreathePeakToggle = document.querySelector("#ring3dBreathePeakToggle");
+const ring3dGainRange = document.querySelector("#ring3dGainRange");
+const ring3dGainValue = document.querySelector("#ring3dGainValue");
+const ring3dSmoothRange = document.querySelector("#ring3dSmoothRange");
+const ring3dSmoothValue = document.querySelector("#ring3dSmoothValue");
+const ring3dSoftClipRange = document.querySelector("#ring3dSoftClipRange");
+const ring3dSoftClipValue = document.querySelector("#ring3dSoftClipValue");
+const ring3dFallEaseRange = document.querySelector("#ring3dFallEaseRange");
+const ring3dFallEaseValue = document.querySelector("#ring3dFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1303,6 +1334,174 @@ function applyIsometricSkylineFormFromStorage(v) {
   }
 }
 
+function formatRing3dRadiusDisplay(value) {
+  return (Math.round(Number(value) * 100) / 100).toFixed(2);
+}
+
+function readRing3dShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "ring3dShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncRing3dShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(ring3dGainRange?.value, 10, 150),
+    smoothPercent: clampInt(ring3dSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(ring3dSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(ring3dFallEaseRange?.value, 0, 100),
+  };
+  if (ring3dGainValue) ring3dGainValue.textContent = String(config.gainPercent);
+  if (ring3dSmoothValue) ring3dSmoothValue.textContent = String(config.smoothPercent);
+  if (ring3dSoftClipValue) ring3dSoftClipValue.textContent = String(config.softClipPercent);
+  if (ring3dFallEaseValue) ring3dFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-ring3d-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步 3D 圆环参数失败：${String(err)}`;
+  }
+}
+
+function applyRing3dFormFromStorage(v) {
+  const sg = readRing3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.ring3d.shape };
+  if (ring3dGainRange) ring3dGainRange.value = String(sg.gainPercent);
+  if (ring3dSmoothRange) ring3dSmoothRange.value = String(sg.smoothPercent);
+  if (ring3dSoftClipRange) ring3dSoftClipRange.value = String(sg.softClipPercent);
+  if (ring3dFallEaseRange) ring3dFallEaseRange.value = String(sg.fallEasePercent);
+  if (ring3dGainValue) ring3dGainValue.textContent = String(sg.gainPercent);
+  if (ring3dSmoothValue) ring3dSmoothValue.textContent = String(sg.smoothPercent);
+  if (ring3dSoftClipValue) ring3dSoftClipValue.textContent = String(sg.softClipPercent);
+  if (ring3dFallEaseValue) ring3dFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "ring3dColor");
+  if (ring3dColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    ring3dColor.value = savedColor.toLowerCase();
+  } else if (ring3dColor) {
+    ring3dColor.value = DEFAULT_CONFIG.ring3d.barColor;
+  }
+
+  const savedInner = readWindowStorageString(window.localStorage, v, "ring3dInnerRadius");
+  if (ring3dInnerRadiusRange) {
+    const innerRadius =
+      savedInner != null && savedInner !== ""
+        ? Math.min(0.8, Math.max(0.1, Number(savedInner)))
+        : DEFAULT_CONFIG.ring3d.innerRadius;
+    ring3dInnerRadiusRange.value = String(Math.round(innerRadius * 100));
+    if (ring3dInnerRadiusValue) ring3dInnerRadiusValue.textContent = formatRing3dRadiusDisplay(innerRadius);
+  }
+
+  const savedOuter = readWindowStorageString(window.localStorage, v, "ring3dOuterRadius");
+  if (ring3dOuterRadiusRange) {
+    const outerRadius =
+      savedOuter != null && savedOuter !== ""
+        ? Math.min(1.0, Math.max(0.15, Number(savedOuter)))
+        : DEFAULT_CONFIG.ring3d.outerRadius;
+    ring3dOuterRadiusRange.value = String(Math.round(outerRadius * 100));
+    if (ring3dOuterRadiusValue) ring3dOuterRadiusValue.textContent = formatRing3dRadiusDisplay(outerRadius);
+  }
+
+  const savedHeightScale = readWindowStorageString(window.localStorage, v, "ring3dBarHeightScale");
+  if (ring3dBarHeightScaleRange) {
+    const barHeightScale =
+      savedHeightScale != null && savedHeightScale !== ""
+        ? Math.min(1.5, Math.max(0.1, Number(savedHeightScale)))
+        : DEFAULT_CONFIG.ring3d.barHeightScale;
+    ring3dBarHeightScaleRange.value = String(Math.round(barHeightScale * 100));
+    if (ring3dBarHeightScaleValue) ring3dBarHeightScaleValue.textContent = formatRing3dRadiusDisplay(barHeightScale);
+  }
+
+  const savedThickness = readWindowStorageString(window.localStorage, v, "ring3dBarThicknessDeg");
+  if (ring3dBarThicknessRange) {
+    const barThicknessDeg =
+      savedThickness != null && savedThickness !== ""
+        ? clampInt(savedThickness, 1, 12)
+        : DEFAULT_CONFIG.ring3d.barThicknessDeg;
+    ring3dBarThicknessRange.value = String(barThicknessDeg);
+    if (ring3dBarThicknessValue) ring3dBarThicknessValue.textContent = String(barThicknessDeg);
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "ring3dDisplayCount");
+  if (ring3dDisplayCountRange) {
+    const displayBarCount =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 8, 128)
+        : DEFAULT_CONFIG.ring3d.displayBarCount;
+    ring3dDisplayCountRange.value = String(displayBarCount);
+    if (ring3dDisplayCountValue) ring3dDisplayCountValue.textContent = String(displayBarCount);
+  }
+
+  if (ring3dWireframeToggle) {
+    ring3dWireframeToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "ring3dWireframe"),
+      DEFAULT_CONFIG.ring3d.wireframeEnabled,
+    );
+  }
+  if (ring3dFillToggle) {
+    ring3dFillToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "ring3dFill"),
+      DEFAULT_CONFIG.ring3d.fillEnabled,
+    );
+  }
+  if (ring3dAutoRotateToggle) {
+    ring3dAutoRotateToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "ring3dAutoRotate"),
+      DEFAULT_CONFIG.ring3d.autoRotateEnabled,
+    );
+  }
+
+  const savedRotateSpeed = readWindowStorageString(window.localStorage, v, "ring3dAutoRotateSpeed");
+  if (ring3dAutoRotateSpeedRange) {
+    const autoRotateSpeedDeg =
+      savedRotateSpeed != null && savedRotateSpeed !== ""
+        ? clampInt(savedRotateSpeed, 0, 20)
+        : DEFAULT_CONFIG.ring3d.autoRotateSpeedDeg;
+    ring3dAutoRotateSpeedRange.value = String(autoRotateSpeedDeg);
+    if (ring3dAutoRotateSpeedValue) ring3dAutoRotateSpeedValue.textContent = String(autoRotateSpeedDeg);
+  }
+
+  const savedCameraDistance = readWindowStorageString(window.localStorage, v, "ring3dCameraDistance");
+  if (ring3dCameraDistanceRange) {
+    const cameraDistance =
+      savedCameraDistance != null && savedCameraDistance !== ""
+        ? Math.min(4.5, Math.max(1.2, Number(savedCameraDistance)))
+        : DEFAULT_CONFIG.ring3d.cameraDistance;
+    ring3dCameraDistanceRange.value = String(Math.round(cameraDistance * 10));
+    if (ring3dCameraDistanceValue) ring3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+  }
+
+  const savedCameraFov = readWindowStorageString(window.localStorage, v, "ring3dCameraFov");
+  if (ring3dCameraFovRange) {
+    const cameraFovDeg =
+      savedCameraFov != null && savedCameraFov !== ""
+        ? clampInt(savedCameraFov, 30, 75)
+        : DEFAULT_CONFIG.ring3d.cameraFovDeg;
+    ring3dCameraFovRange.value = String(cameraFovDeg);
+    if (ring3dCameraFovValue) ring3dCameraFovValue.textContent = String(cameraFovDeg);
+  }
+
+  if (ring3dBreathePeakToggle) {
+    ring3dBreathePeakToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "ring3dBreathePeak"),
+      DEFAULT_CONFIG.ring3d.breatheWithPeak,
+    );
+  }
+}
+
 function applyDepthLayersFormFromStorage(v) {
   const sg = readDepthLayersShapeConfig(v) ?? { ...DEFAULT_CONFIG.depthLayers.shape };
   if (depthLayersGainRange) depthLayersGainRange.value = String(sg.gainPercent);
@@ -1808,6 +2007,7 @@ async function init() {
     applyObliqueBarFormFromStorage(v);
     applyDepthLayersFormFromStorage(v);
     applyIsometricSkylineFormFromStorage(v);
+    applyRing3dFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -3148,6 +3348,149 @@ async function init() {
   isometricSkylineFallEaseRange?.addEventListener("input", () => {
     void syncIsometricSkylineShapeConfig(visualTargetLabel, emitVisual);
   });
+
+  ring3dColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dColor", ring3dColor.value);
+      await emitVisual("waveform-ring3d-color", ring3dColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新柱体颜色失败：${String(err)}`;
+    }
+  });
+  ring3dInnerRadiusRange?.addEventListener("input", async (event) => {
+    const innerRadius = clampInt(event.target.value, 10, 80) / 100;
+    if (ring3dInnerRadiusValue) ring3dInnerRadiusValue.textContent = formatRing3dRadiusDisplay(innerRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dInnerRadius", String(innerRadius));
+      await emitVisual("waveform-ring3d-inner-radius", innerRadius);
+    } catch (err) {
+      statusEl.textContent = `更新内径失败：${String(err)}`;
+    }
+  });
+  ring3dOuterRadiusRange?.addEventListener("input", async (event) => {
+    const outerRadius = clampInt(event.target.value, 50, 100) / 100;
+    if (ring3dOuterRadiusValue) ring3dOuterRadiusValue.textContent = formatRing3dRadiusDisplay(outerRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dOuterRadius", String(outerRadius));
+      await emitVisual("waveform-ring3d-outer-radius", outerRadius);
+    } catch (err) {
+      statusEl.textContent = `更新外径失败：${String(err)}`;
+    }
+  });
+  ring3dBarHeightScaleRange?.addEventListener("input", async (event) => {
+    const barHeightScale = clampInt(event.target.value, 10, 150) / 100;
+    if (ring3dBarHeightScaleValue) ring3dBarHeightScaleValue.textContent = formatRing3dRadiusDisplay(barHeightScale);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dBarHeightScale", String(barHeightScale));
+      await emitVisual("waveform-ring3d-bar-height-scale", barHeightScale);
+    } catch (err) {
+      statusEl.textContent = `更新柱高缩放失败：${String(err)}`;
+    }
+  });
+  ring3dBarThicknessRange?.addEventListener("input", async (event) => {
+    const barThicknessDeg = clampInt(event.target.value, 1, 12);
+    if (ring3dBarThicknessValue) ring3dBarThicknessValue.textContent = String(barThicknessDeg);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dBarThicknessDeg", String(barThicknessDeg));
+      await emitVisual("waveform-ring3d-bar-thickness", barThicknessDeg);
+    } catch (err) {
+      statusEl.textContent = `更新柱角宽度失败：${String(err)}`;
+    }
+  });
+  ring3dDisplayCountRange?.addEventListener("input", async (event) => {
+    const displayBarCount = clampInt(event.target.value, 8, 128);
+    if (ring3dDisplayCountValue) ring3dDisplayCountValue.textContent = String(displayBarCount);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dDisplayCount", String(displayBarCount));
+      await emitVisual("waveform-ring3d-display-count", displayBarCount);
+    } catch (err) {
+      statusEl.textContent = `更新显示柱数失败：${String(err)}`;
+    }
+  });
+  ring3dWireframeToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(ring3dWireframeToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dWireframe", String(enabled));
+      await emitVisual("waveform-ring3d-wireframe", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新线框模式失败：${String(err)}`;
+    }
+  });
+  ring3dFillToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(ring3dFillToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dFill", String(enabled));
+      await emitVisual("waveform-ring3d-fill", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新实心填充失败：${String(err)}`;
+    }
+  });
+  ring3dAutoRotateToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(ring3dAutoRotateToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dAutoRotate", String(enabled));
+      await emitVisual("waveform-ring3d-auto-rotate", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新自动旋转失败：${String(err)}`;
+    }
+  });
+  ring3dAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const autoRotateSpeedDeg = clampInt(event.target.value, 0, 20);
+    if (ring3dAutoRotateSpeedValue) ring3dAutoRotateSpeedValue.textContent = String(autoRotateSpeedDeg);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "ring3dAutoRotateSpeed",
+        String(autoRotateSpeedDeg),
+      );
+      await emitVisual("waveform-ring3d-auto-rotate-speed", autoRotateSpeedDeg);
+    } catch (err) {
+      statusEl.textContent = `更新旋转速度失败：${String(err)}`;
+    }
+  });
+  ring3dCameraDistanceRange?.addEventListener("input", async (event) => {
+    const cameraDistance = clampInt(event.target.value, 12, 45) / 10;
+    if (ring3dCameraDistanceValue) ring3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dCameraDistance", String(cameraDistance));
+      await emitVisual("waveform-ring3d-camera-distance", cameraDistance);
+    } catch (err) {
+      statusEl.textContent = `更新相机距离失败：${String(err)}`;
+    }
+  });
+  ring3dCameraFovRange?.addEventListener("input", async (event) => {
+    const cameraFovDeg = clampInt(event.target.value, 30, 75);
+    if (ring3dCameraFovValue) ring3dCameraFovValue.textContent = String(cameraFovDeg);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dCameraFov", String(cameraFovDeg));
+      await emitVisual("waveform-ring3d-camera-fov", cameraFovDeg);
+    } catch (err) {
+      statusEl.textContent = `更新视野角度失败：${String(err)}`;
+    }
+  });
+  ring3dBreathePeakToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(ring3dBreathePeakToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "ring3dBreathePeak", String(enabled));
+      await emitVisual("waveform-ring3d-breathe-peak", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新峰值呼吸失败：${String(err)}`;
+    }
+  });
+  ring3dGainRange?.addEventListener("input", () => {
+    void syncRing3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  ring3dSmoothRange?.addEventListener("input", () => {
+    void syncRing3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  ring3dSoftClipRange?.addEventListener("input", () => {
+    void syncRing3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  ring3dFallEaseRange?.addEventListener("input", () => {
+    void syncRing3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);

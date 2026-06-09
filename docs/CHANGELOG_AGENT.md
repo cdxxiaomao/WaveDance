@@ -177,6 +177,16 @@
 - `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。
 
+## 2026-06-09（续）
+
+### 可视化模式扩展 — Phase 12：3D 旋转圆环 Ring3D（真 3D）
+
+- 新建 `frontend/src/renderers/gl3d.js`：轻量 mat4（perspective/lookAt/rotateY/multiply）、`createCamera` 自动旋转、`createWireframeProgram` / `createBasicLitProgram`。
+- 新建 `frontend/src/renderers/ring3dRenderer.js`：频谱聚合为环上 3D 柱体，线框/实心双模式，Y 轴自转 + peak 呼吸缩放；复用 `polar.slotToAngle`。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.ring3d`、`DEFAULT_CONFIG.ring3d` 及 storage keys。
+- `main.js`：注册 ring3dRenderer，扩展 `render(..., frameMeta)` 传入 `{ peak, rms }`，监听 `waveform-ring3d-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「3D 旋转圆环」、`#ring3dConfigPanel`（柱色/内外径/柱高/柱数/线框/填充/自转/相机/峰值呼吸、形状四件套）。
+
 ### 可视化模式扩展 — Phase 11：等距天际线 Isometric Skyline（2.5D）
 
 - 新建 `frontend/src/renderers/isometric.js`：等距投影 `isoProject`、建筑三面几何 `buildIsoBuilding`。

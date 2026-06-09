@@ -104,6 +104,20 @@ export const STORAGE_KEYS = {
   isometricSkylineBuildingCount: "wavedance.isometricSkylineDisplayBuildingCount",
   isometricSkylineGroundPlane: "wavedance.isometricSkylineShowGroundPlane",
   isometricSkylineShape: "wavedance.isometricSkylineShapeConfig",
+  ring3dColor: "wavedance.ring3dBarColor",
+  ring3dInnerRadius: "wavedance.ring3dInnerRadius",
+  ring3dOuterRadius: "wavedance.ring3dOuterRadius",
+  ring3dBarHeightScale: "wavedance.ring3dBarHeightScale",
+  ring3dBarThicknessDeg: "wavedance.ring3dBarThicknessDeg",
+  ring3dDisplayCount: "wavedance.ring3dDisplayBarCount",
+  ring3dWireframe: "wavedance.ring3dWireframeEnabled",
+  ring3dFill: "wavedance.ring3dFillEnabled",
+  ring3dAutoRotate: "wavedance.ring3dAutoRotateEnabled",
+  ring3dAutoRotateSpeed: "wavedance.ring3dAutoRotateSpeedDeg",
+  ring3dCameraDistance: "wavedance.ring3dCameraDistance",
+  ring3dCameraFov: "wavedance.ring3dCameraFovDeg",
+  ring3dBreathePeak: "wavedance.ring3dBreatheWithPeak",
+  ring3dShape: "wavedance.ring3dShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -123,6 +137,7 @@ export const DISPLAY_MODES = {
   obliqueBar: "obliqueBar",
   depthLayers: "depthLayers",
   isometricSkyline: "isometricSkyline",
+  ring3d: "ring3d",
 };
 
 export const PANEL_STYLES = {
@@ -334,6 +349,27 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 50,
     },
   },
+  ring3d: {
+    barColor: "#8f7cff",
+    innerRadius: 0.35,
+    outerRadius: 0.95,
+    barHeightScale: 0.8,
+    barThicknessDeg: 4,
+    displayBarCount: 48,
+    wireframeEnabled: true,
+    fillEnabled: false,
+    autoRotateEnabled: true,
+    autoRotateSpeedDeg: 6,
+    cameraDistance: 2.2,
+    cameraFovDeg: 45,
+    breatheWithPeak: true,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -351,6 +387,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.obliqueBar) return DISPLAY_MODES.obliqueBar;
   if (s === DISPLAY_MODES.depthLayers) return DISPLAY_MODES.depthLayers;
   if (s === DISPLAY_MODES.isometricSkyline) return DISPLAY_MODES.isometricSkyline;
+  if (s === DISPLAY_MODES.ring3d) return DISPLAY_MODES.ring3d;
   return DISPLAY_MODES.line;
 }
 
@@ -546,6 +583,20 @@ export function windowStorageKeys(windowLabel) {
     isometricSkylineBuildingCount: `${pre}.isometricSkylineDisplayBuildingCount`,
     isometricSkylineGroundPlane: `${pre}.isometricSkylineShowGroundPlane`,
     isometricSkylineShape: `${pre}.isometricSkylineShapeConfig`,
+    ring3dColor: `${pre}.ring3dBarColor`,
+    ring3dInnerRadius: `${pre}.ring3dInnerRadius`,
+    ring3dOuterRadius: `${pre}.ring3dOuterRadius`,
+    ring3dBarHeightScale: `${pre}.ring3dBarHeightScale`,
+    ring3dBarThicknessDeg: `${pre}.ring3dBarThicknessDeg`,
+    ring3dDisplayCount: `${pre}.ring3dDisplayBarCount`,
+    ring3dWireframe: `${pre}.ring3dWireframeEnabled`,
+    ring3dFill: `${pre}.ring3dFillEnabled`,
+    ring3dAutoRotate: `${pre}.ring3dAutoRotateEnabled`,
+    ring3dAutoRotateSpeed: `${pre}.ring3dAutoRotateSpeedDeg`,
+    ring3dCameraDistance: `${pre}.ring3dCameraDistance`,
+    ring3dCameraFov: `${pre}.ring3dCameraFovDeg`,
+    ring3dBreathePeak: `${pre}.ring3dBreatheWithPeak`,
+    ring3dShape: `${pre}.ring3dShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

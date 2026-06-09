@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~11 已完成；Phase 12~14 真 3D 扩展待实施  
+> **状态**：Phase 0~12 已完成；Phase 13~14 真 3D 扩展待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -716,10 +716,10 @@ isometricSkyline: {
 
 #### 12.0 新建 `gl3d.js`（本 Phase 必做）
 
-- [ ] 轻量 mat4：`perspective(fov, aspect, near, far)`、`lookAt(eye, center, up)`、`rotateY(rad)`、`multiply`
-- [ ] 导出 `createCamera({ distance, fovDeg, autoRotateSpeedDeg })`，每帧 `autoRotateSpeedDeg * deltaTime` 更新
-- [ ] Vertex shader 统一：`uniform mat4 u_mvp`；不传 Three.js，保持零依赖
-- [ ] 可选：`createBasicLitProgram(gl)` — 简单 directional light（`u_normal`、`u_lightDir`）
+- [x] 轻量 mat4：`perspective(fov, aspect, near, far)`、`lookAt(eye, center, up)`、`rotateY(rad)`、`multiply`
+- [x] 导出 `createCamera({ distance, fovDeg, autoRotateSpeedDeg })`，每帧 `autoRotateSpeedDeg * deltaTime` 更新
+- [x] Vertex shader 统一：`uniform mat4 u_mvp`；不传 Three.js，保持零依赖
+- [x] 可选：`createBasicLitProgram(gl)` — 简单 directional light（`u_normal`、`u_lightDir`）
 
 #### 12.1 配置 Schema
 
@@ -744,12 +744,12 @@ ring3d: {
 
 #### 12.2 新建 `ring3dRenderer.js`
 
-- [ ] 聚合 `points` → `displayBarCount` 根柱
-- [ ] 每柱：环上位置 `(angle, innerR)` → 挤出到 `height` 的 box 或 quad 条（8 顶点 × 柱数）
-- [ ] MVP = projection × view × model（model 含 `rotateY`）
-- [ ] **main.js**：render 时传入 `frameMeta: { peak, rms }`（扩展 renderer 签名，旧 renderer 忽略即可）
-- [ ] 线框模式：`gl.drawElements(LINES, …)` 或 `TRIANGLES` + 仅 edge 色
-- [ ] 复用 `polar.js` 的 `slotToAngle` 算环上角度
+- [x] 聚合 `points` → `displayBarCount` 根柱
+- [x] 每柱：环上位置 `(angle, innerR)` → 挤出到 `height` 的 box 或 quad 条（8 顶点 × 柱数）
+- [x] MVP = projection × view × model（model 含 `rotateY`）
+- [x] **main.js**：render 时传入 `frameMeta: { peak, rms }`（扩展 renderer 签名，旧 renderer 忽略即可）
+- [x] 线框模式：`gl.drawElements(LINES, …)` 或 `TRIANGLES` + 仅 edge 色
+- [x] 复用 `polar.js` 的 `slotToAngle` 算环上角度
 
 #### 12.3 集成与设置页
 
@@ -757,9 +757,9 @@ ring3d: {
 
 #### 12.4 验收标准
 
-- [ ] 圆环在正方形/宽条窗口均居中，aspect 正确
-- [ ] 自转关闭时静止，开启时速度可调
-- [ ] 256 分桶 + displayBarCount=48 时 fps 可接受
+- [x] 圆环在正方形/宽条窗口均居中，aspect 正确
+- [x] 自转关闭时静止，开启时速度可调
+- [x] 256 分桶 + displayBarCount=48 时 fps 可接受
 
 ---
 
@@ -951,11 +951,11 @@ helix3d: {
 | 9 | 斜透视频谱柱 Oblique Bar（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 10 | 多层景深 Depth Layers（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 11 | 等距天际线 Isometric Skyline（2.5D） | `[x]` 已完成 | 2026-06-09 |
-| 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[ ]` 未开始 | |
+| 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[x]` 已完成 | 2026-06-09 |
 | 13 | 3D 频谱地形 Terrain3D（真 3D） | `[ ]` 未开始 | |
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 12（3D 旋转圆环 Ring3D + gl3d.js）
+**当前建议下一步**：Phase 13（3D 频谱地形 Terrain3D）
 
 ---
 
