@@ -88,6 +88,7 @@
               <option value="radial">圆形频谱</option>
               <option value="waterfall">瀑布频谱</option>
               <option value="dotRing">环形圆点</option>
+              <option value="oscilloscope">示波器</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -580,6 +581,29 @@
           <div class="settings-field">
             <label for="dotRingFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="dotRingFallEaseValue">55</span>%</label>
             <input id="dotRingFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="oscilloscopeConfigPanel" aria-labelledby="sec-oscilloscope-display" hidden>
+        <h2 id="sec-oscilloscope-display" class="settings-card__title">示波器配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--oscilloscope" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="oscilloscopeColor" class="settings-label">波形颜色</label>
+            <input id="oscilloscopeColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="oscilloscopeWidthRange" class="settings-label">线条粗细 <span class="settings-value" id="oscilloscopeWidthValue">2</span> px</label>
+            <input id="oscilloscopeWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="oscilloscopePhosphorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>磷光拖尾</span>
+          </label>
+          <div class="settings-field">
+            <label for="oscilloscopePhosphorDecayRange" class="settings-label">拖尾衰减 <span class="settings-value" id="oscilloscopePhosphorDecayValue">60</span>%</label>
+            <input id="oscilloscopePhosphorDecayRange" type="range" min="10" max="95" step="1" value="60" />
           </div>
         </div>
       </section>

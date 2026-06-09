@@ -45,6 +45,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.radial]: "radialConfigPanel",
   [DISPLAY_MODES.waterfall]: "waterfallConfigPanel",
   [DISPLAY_MODES.dotRing]: "dotRingConfigPanel",
+  [DISPLAY_MODES.oscilloscope]: "oscilloscopeConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -208,6 +209,12 @@ const dotRingSoftClipRange = document.querySelector("#dotRingSoftClipRange");
 const dotRingSoftClipValue = document.querySelector("#dotRingSoftClipValue");
 const dotRingFallEaseRange = document.querySelector("#dotRingFallEaseRange");
 const dotRingFallEaseValue = document.querySelector("#dotRingFallEaseValue");
+const oscilloscopeColor = document.querySelector("#oscilloscopeColor");
+const oscilloscopeWidthRange = document.querySelector("#oscilloscopeWidthRange");
+const oscilloscopeWidthValue = document.querySelector("#oscilloscopeWidthValue");
+const oscilloscopePhosphorToggle = document.querySelector("#oscilloscopePhosphorToggle");
+const oscilloscopePhosphorDecayRange = document.querySelector("#oscilloscopePhosphorDecayRange");
+const oscilloscopePhosphorDecayValue = document.querySelector("#oscilloscopePhosphorDecayValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1016,6 +1023,44 @@ function applyDotRingFormFromStorage(v) {
   }
 }
 
+function applyOscilloscopeFormFromStorage(v) {
+  const savedColor = readWindowStorageString(window.localStorage, v, "oscilloscopeColor");
+  if (oscilloscopeColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    oscilloscopeColor.value = savedColor.toLowerCase();
+  } else if (oscilloscopeColor) {
+    oscilloscopeColor.value = DEFAULT_CONFIG.oscilloscope.lineColor;
+  }
+
+  const savedWidth = readWindowStorageString(window.localStorage, v, "oscilloscopeLineWidth");
+  if (oscilloscopeWidthRange) {
+    const lineWidthPx =
+      savedWidth != null && savedWidth !== ""
+        ? clampInt(savedWidth, 1, 12)
+        : DEFAULT_CONFIG.oscilloscope.lineWidthPx;
+    oscilloscopeWidthRange.value = String(lineWidthPx);
+    if (oscilloscopeWidthValue) oscilloscopeWidthValue.textContent = String(lineWidthPx);
+  }
+
+  if (oscilloscopePhosphorToggle) {
+    oscilloscopePhosphorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "oscilloscopePhosphor"),
+      DEFAULT_CONFIG.oscilloscope.phosphorEnabled,
+    );
+  }
+
+  const savedDecay = readWindowStorageString(window.localStorage, v, "oscilloscopePhosphorDecay");
+  if (oscilloscopePhosphorDecayRange) {
+    const decayPercent =
+      savedDecay != null && savedDecay !== ""
+        ? clampInt(savedDecay, 10, 95)
+        : DEFAULT_CONFIG.oscilloscope.phosphorDecayPercent;
+    oscilloscopePhosphorDecayRange.value = String(decayPercent);
+    if (oscilloscopePhosphorDecayValue) {
+      oscilloscopePhosphorDecayValue.textContent = String(decayPercent);
+    }
+  }
+}
+
 function applyAreaFormFromStorage(v) {
   const sa = readAreaShapeConfig(v) ?? { ...DEFAULT_CONFIG.area.shape };
   if (areaGainRange) areaGainRange.value = String(sa.gainPercent);
@@ -1296,6 +1341,7 @@ async function init() {
     applyRadialFormFromStorage(v);
     applyWaterfallFormFromStorage(v);
     applyDotRingFormFromStorage(v);
+    applyOscilloscopeFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -2165,6 +2211,65 @@ async function init() {
   dotRingFallEaseRange?.addEventListener("input", () => {
     void syncDotRingShapeConfig(visualTargetLabel, emitVisual);
   });
+  oscilloscopeColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "oscilloscopeColor",
+        oscilloscopeColor.value,
+      );
+      await emitVisual("waveform-oscilloscope-color", oscilloscopeColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新示波器颜色失败：${String(err)}`;
+    }
+  });
+  oscilloscopeWidthRange?.addEventListener("input", async (event) => {
+    const lineWidthPx = clampInt(event.target.value, 1, 12);
+    if (oscilloscopeWidthValue) oscilloscopeWidthValue.textContent = String(lineWidthPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "oscilloscopeLineWidth",
+        String(lineWidthPx),
+      );
+      await emitVisual("waveform-oscilloscope-line-width", lineWidthPx);
+    } catch (err) {
+      statusEl.textContent = `更新示波器线宽失败：${String(err)}`;
+    }
+  });
+  oscilloscopePhosphorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "oscilloscopePhosphor",
+        String(enabled),
+      );
+      await emitVisual("waveform-oscilloscope-phosphor", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新磷光拖尾失败：${String(err)}`;
+    }
+  });
+  oscilloscopePhosphorDecayRange?.addEventListener("input", async (event) => {
+    const decayPercent = clampInt(event.target.value, 10, 95);
+    if (oscilloscopePhosphorDecayValue) {
+      oscilloscopePhosphorDecayValue.textContent = String(decayPercent);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "oscilloscopePhosphorDecay",
+        String(decayPercent),
+      );
+      await emitVisual("waveform-oscilloscope-phosphor-decay", decayPercent);
+    } catch (err) {
+      statusEl.textContent = `更新拖尾衰减失败：${String(err)}`;
+    }
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -2621,6 +2726,21 @@ async function init() {
   }
   if (dotRingPulseToggle) {
     await emitVisual("waveform-dot-ring-pulse", Boolean(dotRingPulseToggle.checked));
+  }
+  if (oscilloscopeColor) {
+    await emitVisual("waveform-oscilloscope-color", oscilloscopeColor.value);
+  }
+  if (oscilloscopeWidthRange) {
+    await emitVisual("waveform-oscilloscope-line-width", clampInt(oscilloscopeWidthRange.value, 1, 12));
+  }
+  if (oscilloscopePhosphorToggle) {
+    await emitVisual("waveform-oscilloscope-phosphor", Boolean(oscilloscopePhosphorToggle.checked));
+  }
+  if (oscilloscopePhosphorDecayRange) {
+    await emitVisual(
+      "waveform-oscilloscope-phosphor-decay",
+      clampInt(oscilloscopePhosphorDecayRange.value, 10, 95),
+    );
   }
 
   if (closeSettingsBtn) {

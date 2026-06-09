@@ -10,6 +10,7 @@ import { createGlowCircleRenderer } from "./renderers/glowCircleRenderer.js";
 import { createRadialRenderer } from "./renderers/radialRenderer.js";
 import { createWaterfallRenderer } from "./renderers/waterfallRenderer.js";
 import { createDotRingRenderer } from "./renderers/dotRingRenderer.js";
+import { createOscilloscopeRenderer } from "./renderers/oscilloscopeRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -43,6 +44,7 @@ const glowCircleRenderer = createGlowCircleRenderer(gl);
 const radialRenderer = createRadialRenderer(gl);
 const waterfallRenderer = createWaterfallRenderer(gl);
 const dotRingRenderer = createDotRingRenderer(gl);
+const oscilloscopeRenderer = createOscilloscopeRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -54,6 +56,7 @@ const RENDERERS = {
   [DISPLAY_MODES.radial]: radialRenderer,
   [DISPLAY_MODES.waterfall]: waterfallRenderer,
   [DISPLAY_MODES.dotRing]: dotRingRenderer,
+  [DISPLAY_MODES.oscilloscope]: oscilloscopeRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -67,6 +70,7 @@ const waterfallShapeConfig = { ...DEFAULT_CONFIG.waterfall.shape };
 const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
 
 let latestPoints = [];
+let latestTimeSamples = [];
 let displayMode = DEFAULT_CONFIG.displayMode;
 
 function applyWaveShapeConfig(payload) {
@@ -194,6 +198,7 @@ const radialBarRgb = { r: 0, g: 0, b: 0 };
 const waterfallColorLowRgb = { r: 0, g: 0, b: 0 };
 const waterfallColorHighRgb = { r: 0, g: 0, b: 0 };
 const dotRingDotRgb = { r: 0, g: 0, b: 0 };
+const oscilloscopeLineRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -220,6 +225,7 @@ applyRadialBarColorHex(DEFAULT_CONFIG.radial.barColor);
 applyWaterfallColorLowHex(DEFAULT_CONFIG.waterfall.colorLow);
 applyWaterfallColorHighHex(DEFAULT_CONFIG.waterfall.colorHigh);
 applyDotRingDotColorHex(DEFAULT_CONFIG.dotRing.dotColor);
+applyOscilloscopeColorHex(DEFAULT_CONFIG.oscilloscope.lineColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -268,6 +274,9 @@ let dotRingRadiusPercent = DEFAULT_CONFIG.dotRing.ringRadiusPercent;
 let dotRingDotCount = DEFAULT_CONFIG.dotRing.dotCount;
 let dotRingDotSizePx = DEFAULT_CONFIG.dotRing.dotSizePx;
 let dotRingPulseEnabled = DEFAULT_CONFIG.dotRing.pulseEnabled;
+let oscilloscopeLineWidthPx = DEFAULT_CONFIG.oscilloscope.lineWidthPx;
+let oscilloscopePhosphorEnabled = DEFAULT_CONFIG.oscilloscope.phosphorEnabled;
+let oscilloscopePhosphorDecayPercent = DEFAULT_CONFIG.oscilloscope.phosphorDecayPercent;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -553,6 +562,29 @@ function applyDotRingPulseEnabled(value) {
   dotRingPulseEnabled = parseBoolean(value, DEFAULT_CONFIG.dotRing.pulseEnabled);
 }
 
+function applyOscilloscopeColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.oscilloscope.lineColor;
+  const { r, g, b } = hexToRgb(safe);
+  oscilloscopeLineRgb.r = r / 255;
+  oscilloscopeLineRgb.g = g / 255;
+  oscilloscopeLineRgb.b = b / 255;
+}
+
+function applyOscilloscopeLineWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  oscilloscopeLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyOscilloscopePhosphorEnabled(value) {
+  oscilloscopePhosphorEnabled = parseBoolean(value, DEFAULT_CONFIG.oscilloscope.phosphorEnabled);
+}
+
+function applyOscilloscopePhosphorDecayPercent(n) {
+  oscilloscopePhosphorDecayPercent = clampInt(n, 10, 95);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -743,6 +775,14 @@ function getStyleConfigForMode(mode) {
       freqReversed,
     };
   }
+  if (mode === DISPLAY_MODES.oscilloscope) {
+    return {
+      color: oscilloscopeLineRgb,
+      lineWidthPx: oscilloscopeLineWidthPx,
+      phosphorEnabled: oscilloscopePhosphorEnabled,
+      phosphorDecay: oscilloscopePhosphorDecayPercent / 100,
+    };
+  }
   return {
     color: waveformLineRgb,
     lineWidthPx: waveformLineWidthPx,
@@ -755,7 +795,9 @@ function renderWaveform() {
   gl.clearColor(0.0, 0.0, 0.0, 0.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   const renderer = RENDERERS[displayMode] ?? lineRenderer;
-  renderer.render(latestPoints, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode));
+  const renderData =
+    displayMode === DISPLAY_MODES.oscilloscope ? latestTimeSamples : latestPoints;
+  renderer.render(renderData, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode));
 
   requestAnimationFrame(renderWaveform);
 }
@@ -851,6 +893,9 @@ async function init() {
     const payload = event.payload;
     if (Array.isArray(payload.points)) {
       latestPoints = payload.points;
+    }
+    if (Array.isArray(payload.time_samples)) {
+      latestTimeSamples = payload.time_samples;
     }
   });
 
@@ -1390,6 +1435,36 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-oscilloscope-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyOscilloscopeColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oscilloscope-line-width",
+    (event) => {
+      applyOscilloscopeLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oscilloscope-phosphor",
+    (event) => {
+      applyOscilloscopePhosphorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oscilloscope-phosphor-decay",
+    (event) => {
+      applyOscilloscopePhosphorDecayPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -1582,6 +1657,26 @@ async function init() {
       applyDotRingDotSizePx(savedDotRingSize);
     }
     applyDotRingPulseEnabled(readWindowStorageString(window.localStorage, windowLabel, "dotRingPulse"));
+    applyOscilloscopeColorHex(readWindowStorageString(window.localStorage, windowLabel, "oscilloscopeColor"));
+    const savedOscilloscopeWidth = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "oscilloscopeLineWidth",
+    );
+    if (savedOscilloscopeWidth != null && savedOscilloscopeWidth !== "") {
+      applyOscilloscopeLineWidthPx(savedOscilloscopeWidth);
+    }
+    applyOscilloscopePhosphorEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "oscilloscopePhosphor"),
+    );
+    const savedOscilloscopeDecay = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "oscilloscopePhosphorDecay",
+    );
+    if (savedOscilloscopeDecay != null && savedOscilloscopeDecay !== "") {
+      applyOscilloscopePhosphorDecayPercent(savedOscilloscopeDecay);
+    }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

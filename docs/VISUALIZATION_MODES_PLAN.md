@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 6 已完成，Phase 7 待实施  
+> **状态**：Phase 0~8 已完成；Phase 9~14 3D/2.5D 扩展待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -43,6 +43,16 @@ Rust 采集线程 (src-tauri/src/main.rs)
 | `frontend/src/renderers/common.js` | `clamp01`、`applyAdaptiveSmooth`、像素↔NDC 换算 |
 | `frontend/src/renderers/lineRenderer.js` | 线状图，`LINE_STRIP` |
 | `frontend/src/renderers/barRenderer.js` | 柱状图，`TRIANGLES` + 峰值保持线 |
+| `frontend/src/renderers/areaRenderer.js` | 填充波形 |
+| `frontend/src/renderers/gradientBarRenderer.js` | 渐变频谱柱 |
+| `frontend/src/renderers/glowLineRenderer.js` | 霓虹发光线 |
+| `frontend/src/renderers/glowCircleRenderer.js` | 霓虹圆形 |
+| `frontend/src/renderers/radialRenderer.js` | 圆形频谱（`polar.js`） |
+| `frontend/src/renderers/waterfallRenderer.js` | 瀑布频谱（历史纹理） |
+| `frontend/src/renderers/dotRingRenderer.js` | 环形圆点 |
+| `frontend/src/renderers/shapePipeline.js` | 共用频谱 shape 处理 |
+| `frontend/src/renderers/shaderUtils.js` | shader 编译工具 |
+| `frontend/src/renderers/polar.js` | 极坐标 / 宽高比 |
 | `frontend/src/main.js` | 创建 renderer、`renderWaveform()` 分支、`listen` 事件 |
 | `frontend/src/visualizationSchema.js` | `DISPLAY_MODES`、`DEFAULT_CONFIG`、`STORAGE_KEYS` |
 | `frontend/settings.html` + `settings.js` | 展示模式选择与各模式配置面板 |
@@ -96,6 +106,14 @@ export const DISPLAY_MODES = {
   radial: "radial",       // Phase 4
   waterfall: "waterfall", // Phase 5
   dotRing: "dotRing",     // Phase 6
+  glowCircle: "glowCircle",
+  // --- 3D / 2.5D 扩展 ---
+  obliqueBar: "obliqueBar",           // Phase 9  斜透视频谱柱（2.5D）
+  depthLayers: "depthLayers",         // Phase 10 多层景深（2.5D）
+  isometricSkyline: "isometricSkyline", // Phase 11 等距天际线（2.5D）
+  ring3d: "ring3d",                   // Phase 12 3D 旋转圆环（真 3D）
+  terrain3d: "terrain3d",             // Phase 13 3D 频谱地形（真 3D）
+  helix3d: "helix3d",                 // Phase 14 3D 螺旋（真 3D）
   // oscilloscope: "oscilloscope", // Phase 8（需后端）
 };
 ```
@@ -128,8 +146,23 @@ function renderWaveform() {
 | 新文件 | 用途 |
 |--------|------|
 | `frontend/src/renderers/shapePipeline.js` | 从 line/bar 抽离共用的 gain→缓落→gamma→smooth 逻辑 |
-| `frontend/src/renderers/polar.js` | 极坐标辅助（Phase 4、6 共用） |
+| `frontend/src/renderers/polar.js` | 极坐标辅助（Phase 4、6、12 共用） |
 | `frontend/src/renderers/shaderUtils.js` | compileShader、createProgram 去重 |
+| `frontend/src/renderers/gl3d.js` | **Phase 12 起**：mat4 透视/视图矩阵、简单 camera（真 3D 共用） |
+| `frontend/src/renderers/isometric.js` | **Phase 11**：等距投影坐标换算（2.5D） |
+| `frontend/src/renderers/bandAggregate.js` | 频谱桶聚合（小窗降密度，3D 模式建议 32~64 条） |
+
+### 3.4 3D / 2.5D 扩展原则（Phase 9~14 必读）
+
+| 类型 | 代表 Phase | 技术 | 透明浮层建议 |
+|------|-----------|------|-------------|
+| **2.5D 伪 3D** | 9、10、11 | 仍用 2D NDC + 透视缩放/明暗/层叠 | ⭐⭐⭐ 友好 |
+| **轻量真 3D** | 12、13、14 | `gl3d.js` + mesh + 简单光照 | ⭐⭐ 优先线框/发光边，避免大面积半透明 solid |
+
+- **数据**：六种模式均只需 `points[]`；可选 `peak`/`rms` 做整体缩放或呼吸（扩展 `render` 第四参数 `frameMeta`）。
+- **密度**：小浮窗建议 UI 暴露「显示条数」或对 256+ 桶做 band 聚合，避免 3D 噪点。
+- **自转**：真 3D 模式默认慢速绕 Y 轴旋转（3~10°/s），设置页提供开关与速度滑块。
+- **后端**：无需改 Rust（与 Phase 8 示波器独立）。
 
 ---
 
@@ -452,9 +485,9 @@ dotRing: {
 
 > 全部模式完成后统一做，**每完成一个 Phase 也可先更新 CHANGELOG**。
 
-- [ ] `README.md` 效果预览说明补充新模式名称
-- [ ] `docs/QUICK_CONTEXT.md` 补充展示模式列表
-- [ ] `PROJECT_CONTEXT.md`「下一步候选任务」同步
+- [x] `README.md` 效果预览说明补充新模式名称
+- [x] `docs/QUICK_CONTEXT.md` 补充展示模式列表
+- [x] `PROJECT_CONTEXT.md`「下一步候选任务」同步
 - [ ] 可选：录制 GIF 放入 `docs/images/`
 
 ---
@@ -465,7 +498,7 @@ dotRing: {
 
 #### 8.1 后端改动 `src-tauri/src/main.rs`
 
-- [ ] 扩展 `WaveformFrame` 或新事件 `waveform-time-domain`：
+- [x] 扩展 `WaveformFrame` 或新事件 `waveform-time-domain`：
   ```rust
   struct WaveformFrame {
       peak: f32,
@@ -474,12 +507,12 @@ dotRing: {
       time_samples: Vec<f32>,  // 新增：mono 时域，例如 512 点，归一化到 [-1,1]
   }
   ```
-- [ ] 从已有 `mono` buffer 降采样取 512 点（不必重复 FFT）
+- [x] 从已有 `mono` buffer 降采样取 512 点（不必重复 FFT）
 
 #### 8.2 前端 `oscilloscopeRenderer.js`
 
-- [ ] 滚动波形：`LINE_STRIP`，x 均匀分布，y = sample
-- [ ] 可选 phosphor 拖尾（alpha fade buffer）
+- [x] 滚动波形：`LINE_STRIP`，x 均匀分布，y = sample
+- [x] 可选 phosphor 拖尾（alpha fade buffer）
 
 #### 8.3 配置 Schema
 
@@ -493,6 +526,333 @@ oscilloscope: {
 ```
 
 ---
+
+## 4B. 3D / 2.5D 可视化扩展（Phase 9~14）
+
+> **讨论来源**：2026-06-09 3D 效果方案评审。  
+> **实施策略**：六种模式独立交付，建议按 Phase 编号顺序逐个实现、逐个看效果后再做下一个。  
+> **推荐首批**：Phase 9（斜透视）→ Phase 10（景深）→ Phase 12（3D 圆环）；Phase 13 地形最炫但工作量最大。
+
+---
+
+### Phase 9：斜透视频谱柱 Oblique Bar（2.5D，约 2~3 天）
+
+> **效果**：经典 Winamp / 街机风格——频谱柱从「远处地面」排列到「近处观众」，越远越窄越暗，越高柱体越高。  
+> **3D 感来源**：透视缩放 + 深度明暗 + 可选地面参考线。
+
+#### 9.1 配置 Schema
+
+```js
+obliqueBar: {
+  barColor: "#8f7cff",
+  barColorFar: "#4a4580",      // 远处柱色（暗）
+  widthPercent: 76,
+  gapPercent: 18,
+  headroomPercent: 8,
+  tiltDeg: 55,                 // 透视倾角 30~70
+  depthLayers: 1,              // 1=单层斜透视；2~3 可叠多层 parallax（可选后续）
+  showGroundLine: true,        // 地面参考斜线
+  mirrorEnabled: false,
+  displayBarCount: 0,          // 0=跟随分桶；>0 时聚合到此数量（小窗推荐 32~64）
+  shape: { gainPercent: 62, smoothPercent: 18, softClipPercent: 12, fallEasePercent: 52 },
+}
+```
+
+Storage keys 前缀：`obliqueBar*`（如 `obliqueBarColor`、`obliqueBarTilt`、`obliqueBarShape`）
+
+#### 9.2 新建 `obliqueBarRenderer.js`
+
+- [ ] 复用 `barRenderer` / `shapePipeline` 的柱体 rect 生成
+- [ ] 透视映射：slot index → 伪深度 `t∈[0,1]`（远=0 近=1）
+  - `scale = mix(farScale, 1, t)`，`yBase = mix(farY, nearY, t)`，`alpha/brightness = mix(farBright, 1, t)`
+- [ ] 柱高：`normalized[i] * maxHeight * scale`
+- [ ] 绘制顺序：**远 → 近**（先画远的，避免遮挡错误）
+- [ ] 可选地面线：一条 `LINE_STRIP` 斜线
+- [ ] `freqReversed` 改变左右/远近对应关系
+- [ ] 若 `displayBarCount > 0`：聚合后再透视（可抽 `bandAggregate.js`）
+
+#### 9.3 集成与设置页
+
+| 文件 | 改动 |
+|------|------|
+| `visualizationSchema.js` | `DISPLAY_MODES.obliqueBar`、`DEFAULT_CONFIG.obliqueBar`、storage keys |
+| `main.js` | 注册 renderer、listen、load storage |
+| `settings.html` | `<option value="obliqueBar">斜透视频谱柱</option>` + `#obliqueBarConfigPanel` |
+| `settings.js` | panel 显隐、控件绑定、emit/sync |
+
+设置控件：柱色、远色、柱宽/间距、倾角、地面线开关、显示条数、镜像、形状四件套。
+
+#### 9.4 事件命名
+
+| 事件 | payload |
+|------|---------|
+| `waveform-oblique-bar-color` | `#rrggbb` |
+| `waveform-oblique-bar-color-far` | `#rrggbb` |
+| `waveform-oblique-bar-tilt` | `30~70` number |
+| `waveform-oblique-bar-display-count` | `0~128` number |
+| `waveform-oblique-bar-ground-line` | boolean |
+| `waveform-oblique-bar-mirror` | boolean |
+| `waveform-oblique-bar-shape-config` | shape object |
+| （柱宽/间距/headroom 可复用 bar 事件命名或独立前缀） | |
+
+#### 9.5 验收标准
+
+- [ ] 小窗口（宽条浮层）下透视关系清晰，不糊成一片
+- [ ] 音乐停止后柱体缓落到底，无残留
+- [ ] 与 2D `bar` 模式可自由切换，配置独立持久化
+
+---
+
+### Phase 10：多层景深频谱 Depth Layers（2.5D，约 1~2 天）
+
+> **效果**：同一频谱复制 3~5 层，每层不同伪深度——缩放、Y 偏移、透明度递减，形成舞台景深。  
+> **3D 感来源**：视差（parallax）；可选低频层靠前、高频层靠后。
+
+#### 10.1 配置 Schema
+
+```js
+depthLayers: {
+  layerCount: 4,               // 层数 2~6
+  color: "#8f7cff",
+  colorFar: "#3d3866",         // 最远层色调
+  layerSpacingPx: 6,           // 层间 Y 偏移（像素）
+  farScalePercent: 72,         // 最远层缩放 50~90
+  farAlphaPercent: 25,         // 最远层透明度
+  bassFrontEnabled: true,      // true=低频层在前；false=高频在前
+  lineWidthPx: 2,              // 每层绘制 line 或细 bar
+  renderStyle: "line",         // "line" | "bar"
+  shape: { gainPercent: 55, smoothPercent: 24, softClipPercent: 14, fallEasePercent: 58 },
+}
+```
+
+#### 10.2 新建 `depthLayersRenderer.js`
+
+- [ ] `processSpectrumPoints` 一次，多层共用同一份 normalized 数据
+- [ ] 第 `layer` 层（0=最远）：`scale = mix(farScale, 1, layer/(N-1))`，`alpha = mix(farAlpha, 1, …)`，`yOffset = layer * spacingNdc`
+- [ ] `bassFrontEnabled`：可对 points 做 band 分群，每层 emphasis 不同频段（远层偏高频、近层偏低频）
+- [ ] 绘制顺序：远 → 近；开启 `gl.blendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)`
+- [ ] `renderStyle=line` 复用 glowLine 的 stroke mesh 思路；`bar` 复用窄 rect
+
+#### 10.3 集成与设置页
+
+- panel：层数、层间距、远层缩放/透明度、低频靠前开关、线宽、颜色、形状四件套
+
+#### 10.4 事件命名
+
+| 事件 | payload |
+|------|---------|
+| `waveform-depth-layers-count` | `2~6` |
+| `waveform-depth-layers-spacing` | px number |
+| `waveform-depth-layers-far-scale` | `50~90` |
+| `waveform-depth-layers-far-alpha` | `0~100` |
+| `waveform-depth-layers-bass-front` | boolean |
+| `waveform-depth-layers-color` | `#rrggbb` |
+| `waveform-depth-layers-render-style` | `"line"` \| `"bar"` |
+| `waveform-depth-layers-shape-config` | shape object |
+
+#### 10.5 验收标准
+
+- [ ] 层间视差随音乐明显，但不遮挡桌面过多（远层足够淡）
+- [ ] layerCount=2 与 layerCount=6 均稳定
+- [ ] 静默时各层归零干净
+
+---
+
+### Phase 11：等距城市天际线 Isometric Skyline（2.5D，约 2~3 天）
+
+> **效果**：每个频谱桶对应一栋「建筑」，30° 等距投影；高低随幅度变化，三面明暗不同。  
+> **风格**：复古 / synthwave 城市轮廓，透明背景友好。
+
+#### 11.1 新建 `isometric.js`
+
+```js
+/** 等距：屏幕 (x,y) 来自 世界 (wx, wy, wz) */
+export function isoProject(wx, wy, wz) { ... }  // 返回 NDC 或中间坐标
+
+/** 建筑 box 六个可见面的顶点（仅绘制 top + left + right 三面） */
+export function buildIsoBuilding(wx, wz, height, width) { ... }
+```
+
+#### 11.2 配置 Schema
+
+```js
+isometricSkyline: {
+  faceTopColor: "#8f7cff",
+  faceLeftColor: "#6b5fd4",    // 暗面
+  faceRightColor: "#a898ff",   // 亮面
+  buildingWidthPx: 8,
+  buildingGapPx: 2,
+  skylineBaselinePercent: 15,  // 地平线位置
+  displayBuildingCount: 48,    // 聚合建筑数 16~96
+  showGroundPlane: true,
+  shape: { gainPercent: 60, smoothPercent: 16, softClipPercent: 10, fallEasePercent: 50 },
+}
+```
+
+#### 11.3 新建 `isometricSkylineRenderer.js`
+
+- [ ] `aggregateBands(points, displayBuildingCount)` → 每栋高度
+- [ ] 每栋建筑：三个 quad（顶面菱形 + 左侧面 + 右侧面），`TRIANGLES` 绘制
+- [ ] 绘制顺序：按 `wx+ wz` 排序（画家算法，远建筑先画）
+- [ ] 地面：可选一个浅色等距平行四边形
+- [ ] 不支持 mirror；`freqReversed` 反转建筑左右排列
+
+#### 11.4 集成与设置页
+
+- panel：三面颜色、建筑宽/间距、建筑数量、地平线、地面开关、形状四件套
+
+#### 11.5 验收标准
+
+- [ ] 宽窗口下天际线连续，窄窗口聚合后仍可读
+- [ ] 三面明暗有体积感，不像 flat bar
+- [ ] 停止音乐后建筑高度缓落
+
+---
+
+### Phase 12：3D 旋转圆环 Ring3D（真 3D，约 3~4 天）
+
+> **效果**：频谱条变为 3D 扇形柱体，排列成圆环，绕 Y 轴慢速自转。  
+> **依赖**：本 Phase **首次引入** `gl3d.js`，供 Phase 13、14 复用。
+
+#### 12.0 新建 `gl3d.js`（本 Phase 必做）
+
+- [ ] 轻量 mat4：`perspective(fov, aspect, near, far)`、`lookAt(eye, center, up)`、`rotateY(rad)`、`multiply`
+- [ ] 导出 `createCamera({ distance, fovDeg, autoRotateSpeedDeg })`，每帧 `autoRotateSpeedDeg * deltaTime` 更新
+- [ ] Vertex shader 统一：`uniform mat4 u_mvp`；不传 Three.js，保持零依赖
+- [ ] 可选：`createBasicLitProgram(gl)` — 简单 directional light（`u_normal`、`u_lightDir`）
+
+#### 12.1 配置 Schema
+
+```js
+ring3d: {
+  barColor: "#8f7cff",
+  innerRadius: 0.35,           // 世界单位 0.1~0.8
+  outerRadius: 0.95,
+  barHeightScale: 0.8,         // 幅度 → 柱高上限
+  barThicknessDeg: 4,          // 每根柱角宽（聚合后）
+  displayBarCount: 48,
+  wireframeEnabled: true,      // 透明浮层默认线框
+  fillEnabled: false,          // 实心面（与线框二选一或叠加）
+  autoRotateEnabled: true,
+  autoRotateSpeedDeg: 6,       // 1~20
+  cameraDistance: 2.2,
+  cameraFovDeg: 45,
+  breatheWithPeak: true,       // 用 peak 做整体 scale
+  shape: { gainPercent: 62, smoothPercent: 18, softClipPercent: 12, fallEasePercent: 52 },
+}
+```
+
+#### 12.2 新建 `ring3dRenderer.js`
+
+- [ ] 聚合 `points` → `displayBarCount` 根柱
+- [ ] 每柱：环上位置 `(angle, innerR)` → 挤出到 `height` 的 box 或 quad 条（8 顶点 × 柱数）
+- [ ] MVP = projection × view × model（model 含 `rotateY`）
+- [ ] **main.js**：render 时传入 `frameMeta: { peak, rms }`（扩展 renderer 签名，旧 renderer 忽略即可）
+- [ ] 线框模式：`gl.drawElements(LINES, …)` 或 `TRIANGLES` + 仅 edge 色
+- [ ] 复用 `polar.js` 的 `slotToAngle` 算环上角度
+
+#### 12.3 集成与设置页
+
+- panel：内外径、柱高、柱数、线框/实心、自转开关与速度、相机距离、peak 呼吸、形状四件套
+
+#### 12.4 验收标准
+
+- [ ] 圆环在正方形/宽条窗口均居中，aspect 正确
+- [ ] 自转关闭时静止，开启时速度可调
+- [ ] 256 分桶 + displayBarCount=48 时 fps 可接受
+
+---
+
+### Phase 13：3D 频谱地形 Terrain3D（真 3D，约 4~5 天）
+
+> **效果**：网格地毯在 perspective 相机前展开，X=频率、Z=时间历史、Y=幅度，音乐驱动地形起伏并向观众滚动。  
+> **关联**：历史 buffer 逻辑可复用 `waterfallRenderer` 思路。
+
+#### 13.1 配置 Schema
+
+```js
+terrain3d: {
+  colorLow: "#1a1a2e",
+  colorHigh: "#8f7cff",
+  wireframeColor: "#c4b5fd",
+  gridCols: 64,                // 频率方向格点（聚合后）
+  gridRows: 48,                // 时间历史行数
+  scrollEveryNFrames: 1,
+  wireframeEnabled: true,      // 透明浮层强烈推荐默认开
+  fillEnabled: false,
+  terrainHeightScale: 0.35,
+  cameraPitchDeg: 55,            // 俯视角度 30~75
+  cameraDistance: 2.8,
+  autoScrollEnabled: true,
+  shape: { gainPercent: 55, smoothPercent: 12, softClipPercent: 10, fallEasePercent: 40 },
+}
+```
+
+#### 13.2 新建 `terrain3dRenderer.js`
+
+- [ ] 环形历史 buffer：`gridRows × gridCols`（同 waterfall）
+- [ ] 每帧写入最新一行频谱（聚合到 gridCols）→ 滚动 Z
+- [ ] 生成 `(gridCols × gridRows)` mesh 顶点 + 索引；Y = amp × heightScale
+- [ ] 线框：绘制 grid lines；填充：按高度 gradient 着色 fragment
+- [ ] 相机固定轻微俯视，网格向 -Z 滚动（`textureOffset` 或顶点 Z 偏移）
+- [ ] resize / bucket 变化时 reset buffer
+
+#### 13.3 集成与设置页
+
+- panel：格点密度、历史深度、线框/填充、双色、地形高度、相机俯角、形状四件套
+
+#### 13.4 验收标准
+
+- [ ] 播放时地形明显「扑面而来」滚动
+- [ ] 停止后历史逐渐平息，不花屏
+- [ ] 线框模式在透明桌面上清晰可辨
+
+---
+
+### Phase 14：3D 螺旋频谱 Helix3D（真 3D，约 4~5 天）
+
+> **效果**：频谱点沿 3D 螺旋线分布，幅度驱动径向挤出或 Z 向拉伸；整根螺旋慢速旋转。  
+> **注意**：小窗口易糊，务必做 band 聚合（推荐 24~48 点）。
+
+#### 14.1 配置 Schema
+
+```js
+helix3d: {
+  dotColor: "#8f7cff",
+  helixRadius: 0.5,
+  helixPitch: 0.35,            // 每圈螺距（世界单位）
+  helixTurns: 2.5,             // 可见圈数 1~4
+  displayPointCount: 32,
+  extrudeMode: "radial",       // "radial" | "height" — 幅度映射方式
+  pointSizePx: 8,
+  wireframeEnabled: true,      // 点间连线成螺旋链
+  autoRotateEnabled: true,
+  autoRotateSpeedDeg: 8,
+  cameraDistance: 2.5,
+  shape: { gainPercent: 62, smoothPercent: 20, softClipPercent: 12, fallEasePercent: 55 },
+}
+```
+
+#### 14.2 新建 `helix3dRenderer.js`
+
+- [ ] 聚合 points → `displayPointCount`
+- [ ] 第 i 点：角度 `θ = i/N * turns * 2π`，位置 `(R*cosθ, i/N*pitch*2 - pitch, R*sinθ)`，extrude 加幅度
+- [ ] 渲染：每点一个小 billboard quad（始终近似面向相机）或 3D 小球 mesh
+- [ ] 可选：相邻点 `LINE_STRIP` 连接成螺旋链（线框 glow 色）
+- [ ] 复用 `gl3d.js` camera + autoRotate
+
+#### 14.3 集成与设置页
+
+- panel：螺旋半径/螺距/圈数、点数、挤出模式、点大小、连线开关、自转、形状四件套
+
+#### 14.4 验收标准
+
+- [ ] displayPointCount≤48 时小窗仍可辨认螺旋结构
+- [ ] 强节奏时径向/高度挤出明显
+- [ ] 与 ring3d 视觉差异清晰（螺旋 vs 平面圆环）
+
+---
+
 
 ## 5. 每个 Phase 标准实施步骤（复制粘贴用）
 
@@ -524,6 +884,12 @@ oscilloscope: {
 | 5 | `waterfallRenderer.js` | 同上 |
 | 6 | `dotRingRenderer.js` | 同上（复用 `polar.js`） |
 | 8 | `oscilloscopeRenderer.js` | `src-tauri/src/main.rs`, `wavedance` crate 若需改 struct |
+| 9 | `obliqueBarRenderer.js`,（可选）`bandAggregate.js` | `visualizationSchema.js`, `main.js`, `settings.html`, `settings.js` |
+| 10 | `depthLayersRenderer.js` | 同上 |
+| 11 | `isometric.js`, `isometricSkylineRenderer.js` | 同上 |
+| 12 | `gl3d.js`, `ring3dRenderer.js` | 同上 + `main.js` 传 `frameMeta` |
+| 13 | `terrain3dRenderer.js` | 同上（复用 `gl3d.js`、历史 buffer 模式） |
+| 14 | `helix3dRenderer.js` | 同上（复用 `gl3d.js`） |
 
 ---
 
@@ -538,8 +904,16 @@ oscilloscope: {
 | 5 | **Phase 4 Radial** | 引入极坐标，后续 dotRing 依赖 |
 | 6 | **Phase 6 Dot Ring** | 比 waterfall 简单，复用 polar |
 | 7 | **Phase 5 Waterfall** | 最复杂前端状态，放后面降低风险 |
-| 8 | **Phase 7 文档** | 收尾 |
+| 8 | **Phase 7 文档** | 2D 模式收尾 |
 | 9 | **Phase 8 示波器** | 可选，独立后端链路 |
+| 10 | **Phase 9 Oblique Bar** | 3D 入门：2.5D、无 gl3d、小窗友好 |
+| 11 | **Phase 10 Depth Layers** | 最轻 3D 感，验证多层 alpha blend |
+| 12 | **Phase 11 Isometric** | 风格化 2.5D，引入等距工具 |
+| 13 | **Phase 12 Ring3D** | 首次 gl3d + 复用 polar，真 3D 里程碑 |
+| 14 | **Phase 13 Terrain3D** | 复用 waterfall 历史 + gl3d，最炫真 3D |
+| 15 | **Phase 14 Helix3D** | 螺旋收尾，依赖 gl3d 已稳定 |
+
+**3D 扩展可选快捷路径**（若只想先试效果）：Phase 9 → Phase 10 → Phase 12，跳过 11/13/14 后再补。
 
 ---
 
@@ -552,6 +926,10 @@ oscilloscope: {
 | settings.js 膨胀 | 每模式独立 panel section，考虑后续抽 `settings/visualModes/` |
 | 旧 storage 迁移 | 新 key 用 `readWindowStorageString` 回退默认值，勿破坏 line/bar |
 | 多窗配置 | 所有新 key 加入 `windowStorageKeys()` |
+| 3D 半透明 mesh 深度排序 | 透明浮层默认 **线框** 或 **不透明 solid + 发光边**；慎用大面积 alpha solid |
+| 小窗 3D 可读性 | 暴露 `displayBarCount` / `displayBuildingCount`，默认聚合到 32~64 |
+| gl3d 重复实现 | Phase 12 建 `gl3d.js` 后，13/14 禁止再复制 mat4 |
+| 真 3D 性能 | gridCols×gridRows ≤ 64×48；helix 点数 ≤ 48；必要时降帧更新 history |
 
 ---
 
@@ -568,10 +946,16 @@ oscilloscope: {
 | 4 | 圆形频谱 Radial | `[x]` 已完成 | 2026-06-09 |
 | 5 | 瀑布频谱 Waterfall | `[x]` 已完成 | 2026-06-09 |
 | 6 | 环形圆点 Dot Ring | `[x]` 已完成 | 2026-06-09 |
-| 7 | 文档与 README | `[ ]` 未开始 | |
-| 8 | 示波器 Oscilloscope（可选） | `[ ]` 未开始 | |
+| 7 | 文档与 README | `[x]` 已完成 | 2026-06-09 |
+| 8 | 示波器 Oscilloscope（可选） | `[x]` 已完成 | 2026-06-09 |
+| 9 | 斜透视频谱柱 Oblique Bar（2.5D） | `[ ]` 未开始 | |
+| 10 | 多层景深 Depth Layers（2.5D） | `[ ]` 未开始 | |
+| 11 | 等距天际线 Isometric Skyline（2.5D） | `[ ]` 未开始 | |
+| 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[ ]` 未开始 | |
+| 13 | 3D 频谱地形 Terrain3D（真 3D） | `[ ]` 未开始 | |
+| 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 7（文档与 README 更新）
+**当前建议下一步**：Phase 9（3D 扩展首个模式：斜透视频谱柱）
 
 ---
 
@@ -579,9 +963,12 @@ oscilloscope: {
 
 ```
 请阅读 docs/VISUALIZATION_MODES_PLAN.md，查看「进度追踪」表，
-从第一个未完成的 Phase 开始实施。 strictly 只完成一个 Phase，
+从第一个未完成的 Phase 开始实施。strictly 只完成一个 Phase，
 完成后更新该文档进度表和 docs/CHANGELOG_AGENT.md。
 不要跳过 Phase 0（若未完成）。提交描述用中文。
+
+3D 扩展（Phase 9~14）：优先 2.5D（9→10→11），真 3D 从 Phase 12 起；
+Phase 12 须先完成 gl3d.js 再写 ring3dRenderer。
 ```
 
 ---

@@ -9,9 +9,25 @@ WaveDance 是一个面向 macOS 的实时音频可视化桌面应用。
 
 ![WaveDance 预览图](docs/images/wavedance-preview.png)
 
+在设置页「展示模式」中可实时切换以下 **9 种** WebGL 可视化样式（每种模式均有独立颜色、形状与持久化配置）：
+
+| 模式 | 说明 |
+|------|------|
+| 线状图 | 经典折线频谱，可调线宽与颜色 |
+| 柱状图 | 矩形频谱柱，支持横/竖向、镜像与峰值保持线 |
+| 填充波形 | 曲线下方半透明填充，可选纵向渐变与中心对称 |
+| 渐变频谱柱 | 柱状图 + 按频率索引双色渐变着色 |
+| 霓虹发光线 | 核心亮线 + 多层外晕，透明浮层氛围感强 |
+| 霓虹圆形 | 圆周霓虹发光线，支持环半径与旋转 |
+| 圆形频谱 | 频谱桶沿圆周辐射的扇形条 |
+| 瀑布频谱 | 滚动历史热力图，横轴频率、纵轴时间 |
+| 环形圆点 | 圆周圆点，振幅驱动大小与亮度 |
+
+> 后续计划：2.5D / 3D 扩展模式（斜透视柱、景深层、等距天际线、3D 圆环等），详见 `docs/VISUALIZATION_MODES_PLAN.md`。
+
 ## 项目特性
 
-- 系统音频实时频谱可视化（WebGL 渲染）
+- 系统音频实时频谱可视化（WebGL 渲染，9 种展示模式可切换）
 - 可调节频谱参数（分桶、模式、补偿、频率区间）
 - 透明浮层窗口，支持置顶模式切换
 - 支持输出 macOS 安装产物（`.app`、`.dmg`）
@@ -86,5 +102,6 @@ tccutil reset Microphone com.wavedance.desktop
 - [最终用户安装说明](docs/INSTALL.md)
 - [macOS 打包说明](BUILD_MACOS.md)
 - [快速上下文](docs/QUICK_CONTEXT.md)
+- [可视化模式扩展方案](docs/VISUALIZATION_MODES_PLAN.md)
 - [当前执行上下文](PROJECT_CONTEXT.md)
 - [历史实现轨迹](docs/CHANGELOG_AGENT.md)

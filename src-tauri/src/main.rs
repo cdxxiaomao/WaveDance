@@ -33,7 +33,9 @@ use tauri::{
 use tauri::{menu::MenuBuilder, tray::TrayIconBuilder};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
-use wavedance::audio_processing::WaveformFrame;
+use wavedance::audio_processing::{
+    downsample_time_domain, WaveformFrame, TIME_DOMAIN_SAMPLE_COUNT,
+};
 use wavedance::platform::PlatformService;
 
 struct StreamState {
@@ -877,10 +879,16 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
                             max_hz,
                         )
                     };
+                    let time_samples = if rms < SILENCE_RMS_GATE && peak < SILENCE_PEAK_GATE {
+                        vec![0.0; TIME_DOMAIN_SAMPLE_COUNT]
+                    } else {
+                        downsample_time_domain(&mono, TIME_DOMAIN_SAMPLE_COUNT)
+                    };
                     let mut waveform = WaveformFrame {
                         peak,
                         rms,
                         points: spectrum,
+                        time_samples,
                     };
                     waveform.points = rebucket_points(&waveform.points, bucket);
                     let _ = app.emit("waveform-frame", waveform);

@@ -26,6 +26,11 @@
   - 分桶模式（`log` / `linear`）
   - 高频补偿（0~200%）
   - 频率下限/上限
+- 展示模式（WebGL，设置页切换，多频谱窗独立配置）：
+  - `line` 线状图 · `bar` 柱状图 · `area` 填充波形
+  - `gradientBar` 渐变频谱柱 · `glowLine` 霓虹发光线 · `glowCircle` 霓虹圆形
+  - `radial` 圆形频谱 · `waterfall` 瀑布频谱 · `dotRing` 环形圆点
+  - 渲染器位于 `frontend/src/renderers/`；Schema 见 `frontend/src/visualizationSchema.js`
 - 浮层能力：
   - 透明、无边框、可置顶
   - 全屏辅助行为（macOS 原生窗口增强）
@@ -67,42 +72,42 @@
 
 ## 下一步候选任务（按优先级）
 
-1. 外观参数持久化（重启后保留背景颜色/透明度/模糊度）。
-2. 增加用户可配置快捷键（避免系统冲突；含穿透 `L` 与召回 `W`）。
-3. 完善异常提示与自检（权限、设备、快捷键占用）。
-4. 发布流程增强：签名 + notarization。
+1. **可视化 3D / 2.5D 扩展**（Phase 9~14，见 `docs/VISUALIZATION_MODES_PLAN.md`）：
+   - 首批推荐：斜透视频谱柱（Phase 9）→ 多层景深（Phase 10）→ 3D 旋转圆环（Phase 12，需 `gl3d.js`）
+2. **示波器模式**（Phase 8，可选）：需 Rust 后端推送时域波形 `time_samples`。
+3. 外观参数持久化（重启后保留背景颜色/透明度/模糊度）。
+4. 增加用户可配置快捷键（避免系统冲突；含穿透 `L` 与召回 `W`）。
+5. 完善异常提示与自检（权限、设备、快捷键占用）。
+6. 发布流程增强：签名 + notarization。
 
-## 近期进度摘要（截至 2026-04-22）
+## 近期进度摘要（截至 2026-06-09）
 
 ### 已完成（最近一个实现阶段）
 
-- 穿透锁定链路已闭环：主窗可整窗忽略鼠标，交互能力迁移至独立子窗 `main-toolbar`。
-- 浮动解锁窗已稳定：支持与主窗状态联动，并通过事件同步更新 UI。
-- 多屏 / HiDPI 适配已落地：子窗位置与尺寸采用逻辑坐标，覆盖 Retina 与异 DPI 组合场景。
-- 跟随机制已完善：主窗移动、缩放、尺寸变化时，子窗会自动重定位并保持在可预期区域。
-- macOS 竞态问题已规避：主线程顺序处理 overlay 配置与子窗显示，降低偶发不显示概率。
-- 视觉对齐已收敛：对穿透解锁条做垂直像素微调，与主窗锁定按钮对齐。
+- **2D 可视化模式扩展 Phase 0~6 已全部交付**（详见 `docs/VISUALIZATION_MODES_PLAN.md`）：
+  - 公共基础：`shapePipeline.js`、`shaderUtils.js`、`rendererMap` 分发
+  - 9 种展示模式：线/柱/填充波形/渐变频谱柱/霓虹发光线/霓虹圆形/圆形频谱/瀑布频谱/环形圆点
+  - 各模式设置页 panel、事件推送、localStorage 持久化、多频谱窗独立配置
+- **Phase 7 文档同步**：`README.md`、`QUICK_CONTEXT.md`、`PROJECT_CONTEXT.md` 已补充展示模式说明。
 
 ### 代码影响范围（便于快速定位）
 
-- 后端主入口：`src-tauri/src/main.rs`
-  - 关键函数：`position_main_toolbar_window`
-  - 关键函数：`sync_main_toolbar_for_passthrough_locked`
-  - 关键函数：`wire_main_window_toolbar_follow`
-- 子窗前端：`frontend/toolbar.html`、`frontend/toolbar.js`
-- 主窗交互联动：`frontend/src/main.js`
+- 可视化 Schema：`frontend/src/visualizationSchema.js`
+- 渲染器目录：`frontend/src/renderers/`（`lineRenderer`、`barRenderer`、`areaRenderer`、`gradientBarRenderer`、`glowLineRenderer`、`glowCircleRenderer`、`radialRenderer`、`waterfallRenderer`、`dotRingRenderer` 及 `polar.js`、`shapePipeline.js`）
+- 主窗分发与事件：`frontend/src/main.js`
+- 设置页：`frontend/settings.html`、`frontend/settings.js`
 
 ### 当前验证结论
 
-- 已覆盖主链路：锁定/解锁、快捷键切换、主窗与子窗状态同步可用。
-- 已覆盖核心环境：单屏、双屏、Retina 与 4K 组合场景下，子窗定位明显改善。
-- 仍需持续观察：不同全屏应用及复杂显示器缩放组合下，系统级窗口行为可能有差异。
+- 设置页切换展示模式后主窗实时渲染，重启后配置保留。
+- 线/柱原有行为无回归；`freqReversed`、镜像、峰值线等模式专属选项可用。
+- 瀑布模式分桶数变化不 crash；静默时画面干净。
 
 ### 下一步建议（与当前进度衔接）
 
-1. 完成外观参数持久化（背景颜色 / 透明度 / 模糊度重启可恢复）。
-2. 提供快捷键自定义（重点覆盖召回 `W` 与穿透 `L`，减少系统冲突）。
-3. 增加运行时自检与提示（权限缺失、快捷键占用、设备不可用）。
+1. 启动 Phase 9 斜透视频谱柱（2.5D 首个模式），或按需先做 Phase 8 示波器（需后端）。
+2. 完成外观参数持久化（背景颜色 / 透明度 / 模糊度重启可恢复）。
+3. 提供快捷键自定义（重点覆盖召回 `W` 与穿透 `L`，减少系统冲突）。
 
 ## 历史追溯
 

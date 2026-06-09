@@ -71,6 +71,10 @@ export const STORAGE_KEYS = {
   dotRingSize: "wavedance.dotRingDotSizePx",
   dotRingPulse: "wavedance.dotRingPulseEnabled",
   dotRingShape: "wavedance.dotRingShapeConfig",
+  oscilloscopeColor: "wavedance.oscilloscopeLineColor",
+  oscilloscopeLineWidth: "wavedance.oscilloscopeLineWidthPx",
+  oscilloscopePhosphor: "wavedance.oscilloscopePhosphorEnabled",
+  oscilloscopePhosphorDecay: "wavedance.oscilloscopePhosphorDecayPercent",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -86,6 +90,7 @@ export const DISPLAY_MODES = {
   radial: "radial",
   waterfall: "waterfall",
   dotRing: "dotRing",
+  oscilloscope: "oscilloscope",
 };
 
 export const PANEL_STYLES = {
@@ -241,6 +246,12 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 55,
     },
   },
+  oscilloscope: {
+    lineColor: "#c4a574",
+    lineWidthPx: 2,
+    phosphorEnabled: false,
+    phosphorDecayPercent: 60,
+  },
 };
 
 /** @param {string} mode */
@@ -254,6 +265,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.radial) return DISPLAY_MODES.radial;
   if (s === DISPLAY_MODES.waterfall) return DISPLAY_MODES.waterfall;
   if (s === DISPLAY_MODES.dotRing) return DISPLAY_MODES.dotRing;
+  if (s === DISPLAY_MODES.oscilloscope) return DISPLAY_MODES.oscilloscope;
   return DISPLAY_MODES.line;
 }
 
@@ -408,6 +420,10 @@ export function windowStorageKeys(windowLabel) {
     dotRingSize: `${pre}.dotRingDotSizePx`,
     dotRingPulse: `${pre}.dotRingPulseEnabled`,
     dotRingShape: `${pre}.dotRingShapeConfig`,
+    oscilloscopeColor: `${pre}.oscilloscopeLineColor`,
+    oscilloscopeLineWidth: `${pre}.oscilloscopeLineWidthPx`,
+    oscilloscopePhosphor: `${pre}.oscilloscopePhosphorEnabled`,
+    oscilloscopePhosphorDecay: `${pre}.oscilloscopePhosphorDecayPercent`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

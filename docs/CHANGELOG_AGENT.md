@@ -176,3 +176,18 @@
 - `visualizationSchema.js`：新增 `DISPLAY_MODES.dotRing`、`DEFAULT_CONFIG.dotRing` 及 dotRing 相关 storage keys。
 - `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。
+
+### 可视化模式扩展 — Phase 8：示波器 Oscilloscope
+
+- `src/audio_processing/mod.rs`：`WaveformFrame` 新增 `time_samples` 字段；导出 `TIME_DOMAIN_SAMPLE_COUNT`（512）与 `downsample_time_domain`。
+- `src-tauri/src/main.rs`：采集线程从 mono 缓冲降采样 512 点时域波形，随 `waveform-frame` 一并推送。
+- 新建 `frontend/src/renderers/oscilloscopeRenderer.js`：`LINE_STRIP` 时域波形 + 可选磷光拖尾（衰减混合缓冲）。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.oscilloscope`、`DEFAULT_CONFIG.oscilloscope` 及 storage keys。
+- `main.js`：注册 oscilloscopeRenderer，监听 `waveform-oscilloscope-*` 事件，oscilloscope 模式使用 `time_samples` 渲染。
+- `settings.html` / `settings.js`：展示模式增加「示波器」、`#oscilloscopeConfigPanel`（波形色/线宽/磷光拖尾/衰减）。
+
+### 可视化模式扩展 — Phase 7：文档与 README 更新
+
+- `README.md`：效果预览章节补充 9 种展示模式说明表，项目特性注明多模式可切换。
+- `docs/QUICK_CONTEXT.md`：「现在能做什么」补充展示模式列表，文档入口增加 `VISUALIZATION_MODES_PLAN.md`。
+- `PROJECT_CONTEXT.md`：关键能力补充 9 种展示模式；下一步候选任务同步为 Phase 8/9~14；近期进度摘要更新至 2026-06-09。

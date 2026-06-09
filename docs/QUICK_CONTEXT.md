@@ -12,6 +12,10 @@ WaveDance 是一个 macOS 浮层频谱工具：采集系统音频并实时显示
 
 - 系统音频实时频谱（BlackHole 路线）
 - 分桶 / 模式 / 高频补偿 / 频率区间动态调节
+- **9 种展示模式**（设置页切换，每窗独立持久化）：
+  - `line` 线状图 · `bar` 柱状图 · `area` 填充波形
+  - `gradientBar` 渐变频谱柱 · `glowLine` 霓虹发光线 · `glowCircle` 霓虹圆形
+  - `radial` 圆形频谱 · `waterfall` 瀑布频谱 · `dotRing` 环形圆点
 - 透明无边框浮层 + 全屏可见（macOS 增强）
 - 置顶模式开关 + 快捷键召回
 - 鼠标穿透锁定：主窗穿透后主操作在子窗 `toolbar.html` 解锁；快捷键 `⌘⇧⌥L` 切换
@@ -34,5 +38,6 @@ WaveDance 是一个 macOS 浮层频谱工具：采集系统音频并实时显示
 ## 文档入口
 
 - 当前执行上下文：`PROJECT_CONTEXT.md`
+- 可视化模式扩展方案：`docs/VISUALIZATION_MODES_PLAN.md`
 - 历史变更记录：`docs/CHANGELOG_AGENT.md`
 - 打包说明：`BUILD_MACOS.md`

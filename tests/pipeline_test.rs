@@ -29,6 +29,7 @@ impl WaveformExtractor for StubExtractor {
             peak: 0.2,
             rms: 0.2,
             points: vec![0.2, 0.2],
+            time_samples: vec![0.2; 8],
         }
     }
 }
