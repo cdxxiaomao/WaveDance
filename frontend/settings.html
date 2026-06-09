@@ -84,6 +84,7 @@
               <option value="area">填充波形</option>
               <option value="gradientBar">渐变频谱柱</option>
               <option value="glowLine">霓虹发光线</option>
+              <option value="radial">圆形频谱</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -384,6 +385,58 @@
           <div class="settings-field">
             <label for="glowLineFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="glowLineFallEaseValue">68</span>%</label>
             <input id="glowLineFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="radialConfigPanel" aria-labelledby="sec-radial-display" hidden>
+        <h2 id="sec-radial-display" class="settings-card__title">圆形频谱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--radial" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="radialBarColor" class="settings-label">柱体颜色</label>
+            <input id="radialBarColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="radialInnerRadiusRange" class="settings-label">内径 <span class="settings-value" id="radialInnerRadiusValue">25</span>%</label>
+            <input id="radialInnerRadiusRange" type="range" min="0" max="80" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="radialOuterRadiusRange" class="settings-label">外径 <span class="settings-value" id="radialOuterRadiusValue">90</span>%</label>
+            <input id="radialOuterRadiusRange" type="range" min="5" max="95" step="1" value="90" />
+          </div>
+          <div class="settings-field">
+            <label for="radialBarThicknessRange" class="settings-label">角向柱宽 <span class="settings-value" id="radialBarThicknessValue">70</span>%</label>
+            <input id="radialBarThicknessRange" type="range" min="10" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="radialRotationRange" class="settings-label">起始旋转 <span class="settings-value" id="radialRotationValue">0</span>°</label>
+            <input id="radialRotationRange" type="range" min="-180" max="180" step="1" value="0" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="radialMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像对称（内外双圈）</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="radialClockwiseToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>顺时针排列</span>
+          </label>
+          <div class="settings-field">
+            <label for="radialGainRange" class="settings-label">增益 <span class="settings-value" id="radialGainValue">62</span>%</label>
+            <input id="radialGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="radialSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="radialSmoothValue">18</span>%</label>
+            <input id="radialSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="radialSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="radialSoftClipValue">12</span>%</label>
+            <input id="radialSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="radialFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="radialFallEaseValue">52</span>%</label>
+            <input id="radialFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

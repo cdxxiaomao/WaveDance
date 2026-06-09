@@ -154,3 +154,11 @@
 - `visualizationSchema.js`：新增 `DISPLAY_MODES.glowLine`、`DEFAULT_CONFIG.glowLine` 及 glowLine 相关 storage keys。
 - `main.js`：注册 glowLineRenderer，监听 `waveform-glow-line-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「霓虹发光线」、`#glowLineConfigPanel`（核心色/光晕色/线宽/光晕半径/光晕强度 + 形状四件套）。
+
+### 可视化模式扩展 — Phase 4：圆形频谱 Radial
+
+- 新建 `frontend/src/renderers/polar.js`：`polarToNdc`、`slotToAngle`、`slotAngleRange`、`getAspectScale`，按 min(w,h) 保持正圆。
+- 新建 `frontend/src/renderers/radialRenderer.js`：频谱桶沿圆周扇形条（梯形 TRIANGLES），支持内/外径、角向柱宽、镜像对称、旋转、顺时针、`freqReversed`。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.radial`、`DEFAULT_CONFIG.radial` 及 radial 相关 storage keys。
+- `main.js`：注册 radialRenderer，监听 `waveform-radial-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「圆形频谱」、`#radialConfigPanel`（柱体色/内径/外径/柱宽/旋转/镜像/顺时针 + 形状四件套）。

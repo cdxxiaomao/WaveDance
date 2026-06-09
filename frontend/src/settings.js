@@ -41,6 +41,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.area]: "areaConfigPanel",
   [DISPLAY_MODES.gradientBar]: "gradientBarConfigPanel",
   [DISPLAY_MODES.glowLine]: "glowLineConfigPanel",
+  [DISPLAY_MODES.radial]: "radialConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -132,6 +133,25 @@ const glowLineSoftClipRange = document.querySelector("#glowLineSoftClipRange");
 const glowLineSoftClipValue = document.querySelector("#glowLineSoftClipValue");
 const glowLineFallEaseRange = document.querySelector("#glowLineFallEaseRange");
 const glowLineFallEaseValue = document.querySelector("#glowLineFallEaseValue");
+const radialBarColor = document.querySelector("#radialBarColor");
+const radialInnerRadiusRange = document.querySelector("#radialInnerRadiusRange");
+const radialInnerRadiusValue = document.querySelector("#radialInnerRadiusValue");
+const radialOuterRadiusRange = document.querySelector("#radialOuterRadiusRange");
+const radialOuterRadiusValue = document.querySelector("#radialOuterRadiusValue");
+const radialBarThicknessRange = document.querySelector("#radialBarThicknessRange");
+const radialBarThicknessValue = document.querySelector("#radialBarThicknessValue");
+const radialRotationRange = document.querySelector("#radialRotationRange");
+const radialRotationValue = document.querySelector("#radialRotationValue");
+const radialMirrorToggle = document.querySelector("#radialMirrorToggle");
+const radialClockwiseToggle = document.querySelector("#radialClockwiseToggle");
+const radialGainRange = document.querySelector("#radialGainRange");
+const radialGainValue = document.querySelector("#radialGainValue");
+const radialSmoothRange = document.querySelector("#radialSmoothRange");
+const radialSmoothValue = document.querySelector("#radialSmoothValue");
+const radialSoftClipRange = document.querySelector("#radialSoftClipRange");
+const radialSoftClipValue = document.querySelector("#radialSoftClipValue");
+const radialFallEaseRange = document.querySelector("#radialFallEaseRange");
+const radialFallEaseValue = document.querySelector("#radialFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -517,6 +537,117 @@ function applyGlowLineFormFromStorage(v) {
   }
 }
 
+function readRadialShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "radialShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncRadialShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(radialGainRange?.value, 10, 150),
+    smoothPercent: clampInt(radialSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(radialSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(radialFallEaseRange?.value, 0, 100),
+  };
+  if (radialGainValue) radialGainValue.textContent = String(config.gainPercent);
+  if (radialSmoothValue) radialSmoothValue.textContent = String(config.smoothPercent);
+  if (radialSoftClipValue) radialSoftClipValue.textContent = String(config.softClipPercent);
+  if (radialFallEaseValue) radialFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "radialShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-radial-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步圆形频谱参数失败：${String(err)}`;
+  }
+}
+
+function applyRadialFormFromStorage(v) {
+  const sg = readRadialShapeConfig(v) ?? { ...DEFAULT_CONFIG.radial.shape };
+  if (radialGainRange) radialGainRange.value = String(sg.gainPercent);
+  if (radialSmoothRange) radialSmoothRange.value = String(sg.smoothPercent);
+  if (radialSoftClipRange) radialSoftClipRange.value = String(sg.softClipPercent);
+  if (radialFallEaseRange) radialFallEaseRange.value = String(sg.fallEasePercent);
+  if (radialGainValue) radialGainValue.textContent = String(sg.gainPercent);
+  if (radialSmoothValue) radialSmoothValue.textContent = String(sg.smoothPercent);
+  if (radialSoftClipValue) radialSoftClipValue.textContent = String(sg.softClipPercent);
+  if (radialFallEaseValue) radialFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "radialColor");
+  if (radialBarColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    radialBarColor.value = savedColor.toLowerCase();
+  } else if (radialBarColor) {
+    radialBarColor.value = DEFAULT_CONFIG.radial.barColor;
+  }
+
+  const savedInner = readWindowStorageString(window.localStorage, v, "radialInnerRadius");
+  if (radialInnerRadiusRange) {
+    const innerPercent =
+      savedInner != null && savedInner !== ""
+        ? clampInt(savedInner, 0, 80)
+        : DEFAULT_CONFIG.radial.innerRadiusPercent;
+    radialInnerRadiusRange.value = String(innerPercent);
+    if (radialInnerRadiusValue) radialInnerRadiusValue.textContent = String(innerPercent);
+  }
+
+  const savedOuter = readWindowStorageString(window.localStorage, v, "radialOuterRadius");
+  if (radialOuterRadiusRange) {
+    const outerPercent =
+      savedOuter != null && savedOuter !== ""
+        ? clampInt(savedOuter, 5, 95)
+        : DEFAULT_CONFIG.radial.outerRadiusPercent;
+    radialOuterRadiusRange.value = String(outerPercent);
+    if (radialOuterRadiusValue) radialOuterRadiusValue.textContent = String(outerPercent);
+  }
+
+  const savedThickness = readWindowStorageString(window.localStorage, v, "radialBarThickness");
+  if (radialBarThicknessRange) {
+    const thicknessPercent =
+      savedThickness != null && savedThickness !== ""
+        ? clampInt(savedThickness, 10, 100)
+        : DEFAULT_CONFIG.radial.barThicknessPercent;
+    radialBarThicknessRange.value = String(thicknessPercent);
+    if (radialBarThicknessValue) radialBarThicknessValue.textContent = String(thicknessPercent);
+  }
+
+  const savedRotation = readWindowStorageString(window.localStorage, v, "radialRotation");
+  if (radialRotationRange) {
+    const rotationDeg =
+      savedRotation != null && savedRotation !== ""
+        ? clampInt(savedRotation, -180, 180)
+        : DEFAULT_CONFIG.radial.rotationOffsetDeg;
+    radialRotationRange.value = String(rotationDeg);
+    if (radialRotationValue) radialRotationValue.textContent = String(rotationDeg);
+  }
+
+  if (radialMirrorToggle) {
+    radialMirrorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "radialMirror"),
+      DEFAULT_CONFIG.radial.mirrorEnabled,
+    );
+  }
+  if (radialClockwiseToggle) {
+    radialClockwiseToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "radialClockwise"),
+      DEFAULT_CONFIG.radial.clockwise,
+    );
+  }
+}
+
 function applyAreaFormFromStorage(v) {
   const sa = readAreaShapeConfig(v) ?? { ...DEFAULT_CONFIG.area.shape };
   if (areaGainRange) areaGainRange.value = String(sa.gainPercent);
@@ -792,6 +923,8 @@ async function init() {
 
     applyAreaFormFromStorage(v);
     applyGradientBarFormFromStorage(v);
+    applyGlowLineFormFromStorage(v);
+    applyRadialFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -1374,6 +1507,84 @@ async function init() {
   glowLineFallEaseRange?.addEventListener("input", () => {
     void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
   });
+  radialBarColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialColor", radialBarColor.value);
+      await emitVisual("waveform-radial-color", radialBarColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新柱体颜色失败：${String(err)}`;
+    }
+  });
+  radialInnerRadiusRange?.addEventListener("input", async (event) => {
+    const innerPercent = clampInt(event.target.value, 0, 80);
+    if (radialInnerRadiusValue) radialInnerRadiusValue.textContent = String(innerPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialInnerRadius", String(innerPercent));
+      await emitVisual("waveform-radial-inner-radius", innerPercent);
+    } catch (err) {
+      statusEl.textContent = `更新内径失败：${String(err)}`;
+    }
+  });
+  radialOuterRadiusRange?.addEventListener("input", async (event) => {
+    const outerPercent = clampInt(event.target.value, 5, 95);
+    if (radialOuterRadiusValue) radialOuterRadiusValue.textContent = String(outerPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialOuterRadius", String(outerPercent));
+      await emitVisual("waveform-radial-outer-radius", outerPercent);
+    } catch (err) {
+      statusEl.textContent = `更新外径失败：${String(err)}`;
+    }
+  });
+  radialBarThicknessRange?.addEventListener("input", async (event) => {
+    const thicknessPercent = clampInt(event.target.value, 10, 100);
+    if (radialBarThicknessValue) radialBarThicknessValue.textContent = String(thicknessPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialBarThickness", String(thicknessPercent));
+      await emitVisual("waveform-radial-bar-thickness", thicknessPercent);
+    } catch (err) {
+      statusEl.textContent = `更新角向柱宽失败：${String(err)}`;
+    }
+  });
+  radialRotationRange?.addEventListener("input", async (event) => {
+    const rotationDeg = clampInt(event.target.value, -180, 180);
+    if (radialRotationValue) radialRotationValue.textContent = String(rotationDeg);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialRotation", String(rotationDeg));
+      await emitVisual("waveform-radial-rotation", rotationDeg);
+    } catch (err) {
+      statusEl.textContent = `更新起始旋转失败：${String(err)}`;
+    }
+  });
+  radialMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialMirror", String(enabled));
+      await emitVisual("waveform-radial-mirror", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新镜像对称失败：${String(err)}`;
+    }
+  });
+  radialClockwiseToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "radialClockwise", String(enabled));
+      await emitVisual("waveform-radial-clockwise", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新顺时针排列失败：${String(err)}`;
+    }
+  });
+  radialGainRange?.addEventListener("input", () => {
+    void syncRadialShapeConfig(visualTargetLabel, emitVisual);
+  });
+  radialSmoothRange?.addEventListener("input", () => {
+    void syncRadialShapeConfig(visualTargetLabel, emitVisual);
+  });
+  radialSoftClipRange?.addEventListener("input", () => {
+    void syncRadialShapeConfig(visualTargetLabel, emitVisual);
+  });
+  radialFallEaseRange?.addEventListener("input", () => {
+    void syncRadialShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -1587,6 +1798,8 @@ async function init() {
   await syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
   applyGlowLineFormFromStorage(visualTargetLabel);
   await syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  applyRadialFormFromStorage(visualTargetLabel);
+  await syncRadialShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -1744,6 +1957,27 @@ async function init() {
   }
   if (glowLineGlowIntensityRange) {
     await emitVisual("waveform-glow-line-glow-intensity", clampInt(glowLineGlowIntensityRange.value, 0, 100));
+  }
+  if (radialBarColor) {
+    await emitVisual("waveform-radial-color", radialBarColor.value);
+  }
+  if (radialInnerRadiusRange) {
+    await emitVisual("waveform-radial-inner-radius", clampInt(radialInnerRadiusRange.value, 0, 80));
+  }
+  if (radialOuterRadiusRange) {
+    await emitVisual("waveform-radial-outer-radius", clampInt(radialOuterRadiusRange.value, 5, 95));
+  }
+  if (radialBarThicknessRange) {
+    await emitVisual("waveform-radial-bar-thickness", clampInt(radialBarThicknessRange.value, 10, 100));
+  }
+  if (radialRotationRange) {
+    await emitVisual("waveform-radial-rotation", clampInt(radialRotationRange.value, -180, 180));
+  }
+  if (radialMirrorToggle) {
+    await emitVisual("waveform-radial-mirror", Boolean(radialMirrorToggle.checked));
+  }
+  if (radialClockwiseToggle) {
+    await emitVisual("waveform-radial-clockwise", Boolean(radialClockwiseToggle.checked));
   }
 
   if (closeSettingsBtn) {

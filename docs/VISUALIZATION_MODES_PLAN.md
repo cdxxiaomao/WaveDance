@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 3 已完成，Phase 4 待实施  
+> **状态**：Phase 4 已完成，Phase 5 待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -350,8 +350,8 @@ radial: {
 
 #### 4.3 新建 `radialRenderer.js`
 
-- [ ] 每个 bucket → 一段扇形条（梯形近似：四个顶点）
-- [ ] 幅度映射：内径 + normalized * (外径 - 内径)
+- [x] 每个 bucket → 一段扇形条（梯形近似：四个顶点）
+- [x] 幅度映射：内径 + normalized * (外径 - 内径)
 - [ ] 可选：用 `peak`/`rms` 做整体 scale 呼吸（styleConfig 传入 frameMeta）
 - [ ] **main.js 改动**：若要用 peak/rms，在 render 时传入 `{ peak, rms }`（扩展 render 签名第三参数 optional）
 
@@ -362,9 +362,9 @@ radial: {
 
 #### 4.5 验收标准
 
-- [ ] 圆形窗口与宽条窗口均居中、不变形（取 min 维度算半径）
-- [ ] 256 分桶时环上条数清晰可辨
-- [ ] freqReversed 改变条在环上的排列顺序
+- [x] 圆形窗口与宽条窗口均居中、不变形（取 min 维度算半径）
+- [x] 256 分桶时环上条数清晰可辨
+- [x] freqReversed 改变条在环上的排列顺序
 
 ---
 
@@ -565,13 +565,13 @@ oscilloscope: {
 | 1 | 填充波形 Area | `[x]` 已完成 | 2026-06-09 |
 | 2 | 渐变频谱柱 Gradient Bar | `[x]` 已完成 | 2026-06-09 |
 | 3 | 霓虹发光线 Glow Line | `[x]` 已完成 | 2026-06-09 |
-| 4 | 圆形频谱 Radial | `[ ]` 未开始 | |
+| 4 | 圆形频谱 Radial | `[x]` 已完成 | 2026-06-09 |
 | 5 | 瀑布频谱 Waterfall | `[ ]` 未开始 | |
 | 6 | 环形圆点 Dot Ring | `[ ]` 未开始 | |
 | 7 | 文档与 README | `[ ]` 未开始 | |
 | 8 | 示波器 Oscilloscope（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 4（圆形频谱 Radial）
+**当前建议下一步**：Phase 5（瀑布频谱 Waterfall）
 
 ---
 

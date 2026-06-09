@@ -42,6 +42,14 @@ export const STORAGE_KEYS = {
   glowLineGlowRadius: "wavedance.glowLineGlowRadiusPx",
   glowLineGlowIntensity: "wavedance.glowLineGlowIntensityPercent",
   glowLineShape: "wavedance.glowLineShapeConfig",
+  radialColor: "wavedance.radialBarColor",
+  radialInnerRadius: "wavedance.radialInnerRadiusPercent",
+  radialOuterRadius: "wavedance.radialOuterRadiusPercent",
+  radialBarThickness: "wavedance.radialBarThicknessPercent",
+  radialMirror: "wavedance.radialMirrorEnabled",
+  radialRotation: "wavedance.radialRotationOffsetDeg",
+  radialClockwise: "wavedance.radialClockwise",
+  radialShape: "wavedance.radialShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -53,6 +61,7 @@ export const DISPLAY_MODES = {
   area: "area",
   gradientBar: "gradientBar",
   glowLine: "glowLine",
+  radial: "radial",
 };
 
 export const PANEL_STYLES = {
@@ -150,6 +159,21 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 68,
     },
   },
+  radial: {
+    barColor: "#8f7cff",
+    innerRadiusPercent: 25,
+    outerRadiusPercent: 90,
+    barThicknessPercent: 70,
+    mirrorEnabled: false,
+    rotationOffsetDeg: 0,
+    clockwise: true,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -159,6 +183,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.area) return DISPLAY_MODES.area;
   if (s === DISPLAY_MODES.gradientBar) return DISPLAY_MODES.gradientBar;
   if (s === DISPLAY_MODES.glowLine) return DISPLAY_MODES.glowLine;
+  if (s === DISPLAY_MODES.radial) return DISPLAY_MODES.radial;
   return DISPLAY_MODES.line;
 }
 
@@ -284,6 +309,14 @@ export function windowStorageKeys(windowLabel) {
     glowLineGlowRadius: `${pre}.glowLineGlowRadiusPx`,
     glowLineGlowIntensity: `${pre}.glowLineGlowIntensityPercent`,
     glowLineShape: `${pre}.glowLineShapeConfig`,
+    radialColor: `${pre}.radialBarColor`,
+    radialInnerRadius: `${pre}.radialInnerRadiusPercent`,
+    radialOuterRadius: `${pre}.radialOuterRadiusPercent`,
+    radialBarThickness: `${pre}.radialBarThicknessPercent`,
+    radialMirror: `${pre}.radialMirrorEnabled`,
+    radialRotation: `${pre}.radialRotationOffsetDeg`,
+    radialClockwise: `${pre}.radialClockwise`,
+    radialShape: `${pre}.radialShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

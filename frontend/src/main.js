@@ -6,6 +6,7 @@ import { createBarRenderer } from "./renderers/barRenderer.js";
 import { createAreaRenderer } from "./renderers/areaRenderer.js";
 import { createGradientBarRenderer } from "./renderers/gradientBarRenderer.js";
 import { createGlowLineRenderer } from "./renderers/glowLineRenderer.js";
+import { createRadialRenderer } from "./renderers/radialRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -35,6 +36,7 @@ const barRenderer = createBarRenderer(gl);
 const areaRenderer = createAreaRenderer(gl);
 const gradientBarRenderer = createGradientBarRenderer(gl);
 const glowLineRenderer = createGlowLineRenderer(gl);
+const radialRenderer = createRadialRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -42,6 +44,7 @@ const RENDERERS = {
   [DISPLAY_MODES.area]: areaRenderer,
   [DISPLAY_MODES.gradientBar]: gradientBarRenderer,
   [DISPLAY_MODES.glowLine]: glowLineRenderer,
+  [DISPLAY_MODES.radial]: radialRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -49,6 +52,7 @@ const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
 const areaShapeConfig = { ...DEFAULT_CONFIG.area.shape };
 const gradientBarShapeConfig = { ...DEFAULT_CONFIG.gradientBar.shape };
 const glowLineShapeConfig = { ...DEFAULT_CONFIG.glowLine.shape };
+const radialShapeConfig = { ...DEFAULT_CONFIG.radial.shape };
 
 let latestPoints = [];
 let displayMode = DEFAULT_CONFIG.displayMode;
@@ -93,6 +97,14 @@ function applyGlowLineShapeConfig(payload) {
   glowLineShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyRadialShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  radialShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  radialShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  radialShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  radialShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -105,6 +117,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (gradientBarRaw) applyGradientBarShapeConfig(JSON.parse(gradientBarRaw));
     const glowLineRaw = readWindowStorageString(window.localStorage, windowLabel, "glowLineShape");
     if (glowLineRaw) applyGlowLineShapeConfig(JSON.parse(glowLineRaw));
+    const radialRaw = readWindowStorageString(window.localStorage, windowLabel, "radialShape");
+    if (radialRaw) applyRadialShapeConfig(JSON.parse(radialRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -132,6 +146,7 @@ const gradientBarColorHighRgb = { r: 0, g: 0, b: 0 };
 const gradientBarPeakRgb = { r: 1, g: 1, b: 1 };
 const glowLineCoreRgb = { r: 0, g: 0, b: 0 };
 const glowLineGlowRgb = { r: 0, g: 0, b: 0 };
+const radialBarRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -152,6 +167,7 @@ applyGradientBarColorHighHex(DEFAULT_CONFIG.gradientBar.colorHigh);
 applyGradientBarPeakColorHex(DEFAULT_CONFIG.gradientBar.peakColor);
 applyGlowLineCoreColorHex(DEFAULT_CONFIG.glowLine.coreColor);
 applyGlowLineGlowColorHex(DEFAULT_CONFIG.glowLine.glowColor);
+applyRadialBarColorHex(DEFAULT_CONFIG.radial.barColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -180,6 +196,12 @@ let glowLineWidthPx = DEFAULT_CONFIG.glowLine.lineWidthPx;
 let glowLineGlowRadiusPx = DEFAULT_CONFIG.glowLine.glowRadiusPx;
 let glowLineGlowIntensityPercent = DEFAULT_CONFIG.glowLine.glowIntensityPercent;
 let glowLineGlowPasses = DEFAULT_CONFIG.glowLine.glowPasses;
+let radialInnerRadiusPercent = DEFAULT_CONFIG.radial.innerRadiusPercent;
+let radialOuterRadiusPercent = DEFAULT_CONFIG.radial.outerRadiusPercent;
+let radialBarThicknessPercent = DEFAULT_CONFIG.radial.barThicknessPercent;
+let radialMirrorEnabled = DEFAULT_CONFIG.radial.mirrorEnabled;
+let radialRotationOffsetDeg = DEFAULT_CONFIG.radial.rotationOffsetDeg;
+let radialClockwise = DEFAULT_CONFIG.radial.clockwise;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -333,6 +355,39 @@ function applyGlowLineGlowIntensityPercent(n) {
   glowLineGlowIntensityPercent = clampInt(n, 0, 100);
 }
 
+function applyRadialBarColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.radial.barColor;
+  const { r, g, b } = hexToRgb(safe);
+  radialBarRgb.r = r / 255;
+  radialBarRgb.g = g / 255;
+  radialBarRgb.b = b / 255;
+}
+
+function applyRadialInnerRadiusPercent(n) {
+  radialInnerRadiusPercent = clampInt(n, 0, 80);
+}
+
+function applyRadialOuterRadiusPercent(n) {
+  radialOuterRadiusPercent = clampInt(n, 5, 95);
+}
+
+function applyRadialBarThicknessPercent(n) {
+  radialBarThicknessPercent = clampInt(n, 10, 100);
+}
+
+function applyRadialMirrorEnabled(value) {
+  radialMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.radial.mirrorEnabled);
+}
+
+function applyRadialRotationOffsetDeg(n) {
+  radialRotationOffsetDeg = clampInt(n, -180, 180);
+}
+
+function applyRadialClockwise(value) {
+  radialClockwise = parseBoolean(value, DEFAULT_CONFIG.radial.clockwise);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -416,6 +471,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.area) return areaShapeConfig;
   if (mode === DISPLAY_MODES.gradientBar) return gradientBarShapeConfig;
   if (mode === DISPLAY_MODES.glowLine) return glowLineShapeConfig;
+  if (mode === DISPLAY_MODES.radial) return radialShapeConfig;
   return waveShapeConfig;
 }
 
@@ -470,6 +526,18 @@ function getStyleConfigForMode(mode) {
       glowRadiusPx: glowLineGlowRadiusPx,
       glowIntensity: glowLineGlowIntensityPercent / 100,
       glowPasses: glowLineGlowPasses,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.radial) {
+    return {
+      barColor: radialBarRgb,
+      innerRadiusPercent: radialInnerRadiusPercent,
+      outerRadiusPercent: radialOuterRadiusPercent,
+      barThicknessPercent: radialBarThicknessPercent,
+      mirrorEnabled: radialMirrorEnabled,
+      rotationOffsetDeg: radialRotationOffsetDeg,
+      clockwise: radialClockwise,
       freqReversed,
     };
   }
@@ -905,6 +973,64 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-radial-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyRadialBarColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-inner-radius",
+    (event) => {
+      applyRadialInnerRadiusPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-outer-radius",
+    (event) => {
+      applyRadialOuterRadiusPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-bar-thickness",
+    (event) => {
+      applyRadialBarThicknessPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-mirror",
+    (event) => {
+      applyRadialMirrorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-rotation",
+    (event) => {
+      applyRadialRotationOffsetDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-clockwise",
+    (event) => {
+      applyRadialClockwise(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-radial-shape-config",
+    (event) => {
+      applyRadialShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -1027,6 +1153,25 @@ async function init() {
     if (savedGlowLineIntensity != null && savedGlowLineIntensity !== "") {
       applyGlowLineGlowIntensityPercent(savedGlowLineIntensity);
     }
+    applyRadialBarColorHex(readWindowStorageString(window.localStorage, windowLabel, "radialColor"));
+    const savedRadialInner = readWindowStorageString(window.localStorage, windowLabel, "radialInnerRadius");
+    if (savedRadialInner != null && savedRadialInner !== "") {
+      applyRadialInnerRadiusPercent(savedRadialInner);
+    }
+    const savedRadialOuter = readWindowStorageString(window.localStorage, windowLabel, "radialOuterRadius");
+    if (savedRadialOuter != null && savedRadialOuter !== "") {
+      applyRadialOuterRadiusPercent(savedRadialOuter);
+    }
+    const savedRadialThickness = readWindowStorageString(window.localStorage, windowLabel, "radialBarThickness");
+    if (savedRadialThickness != null && savedRadialThickness !== "") {
+      applyRadialBarThicknessPercent(savedRadialThickness);
+    }
+    applyRadialMirrorEnabled(readWindowStorageString(window.localStorage, windowLabel, "radialMirror"));
+    const savedRadialRotation = readWindowStorageString(window.localStorage, windowLabel, "radialRotation");
+    if (savedRadialRotation != null && savedRadialRotation !== "") {
+      applyRadialRotationOffsetDeg(savedRadialRotation);
+    }
+    applyRadialClockwise(readWindowStorageString(window.localStorage, windowLabel, "radialClockwise"));
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures
