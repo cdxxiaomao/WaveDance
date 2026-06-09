@@ -1,4 +1,6 @@
-import { applyAdaptiveSmooth, clamp01, clampPeakCapSpanAlongBar, minNdcForPixels } from "./common.js";
+import { clampPeakCapSpanAlongBar, minNdcForPixels } from "./common.js";
+import { createProgram } from "./shaderUtils.js";
+import { processSpectrumPoints } from "./shapePipeline.js";
 
 function writeRectVertices(vertices, offset, left, bottom, right, top) {
   vertices[offset] = left;
@@ -39,30 +41,7 @@ void main() {
 }
 `;
 
-  const compileShader = (type, source) => {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader));
-    }
-    return shader;
-  };
-
-  const createProgram = () => {
-    const vShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
-    const fShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-    const program = gl.createProgram();
-    gl.attachShader(program, vShader);
-    gl.attachShader(program, fShader);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program));
-    }
-    return program;
-  };
-
-  const program = createProgram();
+  const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   const positionLoc = gl.getAttribLocation(program, "a_position");
   const colorLoc = gl.getUniformLocation(program, "u_barColor");
   const buffer = gl.createBuffer();
@@ -73,9 +52,6 @@ void main() {
   const render = (points, shapeConfig, styleConfig) => {
     if (!Array.isArray(points) || points.length === 0) return;
     const len = points.length;
-    if (easedBars.length !== len) {
-      easedBars = new Array(len).fill(0);
-    }
     if (peakCapsPos.length !== len) {
       peakCapsPos = new Array(len).fill(0);
     }
@@ -83,18 +59,7 @@ void main() {
       peakCapsNeg = new Array(len).fill(0);
     }
 
-    const normalized = new Float32Array(len);
-    const gain = Number(shapeConfig.gainPercent) / 100;
-    const softGamma = 1 + (Number(shapeConfig.softClipPercent) / 100) * 1.6;
-    const fallBlend = 0.08 + (1 - Number(shapeConfig.fallEasePercent) / 100) * 0.62;
-    for (let i = 0; i < len; i++) {
-      const raw = clamp01(points[i] * gain);
-      const prev = easedBars[i];
-      const followed = raw >= prev ? raw : prev + (raw - prev) * fallBlend;
-      easedBars[i] = followed;
-      normalized[i] = Math.pow(followed, softGamma);
-    }
-    applyAdaptiveSmooth(normalized, shapeConfig.smoothPercent);
+    const normalized = processSpectrumPoints(points, shapeConfig, easedBars);
 
     const widthPercent = Math.max(20, Math.min(100, Number(styleConfig.widthPercent) || 76));
     const gapPercent = Math.max(0, Math.min(70, Number(styleConfig.gapPercent) || 18));

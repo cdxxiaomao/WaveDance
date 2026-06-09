@@ -81,6 +81,7 @@
             <select id="displayMode" class="settings-select">
               <option value="line" selected>线状图</option>
               <option value="bar">柱状图</option>
+              <option value="area">填充波形</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -147,6 +148,54 @@
           <div class="settings-field">
             <label for="waveformFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="waveformFallEaseValue">68</span>%</label>
             <input id="waveformFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="areaConfigPanel" aria-labelledby="sec-area-display" hidden>
+        <h2 id="sec-area-display" class="settings-card__title">填充波形配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--area" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="areaFillColor" class="settings-label">填充颜色</label>
+            <input id="areaFillColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="areaLineColor" class="settings-label">线条颜色</label>
+            <input id="areaLineColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="areaFillAlphaRange" class="settings-label">填充透明度 <span class="settings-value" id="areaFillAlphaValue">45</span>%</label>
+            <input id="areaFillAlphaRange" type="range" min="0" max="100" step="1" value="45" />
+          </div>
+          <div class="settings-field">
+            <label for="areaLineWidthRange" class="settings-label">线条粗细 <span class="settings-value" id="areaLineWidthValue">2</span> px</label>
+            <input id="areaLineWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="areaMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像对称（中心对称填充）</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="areaGradientToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>纵向渐变（基线→峰值）</span>
+          </label>
+          <div class="settings-field">
+            <label for="areaGainRange" class="settings-label">增益 <span class="settings-value" id="areaGainValue">50</span>%</label>
+            <input id="areaGainRange" type="range" min="10" max="150" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="areaSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="areaSmoothValue">28</span>%</label>
+            <input id="areaSmoothRange" type="range" min="0" max="400" step="1" value="28" />
+          </div>
+          <div class="settings-field">
+            <label for="areaSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="areaSoftClipValue">22</span>%</label>
+            <input id="areaSoftClipRange" type="range" min="0" max="100" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="areaFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="areaFallEaseValue">68</span>%</label>
+            <input id="areaFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
           </div>
         </div>
       </section>

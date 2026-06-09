@@ -9,6 +9,7 @@ import {
   normalizeSpectrumWindowLabel,
   normalizeBarOrientation,
   normalizeBarPeakHoldMode,
+  normalizeDisplayMode,
   readBarPeakHoldMode,
   parseBoolean,
   readWindowStorageString,
@@ -31,8 +32,13 @@ const freqMaxValue = document.querySelector("#freqMaxValue");
 const freqReversedToggle = document.querySelector("#freqReversedToggle");
 const displayModeSelect = document.querySelector("#displayMode");
 const panelStyleModeSelect = document.querySelector("#panelStyleMode");
-const lineConfigPanel = document.querySelector("#lineConfigPanel");
-const barConfigPanel = document.querySelector("#barConfigPanel");
+
+/** 展示模式 → 设置面板 id，后续新模式在此追加 */
+const MODE_PANEL_IDS = {
+  [DISPLAY_MODES.line]: "lineConfigPanel",
+  [DISPLAY_MODES.bar]: "barConfigPanel",
+  [DISPLAY_MODES.area]: "areaConfigPanel",
+};
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
 const waveformWidthValue = document.querySelector("#waveformWidthValue");
@@ -67,6 +73,22 @@ const barSoftClipRange = document.querySelector("#barSoftClipRange");
 const barSoftClipValue = document.querySelector("#barSoftClipValue");
 const barFallEaseRange = document.querySelector("#barFallEaseRange");
 const barFallEaseValue = document.querySelector("#barFallEaseValue");
+const areaFillColor = document.querySelector("#areaFillColor");
+const areaLineColor = document.querySelector("#areaLineColor");
+const areaFillAlphaRange = document.querySelector("#areaFillAlphaRange");
+const areaFillAlphaValue = document.querySelector("#areaFillAlphaValue");
+const areaLineWidthRange = document.querySelector("#areaLineWidthRange");
+const areaLineWidthValue = document.querySelector("#areaLineWidthValue");
+const areaMirrorToggle = document.querySelector("#areaMirrorToggle");
+const areaGradientToggle = document.querySelector("#areaGradientToggle");
+const areaGainRange = document.querySelector("#areaGainRange");
+const areaGainValue = document.querySelector("#areaGainValue");
+const areaSmoothRange = document.querySelector("#areaSmoothRange");
+const areaSmoothValue = document.querySelector("#areaSmoothValue");
+const areaSoftClipRange = document.querySelector("#areaSoftClipRange");
+const areaSoftClipValue = document.querySelector("#areaSoftClipValue");
+const areaFallEaseRange = document.querySelector("#areaFallEaseRange");
+const areaFallEaseValue = document.querySelector("#areaFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -187,17 +209,115 @@ async function syncBarShapeConfig(visualTargetLabel, emitVisual) {
   }
 }
 
+function readAreaShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "areaShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncAreaShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(areaGainRange?.value, 10, 150),
+    smoothPercent: clampInt(areaSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(areaSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(areaFallEaseRange?.value, 0, 100),
+  };
+  areaGainValue.textContent = String(config.gainPercent);
+  areaSmoothValue.textContent = String(config.smoothPercent);
+  areaSoftClipValue.textContent = String(config.softClipPercent);
+  areaFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "areaShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-area-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步填充波形参数失败：${String(err)}`;
+  }
+}
+
+function applyAreaFormFromStorage(v) {
+  const sa = readAreaShapeConfig(v) ?? { ...DEFAULT_CONFIG.area.shape };
+  if (areaGainRange) areaGainRange.value = String(sa.gainPercent);
+  if (areaSmoothRange) areaSmoothRange.value = String(sa.smoothPercent);
+  if (areaSoftClipRange) areaSoftClipRange.value = String(sa.softClipPercent);
+  if (areaFallEaseRange) areaFallEaseRange.value = String(sa.fallEasePercent);
+  if (areaGainValue) areaGainValue.textContent = String(sa.gainPercent);
+  if (areaSmoothValue) areaSmoothValue.textContent = String(sa.smoothPercent);
+  if (areaSoftClipValue) areaSoftClipValue.textContent = String(sa.softClipPercent);
+  if (areaFallEaseValue) areaFallEaseValue.textContent = String(sa.fallEasePercent);
+
+  const savedFillColor = readWindowStorageString(window.localStorage, v, "areaColor");
+  if (areaFillColor && savedFillColor && /^#[0-9A-Fa-f]{6}$/.test(savedFillColor)) {
+    areaFillColor.value = savedFillColor.toLowerCase();
+  } else if (areaFillColor) {
+    areaFillColor.value = DEFAULT_CONFIG.area.fillColor;
+  }
+
+  const savedLineColor = readWindowStorageString(window.localStorage, v, "areaLineColor");
+  if (areaLineColor && savedLineColor && /^#[0-9A-Fa-f]{6}$/.test(savedLineColor)) {
+    areaLineColor.value = savedLineColor.toLowerCase();
+  } else if (areaLineColor) {
+    areaLineColor.value = DEFAULT_CONFIG.area.lineColor;
+  }
+
+  const savedFillAlpha = readWindowStorageString(window.localStorage, v, "areaFillAlpha");
+  if (areaFillAlphaRange) {
+    const alphaPercent =
+      savedFillAlpha != null && savedFillAlpha !== ""
+        ? clampInt(savedFillAlpha, 0, 100)
+        : DEFAULT_CONFIG.area.fillAlphaPercent;
+    areaFillAlphaRange.value = String(alphaPercent);
+    if (areaFillAlphaValue) areaFillAlphaValue.textContent = String(alphaPercent);
+  }
+
+  const savedLineWidth = readWindowStorageString(window.localStorage, v, "areaLineWidth");
+  if (areaLineWidthRange) {
+    const lineWidth =
+      savedLineWidth != null && savedLineWidth !== ""
+        ? clampInt(savedLineWidth, 1, 12)
+        : DEFAULT_CONFIG.area.lineWidthPx;
+    areaLineWidthRange.value = String(lineWidth);
+    if (areaLineWidthValue) areaLineWidthValue.textContent = String(lineWidth);
+  }
+
+  if (areaMirrorToggle) {
+    areaMirrorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "areaMirror"),
+      DEFAULT_CONFIG.area.mirrorEnabled,
+    );
+  }
+  if (areaGradientToggle) {
+    areaGradientToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "areaGradient"),
+      DEFAULT_CONFIG.area.gradientEnabled,
+    );
+  }
+}
+
 function applyDisplayModePanels(mode) {
-  const isBar = mode === "bar";
-  displayMode = isBar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
+  const normalizedMode = normalizeDisplayMode(mode);
+  displayMode = normalizedMode;
   if (displayModeSelect) {
     displayModeSelect.value = displayMode;
   }
-  if (lineConfigPanel) {
-    lineConfigPanel.hidden = isBar;
-  }
-  if (barConfigPanel) {
-    barConfigPanel.hidden = !isBar;
+  for (const [modeKey, panelId] of Object.entries(MODE_PANEL_IDS)) {
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      panel.hidden = modeKey !== normalizedMode;
+    }
   }
 }
 
@@ -379,7 +499,7 @@ async function init() {
     blurToggle.checked = readBlurEnabled(v);
 
     const savedMode = readWindowStorageString(window.localStorage, v, "displayMode");
-    applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
+    applyDisplayModePanels(normalizeDisplayMode(savedMode));
 
     const sw = readWaveShapeConfig(v) ?? { ...DEFAULT_CONFIG.line.shape };
     waveformGainRange.value = String(sw.gainPercent);
@@ -400,6 +520,8 @@ async function init() {
     barSmoothValue.textContent = String(sb.smoothPercent);
     barSoftClipValue.textContent = String(sb.softClipPercent);
     barFallEaseValue.textContent = String(sb.fallEasePercent);
+
+    applyAreaFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -745,6 +867,72 @@ async function init() {
   barFallEaseRange?.addEventListener("input", () => {
     void syncBarShapeConfig(visualTargetLabel, emitVisual);
   });
+  areaFillColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaColor", areaFillColor.value);
+      await emitVisual("waveform-area-color", areaFillColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新填充颜色失败：${String(err)}`;
+    }
+  });
+  areaLineColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaLineColor", areaLineColor.value);
+      await emitVisual("waveform-area-line-color", areaLineColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新线条颜色失败：${String(err)}`;
+    }
+  });
+  areaFillAlphaRange?.addEventListener("input", async (event) => {
+    const alphaPercent = clampInt(event.target.value, 0, 100);
+    areaFillAlphaValue.textContent = String(alphaPercent);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaFillAlpha", String(alphaPercent));
+      await emitVisual("waveform-area-fill-alpha", alphaPercent);
+    } catch (err) {
+      statusEl.textContent = `更新填充透明度失败：${String(err)}`;
+    }
+  });
+  areaLineWidthRange?.addEventListener("input", async (event) => {
+    const lineWidth = clampInt(event.target.value, 1, 12);
+    areaLineWidthValue.textContent = String(lineWidth);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaLineWidth", String(lineWidth));
+      await emitVisual("waveform-area-line-width", lineWidth);
+    } catch (err) {
+      statusEl.textContent = `更新线条粗细失败：${String(err)}`;
+    }
+  });
+  areaMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaMirror", String(enabled));
+      await emitVisual("waveform-area-mirror", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新镜像模式失败：${String(err)}`;
+    }
+  });
+  areaGradientToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "areaGradient", String(enabled));
+      await emitVisual("waveform-area-gradient", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新渐变开关失败：${String(err)}`;
+    }
+  });
+  areaGainRange?.addEventListener("input", () => {
+    void syncAreaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  areaSmoothRange?.addEventListener("input", () => {
+    void syncAreaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  areaSoftClipRange?.addEventListener("input", () => {
+    void syncAreaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  areaFallEaseRange?.addEventListener("input", () => {
+    void syncAreaShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -952,9 +1140,11 @@ async function init() {
   barSoftClipValue.textContent = String(savedBarShape.softClipPercent);
   barFallEaseValue.textContent = String(savedBarShape.fallEasePercent);
   await syncBarShapeConfig(visualTargetLabel, emitVisual);
+  applyAreaFormFromStorage(visualTargetLabel);
+  await syncAreaShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
-    applyDisplayModePanels(savedMode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line);
+    applyDisplayModePanels(normalizeDisplayMode(savedMode));
     const savedPanelStyle = window.localStorage.getItem(STORAGE_KEYS.panelStyleMode);
     applyPanelStyleMode(savedPanelStyle === PANEL_STYLES.minimal ? PANEL_STYLES.minimal : PANEL_STYLES.pro);
     const savedBarColor = readWindowStorageString(window.localStorage, visualTargetLabel, "barColor");
@@ -1038,6 +1228,24 @@ async function init() {
   await emitVisual("waveform-freq-reversed", Boolean(freqReversedToggle?.checked));
   await emitVisual("waveform-line-color", waveformColor.value);
   await emitVisual("waveform-line-width", clampInt(waveformWidthRange.value, 1, 12));
+  if (areaFillColor) {
+    await emitVisual("waveform-area-color", areaFillColor.value);
+  }
+  if (areaLineColor) {
+    await emitVisual("waveform-area-line-color", areaLineColor.value);
+  }
+  if (areaFillAlphaRange) {
+    await emitVisual("waveform-area-fill-alpha", clampInt(areaFillAlphaRange.value, 0, 100));
+  }
+  if (areaLineWidthRange) {
+    await emitVisual("waveform-area-line-width", clampInt(areaLineWidthRange.value, 1, 12));
+  }
+  if (areaMirrorToggle) {
+    await emitVisual("waveform-area-mirror", Boolean(areaMirrorToggle.checked));
+  }
+  if (areaGradientToggle) {
+    await emitVisual("waveform-area-gradient", Boolean(areaGradientToggle.checked));
+  }
 
   if (closeSettingsBtn) {
     closeSettingsBtn.addEventListener("click", async () => {

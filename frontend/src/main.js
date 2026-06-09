@@ -3,10 +3,12 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { createLineRenderer } from "./renderers/lineRenderer.js";
 import { createBarRenderer } from "./renderers/barRenderer.js";
+import { createAreaRenderer } from "./renderers/areaRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
   DISPLAY_MODES,
+  normalizeDisplayMode,
   parseBoolean,
   readWindowStorageString,
   readBarPeakHoldMode,
@@ -27,9 +29,17 @@ if (!gl) {
 
 const lineRenderer = createLineRenderer(gl);
 const barRenderer = createBarRenderer(gl);
+const areaRenderer = createAreaRenderer(gl);
+
+const RENDERERS = {
+  [DISPLAY_MODES.line]: lineRenderer,
+  [DISPLAY_MODES.bar]: barRenderer,
+  [DISPLAY_MODES.area]: areaRenderer,
+};
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
 const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
+const areaShapeConfig = { ...DEFAULT_CONFIG.area.shape };
 
 let latestPoints = [];
 let displayMode = DEFAULT_CONFIG.displayMode;
@@ -50,12 +60,22 @@ function applyBarShapeConfig(payload) {
   barShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyAreaShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  areaShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  areaShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  areaShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  areaShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
     if (raw) applyWaveShapeConfig(JSON.parse(raw));
     const barRaw = readWindowStorageString(window.localStorage, windowLabel, "barShape");
     if (barRaw) applyBarShapeConfig(JSON.parse(barRaw));
+    const areaRaw = readWindowStorageString(window.localStorage, windowLabel, "areaShape");
+    if (areaRaw) applyAreaShapeConfig(JSON.parse(areaRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -76,6 +96,8 @@ const DEFAULT_WAVEFORM_HEX = DEFAULT_CONFIG.line.color;
 const waveformLineRgb = { r: 0, g: 0, b: 0 };
 const barFillRgb = { r: 0, g: 0, b: 0 };
 const barPeakRgb = { r: 1, g: 1, b: 1 };
+const areaFillRgb = { r: 0, g: 0, b: 0 };
+const areaLineRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -89,6 +111,8 @@ function applyWaveformColorHex(hex) {
 applyWaveformColorHex(DEFAULT_WAVEFORM_HEX);
 applyBarColorHex(DEFAULT_CONFIG.bar.color);
 applyBarPeakColorHex(DEFAULT_CONFIG.bar.peakColor);
+applyAreaFillColorHex(DEFAULT_CONFIG.area.fillColor);
+applyAreaLineColorHex(DEFAULT_CONFIG.area.lineColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -101,6 +125,10 @@ let barMirrorEnabled = DEFAULT_CONFIG.bar.mirrorEnabled;
 let barPeakHoldMode = DEFAULT_CONFIG.bar.peakHoldMode;
 let barPeakFallSpeed = DEFAULT_CONFIG.bar.peakFallSpeed;
 let barPeakThickness = DEFAULT_CONFIG.bar.peakThickness;
+let areaFillAlphaPercent = DEFAULT_CONFIG.area.fillAlphaPercent;
+let areaLineWidthPx = DEFAULT_CONFIG.area.lineWidthPx;
+let areaMirrorEnabled = DEFAULT_CONFIG.area.mirrorEnabled;
+let areaGradientEnabled = DEFAULT_CONFIG.area.gradientEnabled;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -119,6 +147,42 @@ function applyBarPeakColorHex(hex) {
   barPeakRgb.r = r / 255;
   barPeakRgb.g = g / 255;
   barPeakRgb.b = b / 255;
+}
+
+function applyAreaFillColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.area.fillColor;
+  const { r, g, b } = hexToRgb(safe);
+  areaFillRgb.r = r / 255;
+  areaFillRgb.g = g / 255;
+  areaFillRgb.b = b / 255;
+}
+
+function applyAreaLineColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.area.lineColor;
+  const { r, g, b } = hexToRgb(safe);
+  areaLineRgb.r = r / 255;
+  areaLineRgb.g = g / 255;
+  areaLineRgb.b = b / 255;
+}
+
+function applyAreaFillAlphaPercent(n) {
+  areaFillAlphaPercent = clampInt(n, 0, 100);
+}
+
+function applyAreaLineWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  areaLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyAreaMirrorEnabled(value) {
+  areaMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.area.mirrorEnabled);
+}
+
+function applyAreaGradientEnabled(value) {
+  areaGradientEnabled = parseBoolean(value, DEFAULT_CONFIG.area.gradientEnabled);
 }
 
 function applyWaveformLineWidthPx(n) {
@@ -199,12 +263,15 @@ function resizeCanvas() {
   gl.viewport(0, 0, canvas.width, canvas.height);
 }
 
-function renderWaveform() {
-  resizeCanvas();
-  gl.clearColor(0.0, 0.0, 0.0, 0.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  if (displayMode === "bar") {
-    barRenderer.render(latestPoints, barShapeConfig, {
+function getShapeConfigForMode(mode) {
+  if (mode === DISPLAY_MODES.bar) return barShapeConfig;
+  if (mode === DISPLAY_MODES.area) return areaShapeConfig;
+  return waveShapeConfig;
+}
+
+function getStyleConfigForMode(mode) {
+  if (mode === DISPLAY_MODES.bar) {
+    return {
       color: barFillRgb,
       widthPercent: barWidthPercent,
       gapPercent: barGapPercent,
@@ -216,14 +283,32 @@ function renderWaveform() {
       peakFallSpeed: barPeakFallSpeed,
       peakThickness: barPeakThickness,
       freqReversed,
-    });
-  } else {
-    lineRenderer.render(latestPoints, waveShapeConfig, {
-      color: waveformLineRgb,
-      lineWidthPx: waveformLineWidthPx,
-      freqReversed,
-    });
+    };
   }
+  if (mode === DISPLAY_MODES.area) {
+    return {
+      fillColor: areaFillRgb,
+      fillAlpha: areaFillAlphaPercent / 100,
+      lineColor: areaLineRgb,
+      lineWidthPx: areaLineWidthPx,
+      mirrorEnabled: areaMirrorEnabled,
+      gradientEnabled: areaGradientEnabled,
+      freqReversed,
+    };
+  }
+  return {
+    color: waveformLineRgb,
+    lineWidthPx: waveformLineWidthPx,
+    freqReversed,
+  };
+}
+
+function renderWaveform() {
+  resizeCanvas();
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  const renderer = RENDERERS[displayMode] ?? lineRenderer;
+  renderer.render(latestPoints, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode));
 
   requestAnimationFrame(renderWaveform);
 }
@@ -454,10 +539,62 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-area-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyAreaFillColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-line-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyAreaLineColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-fill-alpha",
+    (event) => {
+      applyAreaFillAlphaPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-line-width",
+    (event) => {
+      applyAreaLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-mirror",
+    (event) => {
+      applyAreaMirrorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-gradient",
+    (event) => {
+      applyAreaGradientEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-area-shape-config",
+    (event) => {
+      applyAreaShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
-      const mode = String(event.payload ?? "");
-      displayMode = mode === DISPLAY_MODES.bar ? DISPLAY_MODES.bar : DISPLAY_MODES.line;
+      displayMode = normalizeDisplayMode(event.payload);
     },
     { target: thisWebviewTarget },
   );
@@ -508,9 +645,7 @@ async function init() {
 
   try {
     const savedMode = readWindowStorageString(window.localStorage, windowLabel, "displayMode");
-    if (savedMode === DISPLAY_MODES.bar || savedMode === DISPLAY_MODES.line) {
-      displayMode = savedMode;
-    }
+    displayMode = normalizeDisplayMode(savedMode);
     const savedBarColor = readWindowStorageString(window.localStorage, windowLabel, "barColor");
     if (savedBarColor) {
       applyBarColorHex(savedBarColor);
@@ -533,6 +668,18 @@ async function init() {
     applyBarPeakColorHex(readWindowStorageString(window.localStorage, windowLabel, "barPeakColor"));
     applyBarPeakFallSpeed(readWindowStorageString(window.localStorage, windowLabel, "barPeakFallSpeed"));
     applyBarPeakThickness(readWindowStorageString(window.localStorage, windowLabel, "barPeakThickness"));
+    applyAreaFillColorHex(readWindowStorageString(window.localStorage, windowLabel, "areaColor"));
+    applyAreaLineColorHex(readWindowStorageString(window.localStorage, windowLabel, "areaLineColor"));
+    const savedAreaFillAlpha = readWindowStorageString(window.localStorage, windowLabel, "areaFillAlpha");
+    if (savedAreaFillAlpha != null && savedAreaFillAlpha !== "") {
+      applyAreaFillAlphaPercent(savedAreaFillAlpha);
+    }
+    const savedAreaLineWidth = readWindowStorageString(window.localStorage, windowLabel, "areaLineWidth");
+    if (savedAreaLineWidth != null && savedAreaLineWidth !== "") {
+      applyAreaLineWidthPx(savedAreaLineWidth);
+    }
+    applyAreaMirrorEnabled(readWindowStorageString(window.localStorage, windowLabel, "areaMirror"));
+    applyAreaGradientEnabled(readWindowStorageString(window.localStorage, windowLabel, "areaGradient"));
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

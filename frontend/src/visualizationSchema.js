@@ -17,6 +17,13 @@ export const STORAGE_KEYS = {
   barPeakColor: "wavedance.barPeakColor",
   barPeakFallSpeed: "wavedance.barPeakFallSpeed",
   barPeakThickness: "wavedance.barPeakThickness",
+  areaColor: "wavedance.areaFillColor",
+  areaLineColor: "wavedance.areaLineColor",
+  areaFillAlpha: "wavedance.areaFillAlphaPercent",
+  areaLineWidth: "wavedance.areaLineWidthPx",
+  areaMirror: "wavedance.areaMirrorEnabled",
+  areaGradient: "wavedance.areaGradientEnabled",
+  areaShape: "wavedance.areaShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -25,6 +32,7 @@ export const STORAGE_KEYS = {
 export const DISPLAY_MODES = {
   line: "line",
   bar: "bar",
+  area: "area",
 };
 
 export const PANEL_STYLES = {
@@ -75,7 +83,29 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  area: {
+    fillColor: "#c4a574",
+    fillAlphaPercent: 45,
+    lineColor: "#c4a574",
+    lineWidthPx: 2,
+    mirrorEnabled: false,
+    gradientEnabled: true,
+    shape: {
+      gainPercent: 50,
+      smoothPercent: 28,
+      softClipPercent: 22,
+      fallEasePercent: 68,
+    },
+  },
 };
+
+/** @param {string} mode */
+export function normalizeDisplayMode(mode) {
+  const s = String(mode ?? "").trim();
+  if (s === DISPLAY_MODES.bar) return DISPLAY_MODES.bar;
+  if (s === DISPLAY_MODES.area) return DISPLAY_MODES.area;
+  return DISPLAY_MODES.line;
+}
 
 export function clampInt(value, min, max) {
   const n = Math.round(Number(value));
@@ -157,6 +187,13 @@ export function windowStorageKeys(windowLabel) {
     barPeakColor: `${pre}.barPeakColor`,
     barPeakFallSpeed: `${pre}.barPeakFallSpeed`,
     barPeakThickness: `${pre}.barPeakThickness`,
+    areaColor: `${pre}.areaFillColor`,
+    areaLineColor: `${pre}.areaLineColor`,
+    areaFillAlpha: `${pre}.areaFillAlphaPercent`,
+    areaLineWidth: `${pre}.areaLineWidthPx`,
+    areaMirror: `${pre}.areaMirrorEnabled`,
+    areaGradient: `${pre}.areaGradientEnabled`,
+    areaShape: `${pre}.areaShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

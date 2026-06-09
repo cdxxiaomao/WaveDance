@@ -123,3 +123,20 @@
 - 子窗定位与尺寸改为**逻辑坐标（点）** `set_position` / `set_size`，解决 Retina、4K 外接与多显示器下物理像素与子窗 DPI 不一致导致的错位。
 - 主窗 `Moved` / `Resized` / `ScaleFactorChanged` 时重算子窗位置；macOS 上主线程投递避免与 `configure_overlay_window`（`setIgnoresMouseEvents` 等）竞态导致子窗偶发不显示。
 - 垂直方向按设备像素微调（`NUDGE_UP_DEVICE_PX`），与主窗锁定按钮视觉对齐。
+
+## 2026-06-09
+
+### 可视化模式扩展 — Phase 0：公共基础重构
+
+- 新建 `frontend/src/renderers/shapePipeline.js`：抽取 gain→缓落→gamma→smooth 共用逻辑（line 保留 NDC 映射后再 smooth 的旧行为）。
+- 新建 `frontend/src/renderers/shaderUtils.js`：`compileShader` / `createProgram` 去重。
+- `lineRenderer.js`、`barRenderer.js` 改用上述公共模块，视觉行为不变。
+- `main.js`：引入 `RENDERERS` 映射表及 `getShapeConfigForMode` / `getStyleConfigForMode`，替换 displayMode 硬分支。
+- `settings.js`：`applyDisplayModePanels` 改为基于 `MODE_PANEL_IDS` 循环显隐面板，便于后续扩展。
+
+### 可视化模式扩展 — Phase 1：填充波形 Area
+
+- 新建 `frontend/src/renderers/areaRenderer.js`：`TRIANGLE_STRIP` 半透明填充 + 顶边线，支持镜像对称、纵向渐变、`freqReversed`。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.area`、`DEFAULT_CONFIG.area` 及 area 相关 storage keys；导出 `normalizeDisplayMode()`。
+- `main.js`：注册 areaRenderer，监听 `waveform-area-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「填充波形」、`#areaConfigPanel` 及全套控件。

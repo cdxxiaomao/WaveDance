@@ -1,4 +1,5 @@
-import { applyAdaptiveSmooth, clamp01 } from "./common.js";
+import { createProgram } from "./shaderUtils.js";
+import { processSpectrumPoints } from "./shapePipeline.js";
 
 export function createLineRenderer(gl) {
   const vertexShaderSource = `
@@ -16,30 +17,7 @@ void main() {
 }
 `;
 
-  const compileShader = (type, source) => {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader));
-    }
-    return shader;
-  };
-
-  const createProgram = () => {
-    const vShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
-    const fShader = compileShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
-    const program = gl.createProgram();
-    gl.attachShader(program, vShader);
-    gl.attachShader(program, fShader);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program));
-    }
-    return program;
-  };
-
-  const program = createProgram();
+  const program = createProgram(gl, vertexShaderSource, fragmentShaderSource);
   const positionLoc = gl.getAttribLocation(program, "a_position");
   const colorLoc = gl.getUniformLocation(program, "u_lineColor");
   const buffer = gl.createBuffer();
@@ -48,23 +26,7 @@ void main() {
   const render = (points, shapeConfig, styleConfig) => {
     if (!Array.isArray(points) || points.length <= 1) return;
     const len = points.length;
-    const ys = new Float32Array(len);
-    if (easedPoints.length !== len) {
-      easedPoints = new Array(len).fill(0);
-    }
-    const gain = Number(shapeConfig.gainPercent) / 100;
-    const softGamma = 1 + (Number(shapeConfig.softClipPercent) / 100) * 1.6;
-    const fallBlend = 0.08 + (1 - Number(shapeConfig.fallEasePercent) / 100) * 0.62;
-    for (let i = 0; i < len; i++) {
-      const raw = clamp01(points[i] * gain);
-      const prev = easedPoints[i];
-      const followed = raw >= prev ? raw : prev + (raw - prev) * fallBlend;
-      easedPoints[i] = followed;
-      const softened = Math.pow(followed, softGamma);
-      ys[i] = (softened * 2 - 1) * 0.95;
-    }
-
-    applyAdaptiveSmooth(ys, shapeConfig.smoothPercent);
+    const ys = processSpectrumPoints(points, shapeConfig, easedPoints, { mapToNdcLine: true });
 
     const canvasH = gl.canvas.height;
     const stepNdc = canvasH > 0 ? 2 / canvasH : 0;
