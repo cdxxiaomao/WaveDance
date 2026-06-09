@@ -179,6 +179,13 @@
 
 ## 2026-06-09（续）
 
+### 可视化模式扩展 — Phase 14：3D 螺旋频谱 Helix3D（真 3D）
+
+- 新建 `frontend/src/renderers/helix3dRenderer.js`：频谱 band 聚合后沿 3D 螺旋分布，幅度驱动径向/高度挤出；线框小立方体作点、可选螺旋链 `LINE_STRIP`；复用 `gl3d.js` 相机与 Y 轴自转。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.helix3d`、`DEFAULT_CONFIG.helix3d`、`normalizeHelix3dExtrudeMode` 及 storage keys。
+- `main.js`：注册 helix3dRenderer，监听 `waveform-helix3d-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「3D 螺旋频谱」、`#helix3dConfigPanel`（点色/半径/螺距/圈数/点数/挤出模式/点大小/螺旋链/自转/相机、形状四件套）。
+
 ### 可视化模式扩展 — Phase 13：3D 频谱地形 Terrain3D（真 3D）
 
 - 新建 `frontend/src/renderers/terrain3dRenderer.js`：环形历史 buffer + band 聚合，生成 3D 网格地形；线框/填充双模式，俯视相机，Z 轴向观众滚动；复用 `gl3d.js` 矩阵与线框 program。

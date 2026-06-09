@@ -94,6 +94,7 @@
               <option value="isometricSkyline">等距天际线</option>
               <option value="ring3d">3D 旋转圆环</option>
               <option value="terrain3d">3D 频谱地形</option>
+              <option value="helix3d">3D 螺旋频谱</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -915,6 +916,77 @@
           <div class="settings-field">
             <label for="terrain3dFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="terrain3dFallEaseValue">40</span>%</label>
             <input id="terrain3dFallEaseRange" type="range" min="0" max="100" step="1" value="40" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="helix3dConfigPanel" aria-labelledby="sec-helix3d-display" hidden>
+        <h2 id="sec-helix3d-display" class="settings-card__title">3D 螺旋频谱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--helix3d" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="helix3dColor" class="settings-label">点颜色</label>
+            <input id="helix3dColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dRadiusRange" class="settings-label">螺旋半径 <span class="settings-value" id="helix3dRadiusValue">0.50</span></label>
+            <input id="helix3dRadiusRange" type="range" min="15" max="100" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dPitchRange" class="settings-label">螺距 <span class="settings-value" id="helix3dPitchValue">0.35</span></label>
+            <input id="helix3dPitchRange" type="range" min="10" max="80" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dTurnsRange" class="settings-label">可见圈数 <span class="settings-value" id="helix3dTurnsValue">2.5</span></label>
+            <input id="helix3dTurnsRange" type="range" min="10" max="40" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dDisplayCountRange" class="settings-label">显示点数 <span class="settings-value" id="helix3dDisplayCountValue">32</span></label>
+            <input id="helix3dDisplayCountRange" type="range" min="8" max="64" step="1" value="32" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dExtrudeModeSelect" class="settings-label">幅度映射</label>
+            <select id="helix3dExtrudeModeSelect" class="settings-select">
+              <option value="radial">径向挤出</option>
+              <option value="height">高度拉伸</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="helix3dPointSizeRange" class="settings-label">点大小 <span class="settings-value" id="helix3dPointSizeValue">8</span> px</label>
+            <input id="helix3dPointSizeRange" type="range" min="2" max="24" step="1" value="8" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="helix3dWireframeToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>螺旋链连线</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="helix3dAutoRotateToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>自动旋转</span>
+          </label>
+          <div class="settings-field">
+            <label for="helix3dAutoRotateSpeedRange" class="settings-label">旋转速度 <span class="settings-value" id="helix3dAutoRotateSpeedValue">8</span>°/s</label>
+            <input id="helix3dAutoRotateSpeedRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dCameraDistanceRange" class="settings-label">相机距离 <span class="settings-value" id="helix3dCameraDistanceValue">2.5</span></label>
+            <input id="helix3dCameraDistanceRange" type="range" min="12" max="45" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dGainRange" class="settings-label">增益 <span class="settings-value" id="helix3dGainValue">62</span>%</label>
+            <input id="helix3dGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="helix3dSmoothValue">20</span>%</label>
+            <input id="helix3dSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="helix3dSoftClipValue">12</span>%</label>
+            <input id="helix3dSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="helix3dFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="helix3dFallEaseValue">55</span>%</label>
+            <input id="helix3dFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>

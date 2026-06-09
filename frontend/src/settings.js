@@ -14,6 +14,7 @@ import {
   readGradientBarPeakHoldMode,
   parseBoolean,
   normalizeDepthLayersRenderStyle,
+  normalizeHelix3dExtrudeMode,
   readWindowStorageString,
   writeWindowStorageString,
 } from "./visualizationSchema.js";
@@ -52,6 +53,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.isometricSkyline]: "isometricSkylineConfigPanel",
   [DISPLAY_MODES.ring3d]: "ring3dConfigPanel",
   [DISPLAY_MODES.terrain3d]: "terrain3dConfigPanel",
+  [DISPLAY_MODES.helix3d]: "helix3dConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -341,6 +343,32 @@ const terrain3dSoftClipRange = document.querySelector("#terrain3dSoftClipRange")
 const terrain3dSoftClipValue = document.querySelector("#terrain3dSoftClipValue");
 const terrain3dFallEaseRange = document.querySelector("#terrain3dFallEaseRange");
 const terrain3dFallEaseValue = document.querySelector("#terrain3dFallEaseValue");
+const helix3dColor = document.querySelector("#helix3dColor");
+const helix3dRadiusRange = document.querySelector("#helix3dRadiusRange");
+const helix3dRadiusValue = document.querySelector("#helix3dRadiusValue");
+const helix3dPitchRange = document.querySelector("#helix3dPitchRange");
+const helix3dPitchValue = document.querySelector("#helix3dPitchValue");
+const helix3dTurnsRange = document.querySelector("#helix3dTurnsRange");
+const helix3dTurnsValue = document.querySelector("#helix3dTurnsValue");
+const helix3dDisplayCountRange = document.querySelector("#helix3dDisplayCountRange");
+const helix3dDisplayCountValue = document.querySelector("#helix3dDisplayCountValue");
+const helix3dExtrudeModeSelect = document.querySelector("#helix3dExtrudeModeSelect");
+const helix3dPointSizeRange = document.querySelector("#helix3dPointSizeRange");
+const helix3dPointSizeValue = document.querySelector("#helix3dPointSizeValue");
+const helix3dWireframeToggle = document.querySelector("#helix3dWireframeToggle");
+const helix3dAutoRotateToggle = document.querySelector("#helix3dAutoRotateToggle");
+const helix3dAutoRotateSpeedRange = document.querySelector("#helix3dAutoRotateSpeedRange");
+const helix3dAutoRotateSpeedValue = document.querySelector("#helix3dAutoRotateSpeedValue");
+const helix3dCameraDistanceRange = document.querySelector("#helix3dCameraDistanceRange");
+const helix3dCameraDistanceValue = document.querySelector("#helix3dCameraDistanceValue");
+const helix3dGainRange = document.querySelector("#helix3dGainRange");
+const helix3dGainValue = document.querySelector("#helix3dGainValue");
+const helix3dSmoothRange = document.querySelector("#helix3dSmoothRange");
+const helix3dSmoothValue = document.querySelector("#helix3dSmoothValue");
+const helix3dSoftClipRange = document.querySelector("#helix3dSoftClipRange");
+const helix3dSoftClipValue = document.querySelector("#helix3dSoftClipValue");
+const helix3dFallEaseRange = document.querySelector("#helix3dFallEaseRange");
+const helix3dFallEaseValue = document.querySelector("#helix3dFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1683,6 +1711,158 @@ function applyTerrain3dFormFromStorage(v) {
   }
 }
 
+function readHelix3dShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "helix3dShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncHelix3dShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(helix3dGainRange?.value, 10, 150),
+    smoothPercent: clampInt(helix3dSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(helix3dSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(helix3dFallEaseRange?.value, 0, 100),
+  };
+  if (helix3dGainValue) helix3dGainValue.textContent = String(config.gainPercent);
+  if (helix3dSmoothValue) helix3dSmoothValue.textContent = String(config.smoothPercent);
+  if (helix3dSoftClipValue) helix3dSoftClipValue.textContent = String(config.softClipPercent);
+  if (helix3dFallEaseValue) helix3dFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-helix3d-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyHelix3dFormFromStorage(v) {
+  const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
+  if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
+  if (helix3dSmoothRange) helix3dSmoothRange.value = String(sg.smoothPercent);
+  if (helix3dSoftClipRange) helix3dSoftClipRange.value = String(sg.softClipPercent);
+  if (helix3dFallEaseRange) helix3dFallEaseRange.value = String(sg.fallEasePercent);
+  if (helix3dGainValue) helix3dGainValue.textContent = String(sg.gainPercent);
+  if (helix3dSmoothValue) helix3dSmoothValue.textContent = String(sg.smoothPercent);
+  if (helix3dSoftClipValue) helix3dSoftClipValue.textContent = String(sg.softClipPercent);
+  if (helix3dFallEaseValue) helix3dFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "helix3dColor");
+  if (helix3dColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    helix3dColor.value = savedColor.toLowerCase();
+  } else if (helix3dColor) {
+    helix3dColor.value = DEFAULT_CONFIG.helix3d.dotColor;
+  }
+
+  const savedRadius = readWindowStorageString(window.localStorage, v, "helix3dRadius");
+  if (helix3dRadiusRange) {
+    const helixRadius =
+      savedRadius != null && savedRadius !== ""
+        ? Math.min(1.0, Math.max(0.15, Number(savedRadius)))
+        : DEFAULT_CONFIG.helix3d.helixRadius;
+    helix3dRadiusRange.value = String(Math.round(helixRadius * 100));
+    if (helix3dRadiusValue) helix3dRadiusValue.textContent = formatRing3dRadiusDisplay(helixRadius);
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "helix3dPitch");
+  if (helix3dPitchRange) {
+    const helixPitch =
+      savedPitch != null && savedPitch !== ""
+        ? Math.min(0.8, Math.max(0.1, Number(savedPitch)))
+        : DEFAULT_CONFIG.helix3d.helixPitch;
+    helix3dPitchRange.value = String(Math.round(helixPitch * 100));
+    if (helix3dPitchValue) helix3dPitchValue.textContent = formatRing3dRadiusDisplay(helixPitch);
+  }
+
+  const savedTurns = readWindowStorageString(window.localStorage, v, "helix3dTurns");
+  if (helix3dTurnsRange) {
+    const helixTurns =
+      savedTurns != null && savedTurns !== ""
+        ? Math.min(4, Math.max(1, Number(savedTurns)))
+        : DEFAULT_CONFIG.helix3d.helixTurns;
+    helix3dTurnsRange.value = String(Math.round(helixTurns * 10));
+    if (helix3dTurnsValue) helix3dTurnsValue.textContent = formatRing3dRadiusDisplay(helixTurns);
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "helix3dDisplayCount");
+  if (helix3dDisplayCountRange) {
+    const displayPointCount =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 8, 64)
+        : DEFAULT_CONFIG.helix3d.displayPointCount;
+    helix3dDisplayCountRange.value = String(displayPointCount);
+    if (helix3dDisplayCountValue) helix3dDisplayCountValue.textContent = String(displayPointCount);
+  }
+
+  const savedExtrudeMode = readWindowStorageString(window.localStorage, v, "helix3dExtrudeMode");
+  if (helix3dExtrudeModeSelect) {
+    helix3dExtrudeModeSelect.value = normalizeHelix3dExtrudeMode(
+      savedExtrudeMode,
+      DEFAULT_CONFIG.helix3d.extrudeMode,
+    );
+  }
+
+  const savedPointSize = readWindowStorageString(window.localStorage, v, "helix3dPointSize");
+  if (helix3dPointSizeRange) {
+    const pointSizePx =
+      savedPointSize != null && savedPointSize !== ""
+        ? clampInt(savedPointSize, 2, 24)
+        : DEFAULT_CONFIG.helix3d.pointSizePx;
+    helix3dPointSizeRange.value = String(pointSizePx);
+    if (helix3dPointSizeValue) helix3dPointSizeValue.textContent = String(pointSizePx);
+  }
+
+  if (helix3dWireframeToggle) {
+    helix3dWireframeToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "helix3dWireframe"),
+      DEFAULT_CONFIG.helix3d.wireframeEnabled,
+    );
+  }
+
+  if (helix3dAutoRotateToggle) {
+    helix3dAutoRotateToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "helix3dAutoRotate"),
+      DEFAULT_CONFIG.helix3d.autoRotateEnabled,
+    );
+  }
+
+  const savedRotateSpeed = readWindowStorageString(window.localStorage, v, "helix3dAutoRotateSpeed");
+  if (helix3dAutoRotateSpeedRange) {
+    const autoRotateSpeedDeg =
+      savedRotateSpeed != null && savedRotateSpeed !== ""
+        ? clampInt(savedRotateSpeed, 0, 20)
+        : DEFAULT_CONFIG.helix3d.autoRotateSpeedDeg;
+    helix3dAutoRotateSpeedRange.value = String(autoRotateSpeedDeg);
+    if (helix3dAutoRotateSpeedValue) helix3dAutoRotateSpeedValue.textContent = String(autoRotateSpeedDeg);
+  }
+
+  const savedCameraDistance = readWindowStorageString(window.localStorage, v, "helix3dCameraDistance");
+  if (helix3dCameraDistanceRange) {
+    const cameraDistance =
+      savedCameraDistance != null && savedCameraDistance !== ""
+        ? Math.min(4.5, Math.max(1.2, Number(savedCameraDistance)))
+        : DEFAULT_CONFIG.helix3d.cameraDistance;
+    helix3dCameraDistanceRange.value = String(Math.round(cameraDistance * 10));
+    if (helix3dCameraDistanceValue) {
+      helix3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+    }
+  }
+}
+
 function applyDepthLayersFormFromStorage(v) {
   const sg = readDepthLayersShapeConfig(v) ?? { ...DEFAULT_CONFIG.depthLayers.shape };
   if (depthLayersGainRange) depthLayersGainRange.value = String(sg.gainPercent);
@@ -2190,6 +2370,7 @@ async function init() {
     applyIsometricSkylineFormFromStorage(v);
     applyRing3dFormFromStorage(v);
     applyTerrain3dFormFromStorage(v);
+    applyHelix3dFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -3805,6 +3986,137 @@ async function init() {
   });
   terrain3dFallEaseRange?.addEventListener("input", () => {
     void syncTerrain3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  helix3dColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dColor", helix3dColor.value);
+      await emitVisual("waveform-helix3d-color", helix3dColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新点颜色失败：${String(err)}`;
+    }
+  });
+  helix3dRadiusRange?.addEventListener("input", async (event) => {
+    const helixRadius = clampInt(event.target.value, 15, 100) / 100;
+    if (helix3dRadiusValue) helix3dRadiusValue.textContent = formatRing3dRadiusDisplay(helixRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dRadius", String(helixRadius));
+      await emitVisual("waveform-helix3d-radius", helixRadius);
+    } catch (err) {
+      statusEl.textContent = `更新螺旋半径失败：${String(err)}`;
+    }
+  });
+  helix3dPitchRange?.addEventListener("input", async (event) => {
+    const helixPitch = clampInt(event.target.value, 10, 80) / 100;
+    if (helix3dPitchValue) helix3dPitchValue.textContent = formatRing3dRadiusDisplay(helixPitch);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dPitch", String(helixPitch));
+      await emitVisual("waveform-helix3d-pitch", helixPitch);
+    } catch (err) {
+      statusEl.textContent = `更新螺距失败：${String(err)}`;
+    }
+  });
+  helix3dTurnsRange?.addEventListener("input", async (event) => {
+    const helixTurns = clampInt(event.target.value, 10, 40) / 10;
+    if (helix3dTurnsValue) helix3dTurnsValue.textContent = formatRing3dRadiusDisplay(helixTurns);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dTurns", String(helixTurns));
+      await emitVisual("waveform-helix3d-turns", helixTurns);
+    } catch (err) {
+      statusEl.textContent = `更新可见圈数失败：${String(err)}`;
+    }
+  });
+  helix3dDisplayCountRange?.addEventListener("input", async (event) => {
+    const displayPointCount = clampInt(event.target.value, 8, 64);
+    if (helix3dDisplayCountValue) helix3dDisplayCountValue.textContent = String(displayPointCount);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "helix3dDisplayCount",
+        String(displayPointCount),
+      );
+      await emitVisual("waveform-helix3d-display-count", displayPointCount);
+    } catch (err) {
+      statusEl.textContent = `更新显示点数失败：${String(err)}`;
+    }
+  });
+  helix3dExtrudeModeSelect?.addEventListener("change", async () => {
+    const extrudeMode = normalizeHelix3dExtrudeMode(
+      helix3dExtrudeModeSelect.value,
+      DEFAULT_CONFIG.helix3d.extrudeMode,
+    );
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dExtrudeMode", extrudeMode);
+      await emitVisual("waveform-helix3d-extrude-mode", extrudeMode);
+    } catch (err) {
+      statusEl.textContent = `更新幅度映射失败：${String(err)}`;
+    }
+  });
+  helix3dPointSizeRange?.addEventListener("input", async (event) => {
+    const pointSizePx = clampInt(event.target.value, 2, 24);
+    if (helix3dPointSizeValue) helix3dPointSizeValue.textContent = String(pointSizePx);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dPointSize", String(pointSizePx));
+      await emitVisual("waveform-helix3d-point-size", pointSizePx);
+    } catch (err) {
+      statusEl.textContent = `更新点大小失败：${String(err)}`;
+    }
+  });
+  helix3dWireframeToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(helix3dWireframeToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dWireframe", String(enabled));
+      await emitVisual("waveform-helix3d-wireframe", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新螺旋链连线失败：${String(err)}`;
+    }
+  });
+  helix3dAutoRotateToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(helix3dAutoRotateToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dAutoRotate", String(enabled));
+      await emitVisual("waveform-helix3d-auto-rotate", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新自动旋转失败：${String(err)}`;
+    }
+  });
+  helix3dAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const autoRotateSpeedDeg = clampInt(event.target.value, 0, 20);
+    if (helix3dAutoRotateSpeedValue) helix3dAutoRotateSpeedValue.textContent = String(autoRotateSpeedDeg);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "helix3dAutoRotateSpeed",
+        String(autoRotateSpeedDeg),
+      );
+      await emitVisual("waveform-helix3d-auto-rotate-speed", autoRotateSpeedDeg);
+    } catch (err) {
+      statusEl.textContent = `更新旋转速度失败：${String(err)}`;
+    }
+  });
+  helix3dCameraDistanceRange?.addEventListener("input", async (event) => {
+    const cameraDistance = clampInt(event.target.value, 12, 45) / 10;
+    if (helix3dCameraDistanceValue) helix3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "helix3dCameraDistance", String(cameraDistance));
+      await emitVisual("waveform-helix3d-camera-distance", cameraDistance);
+    } catch (err) {
+      statusEl.textContent = `更新相机距离失败：${String(err)}`;
+    }
+  });
+  helix3dGainRange?.addEventListener("input", () => {
+    void syncHelix3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  helix3dSmoothRange?.addEventListener("input", () => {
+    void syncHelix3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  helix3dSoftClipRange?.addEventListener("input", () => {
+    void syncHelix3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  helix3dFallEaseRange?.addEventListener("input", () => {
+    void syncHelix3dShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

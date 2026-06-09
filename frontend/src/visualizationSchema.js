@@ -131,6 +131,19 @@ export const STORAGE_KEYS = {
   terrain3dCameraDistance: "wavedance.terrain3dCameraDistance",
   terrain3dAutoScroll: "wavedance.terrain3dAutoScrollEnabled",
   terrain3dShape: "wavedance.terrain3dShapeConfig",
+  helix3dColor: "wavedance.helix3dDotColor",
+  helix3dRadius: "wavedance.helix3dHelixRadius",
+  helix3dPitch: "wavedance.helix3dHelixPitch",
+  helix3dTurns: "wavedance.helix3dHelixTurns",
+  helix3dDisplayCount: "wavedance.helix3dDisplayPointCount",
+  helix3dExtrudeMode: "wavedance.helix3dExtrudeMode",
+  helix3dPointSize: "wavedance.helix3dPointSizePx",
+  helix3dWireframe: "wavedance.helix3dWireframeEnabled",
+  helix3dAutoRotate: "wavedance.helix3dAutoRotateEnabled",
+  helix3dAutoRotateSpeed: "wavedance.helix3dAutoRotateSpeedDeg",
+  helix3dCameraDistance: "wavedance.helix3dCameraDistance",
+  helix3dCameraFov: "wavedance.helix3dCameraFovDeg",
+  helix3dShape: "wavedance.helix3dShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -152,6 +165,7 @@ export const DISPLAY_MODES = {
   isometricSkyline: "isometricSkyline",
   ring3d: "ring3d",
   terrain3d: "terrain3d",
+  helix3d: "helix3d",
 };
 
 export const PANEL_STYLES = {
@@ -404,6 +418,26 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 40,
     },
   },
+  helix3d: {
+    dotColor: "#8f7cff",
+    helixRadius: 0.5,
+    helixPitch: 0.35,
+    helixTurns: 2.5,
+    displayPointCount: 32,
+    extrudeMode: "radial",
+    pointSizePx: 8,
+    wireframeEnabled: true,
+    autoRotateEnabled: true,
+    autoRotateSpeedDeg: 8,
+    cameraDistance: 2.5,
+    cameraFovDeg: 45,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 20,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -423,7 +457,16 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.isometricSkyline) return DISPLAY_MODES.isometricSkyline;
   if (s === DISPLAY_MODES.ring3d) return DISPLAY_MODES.ring3d;
   if (s === DISPLAY_MODES.terrain3d) return DISPLAY_MODES.terrain3d;
+  if (s === DISPLAY_MODES.helix3d) return DISPLAY_MODES.helix3d;
   return DISPLAY_MODES.line;
+}
+
+/** @param {string} value */
+export function normalizeHelix3dExtrudeMode(value, fallback = "radial") {
+  const s = String(value ?? "").trim();
+  if (s === "height") return "height";
+  if (s === "radial") return "radial";
+  return fallback;
 }
 
 /** @param {string} value */
@@ -645,6 +688,19 @@ export function windowStorageKeys(windowLabel) {
     terrain3dCameraDistance: `${pre}.terrain3dCameraDistance`,
     terrain3dAutoScroll: `${pre}.terrain3dAutoScrollEnabled`,
     terrain3dShape: `${pre}.terrain3dShapeConfig`,
+    helix3dColor: `${pre}.helix3dDotColor`,
+    helix3dRadius: `${pre}.helix3dHelixRadius`,
+    helix3dPitch: `${pre}.helix3dHelixPitch`,
+    helix3dTurns: `${pre}.helix3dHelixTurns`,
+    helix3dDisplayCount: `${pre}.helix3dDisplayPointCount`,
+    helix3dExtrudeMode: `${pre}.helix3dExtrudeMode`,
+    helix3dPointSize: `${pre}.helix3dPointSizePx`,
+    helix3dWireframe: `${pre}.helix3dWireframeEnabled`,
+    helix3dAutoRotate: `${pre}.helix3dAutoRotateEnabled`,
+    helix3dAutoRotateSpeed: `${pre}.helix3dAutoRotateSpeedDeg`,
+    helix3dCameraDistance: `${pre}.helix3dCameraDistance`,
+    helix3dCameraFov: `${pre}.helix3dCameraFovDeg`,
+    helix3dShape: `${pre}.helix3dShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

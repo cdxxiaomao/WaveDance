@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~13 已完成；Phase 14 真 3D 螺旋待实施  
+> **状态**：Phase 0~14 已全部完成  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -835,11 +835,11 @@ helix3d: {
 
 #### 14.2 新建 `helix3dRenderer.js`
 
-- [ ] 聚合 points → `displayPointCount`
-- [ ] 第 i 点：角度 `θ = i/N * turns * 2π`，位置 `(R*cosθ, i/N*pitch*2 - pitch, R*sinθ)`，extrude 加幅度
-- [ ] 渲染：每点一个小 billboard quad（始终近似面向相机）或 3D 小球 mesh
-- [ ] 可选：相邻点 `LINE_STRIP` 连接成螺旋链（线框 glow 色）
-- [ ] 复用 `gl3d.js` camera + autoRotate
+- [x] 聚合 points → `displayPointCount`
+- [x] 第 i 点：角度 `θ = i/N * turns * 2π`，位置 `(R*cosθ, i/N*pitch*2 - pitch, R*sinθ)`，extrude 加幅度
+- [x] 渲染：每点一个小 billboard quad（始终近似面向相机）或 3D 小球 mesh
+- [x] 可选：相邻点 `LINE_STRIP` 连接成螺旋链（线框 glow 色）
+- [x] 复用 `gl3d.js` camera + autoRotate
 
 #### 14.3 集成与设置页
 
@@ -847,9 +847,9 @@ helix3d: {
 
 #### 14.4 验收标准
 
-- [ ] displayPointCount≤48 时小窗仍可辨认螺旋结构
-- [ ] 强节奏时径向/高度挤出明显
-- [ ] 与 ring3d 视觉差异清晰（螺旋 vs 平面圆环）
+- [x] displayPointCount≤48 时小窗仍可辨认螺旋结构
+- [x] 强节奏时径向/高度挤出明显
+- [x] 与 ring3d 视觉差异清晰（螺旋 vs 平面圆环）
 
 ---
 
@@ -953,9 +953,9 @@ helix3d: {
 | 11 | 等距天际线 Isometric Skyline（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[x]` 已完成 | 2026-06-09 |
 | 13 | 3D 频谱地形 Terrain3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
-| 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
+| 14 | 3D 螺旋 Helix3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
 
-**当前建议下一步**：Phase 14（3D 螺旋频谱 Helix3D）
+**当前建议下一步**：全部 Phase 已完成；可选后续：示波器增强、录制 GIF、settings 模块化拆分。
 
 ---
 
