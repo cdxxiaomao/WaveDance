@@ -36,6 +36,12 @@ export const STORAGE_KEYS = {
   gradientBarPeakFallSpeed: "wavedance.gradientBarPeakFallSpeed",
   gradientBarPeakThickness: "wavedance.gradientBarPeakThickness",
   gradientBarShape: "wavedance.gradientBarShapeConfig",
+  glowLineCoreColor: "wavedance.glowLineCoreColor",
+  glowLineGlowColor: "wavedance.glowLineGlowColor",
+  glowLineWidth: "wavedance.glowLineWidthPx",
+  glowLineGlowRadius: "wavedance.glowLineGlowRadiusPx",
+  glowLineGlowIntensity: "wavedance.glowLineGlowIntensityPercent",
+  glowLineShape: "wavedance.glowLineShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -46,6 +52,7 @@ export const DISPLAY_MODES = {
   bar: "bar",
   area: "area",
   gradientBar: "gradientBar",
+  glowLine: "glowLine",
 };
 
 export const PANEL_STYLES = {
@@ -129,6 +136,20 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  glowLine: {
+    coreColor: "#c4a574",
+    glowColor: "#c4a574",
+    lineWidthPx: 2,
+    glowRadiusPx: 8,
+    glowIntensityPercent: 70,
+    glowPasses: 4,
+    shape: {
+      gainPercent: 50,
+      smoothPercent: 28,
+      softClipPercent: 22,
+      fallEasePercent: 68,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -137,6 +158,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.bar) return DISPLAY_MODES.bar;
   if (s === DISPLAY_MODES.area) return DISPLAY_MODES.area;
   if (s === DISPLAY_MODES.gradientBar) return DISPLAY_MODES.gradientBar;
+  if (s === DISPLAY_MODES.glowLine) return DISPLAY_MODES.glowLine;
   return DISPLAY_MODES.line;
 }
 
@@ -256,6 +278,12 @@ export function windowStorageKeys(windowLabel) {
     gradientBarPeakFallSpeed: `${pre}.gradientBarPeakFallSpeed`,
     gradientBarPeakThickness: `${pre}.gradientBarPeakThickness`,
     gradientBarShape: `${pre}.gradientBarShapeConfig`,
+    glowLineCoreColor: `${pre}.glowLineCoreColor`,
+    glowLineGlowColor: `${pre}.glowLineGlowColor`,
+    glowLineWidth: `${pre}.glowLineWidthPx`,
+    glowLineGlowRadius: `${pre}.glowLineGlowRadiusPx`,
+    glowLineGlowIntensity: `${pre}.glowLineGlowIntensityPercent`,
+    glowLineShape: `${pre}.glowLineShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

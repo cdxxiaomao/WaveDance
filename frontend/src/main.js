@@ -5,6 +5,7 @@ import { createLineRenderer } from "./renderers/lineRenderer.js";
 import { createBarRenderer } from "./renderers/barRenderer.js";
 import { createAreaRenderer } from "./renderers/areaRenderer.js";
 import { createGradientBarRenderer } from "./renderers/gradientBarRenderer.js";
+import { createGlowLineRenderer } from "./renderers/glowLineRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -33,18 +34,21 @@ const lineRenderer = createLineRenderer(gl);
 const barRenderer = createBarRenderer(gl);
 const areaRenderer = createAreaRenderer(gl);
 const gradientBarRenderer = createGradientBarRenderer(gl);
+const glowLineRenderer = createGlowLineRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
   [DISPLAY_MODES.bar]: barRenderer,
   [DISPLAY_MODES.area]: areaRenderer,
   [DISPLAY_MODES.gradientBar]: gradientBarRenderer,
+  [DISPLAY_MODES.glowLine]: glowLineRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
 const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
 const areaShapeConfig = { ...DEFAULT_CONFIG.area.shape };
 const gradientBarShapeConfig = { ...DEFAULT_CONFIG.gradientBar.shape };
+const glowLineShapeConfig = { ...DEFAULT_CONFIG.glowLine.shape };
 
 let latestPoints = [];
 let displayMode = DEFAULT_CONFIG.displayMode;
@@ -81,6 +85,14 @@ function applyGradientBarShapeConfig(payload) {
   gradientBarShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyGlowLineShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  glowLineShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  glowLineShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  glowLineShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  glowLineShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -91,6 +103,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (areaRaw) applyAreaShapeConfig(JSON.parse(areaRaw));
     const gradientBarRaw = readWindowStorageString(window.localStorage, windowLabel, "gradientBarShape");
     if (gradientBarRaw) applyGradientBarShapeConfig(JSON.parse(gradientBarRaw));
+    const glowLineRaw = readWindowStorageString(window.localStorage, windowLabel, "glowLineShape");
+    if (glowLineRaw) applyGlowLineShapeConfig(JSON.parse(glowLineRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -116,6 +130,8 @@ const areaLineRgb = { r: 0, g: 0, b: 0 };
 const gradientBarColorLowRgb = { r: 0, g: 0, b: 0 };
 const gradientBarColorHighRgb = { r: 0, g: 0, b: 0 };
 const gradientBarPeakRgb = { r: 1, g: 1, b: 1 };
+const glowLineCoreRgb = { r: 0, g: 0, b: 0 };
+const glowLineGlowRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -134,6 +150,8 @@ applyAreaLineColorHex(DEFAULT_CONFIG.area.lineColor);
 applyGradientBarColorLowHex(DEFAULT_CONFIG.gradientBar.colorLow);
 applyGradientBarColorHighHex(DEFAULT_CONFIG.gradientBar.colorHigh);
 applyGradientBarPeakColorHex(DEFAULT_CONFIG.gradientBar.peakColor);
+applyGlowLineCoreColorHex(DEFAULT_CONFIG.glowLine.coreColor);
+applyGlowLineGlowColorHex(DEFAULT_CONFIG.glowLine.glowColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -158,6 +176,10 @@ let gradientBarMirrorEnabled = DEFAULT_CONFIG.gradientBar.mirrorEnabled;
 let gradientBarPeakHoldMode = DEFAULT_CONFIG.gradientBar.peakHoldMode;
 let gradientBarPeakFallSpeed = DEFAULT_CONFIG.gradientBar.peakFallSpeed;
 let gradientBarPeakThickness = DEFAULT_CONFIG.gradientBar.peakThickness;
+let glowLineWidthPx = DEFAULT_CONFIG.glowLine.lineWidthPx;
+let glowLineGlowRadiusPx = DEFAULT_CONFIG.glowLine.glowRadiusPx;
+let glowLineGlowIntensityPercent = DEFAULT_CONFIG.glowLine.glowIntensityPercent;
+let glowLineGlowPasses = DEFAULT_CONFIG.glowLine.glowPasses;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -279,6 +301,38 @@ function applyGradientBarPeakThickness(value) {
   gradientBarPeakThickness = clampInt(value, 1, 8);
 }
 
+function applyGlowLineCoreColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.glowLine.coreColor;
+  const { r, g, b } = hexToRgb(safe);
+  glowLineCoreRgb.r = r / 255;
+  glowLineCoreRgb.g = g / 255;
+  glowLineCoreRgb.b = b / 255;
+}
+
+function applyGlowLineGlowColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.glowLine.glowColor;
+  const { r, g, b } = hexToRgb(safe);
+  glowLineGlowRgb.r = r / 255;
+  glowLineGlowRgb.g = g / 255;
+  glowLineGlowRgb.b = b / 255;
+}
+
+function applyGlowLineWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  glowLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyGlowLineGlowRadiusPx(n) {
+  glowLineGlowRadiusPx = clampInt(n, 2, 24);
+}
+
+function applyGlowLineGlowIntensityPercent(n) {
+  glowLineGlowIntensityPercent = clampInt(n, 0, 100);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -361,6 +415,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.bar) return barShapeConfig;
   if (mode === DISPLAY_MODES.area) return areaShapeConfig;
   if (mode === DISPLAY_MODES.gradientBar) return gradientBarShapeConfig;
+  if (mode === DISPLAY_MODES.glowLine) return glowLineShapeConfig;
   return waveShapeConfig;
 }
 
@@ -404,6 +459,17 @@ function getStyleConfigForMode(mode) {
       peakColor: gradientBarPeakRgb,
       peakFallSpeed: gradientBarPeakFallSpeed,
       peakThickness: gradientBarPeakThickness,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.glowLine) {
+    return {
+      coreColor: glowLineCoreRgb,
+      glowColor: glowLineGlowRgb,
+      lineWidthPx: glowLineWidthPx,
+      glowRadiusPx: glowLineGlowRadiusPx,
+      glowIntensity: glowLineGlowIntensityPercent / 100,
+      glowPasses: glowLineGlowPasses,
       freqReversed,
     };
   }
@@ -793,6 +859,52 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-glow-line-core-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyGlowLineCoreColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-line-glow-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyGlowLineGlowColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-line-width",
+    (event) => {
+      applyGlowLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-line-glow-radius",
+    (event) => {
+      applyGlowLineGlowRadiusPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-line-glow-intensity",
+    (event) => {
+      applyGlowLineGlowIntensityPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-line-shape-config",
+    (event) => {
+      applyGlowLineShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -901,6 +1013,20 @@ async function init() {
     applyGradientBarPeakColorHex(readWindowStorageString(window.localStorage, windowLabel, "gradientBarPeakColor"));
     applyGradientBarPeakFallSpeed(readWindowStorageString(window.localStorage, windowLabel, "gradientBarPeakFallSpeed"));
     applyGradientBarPeakThickness(readWindowStorageString(window.localStorage, windowLabel, "gradientBarPeakThickness"));
+    applyGlowLineCoreColorHex(readWindowStorageString(window.localStorage, windowLabel, "glowLineCoreColor"));
+    applyGlowLineGlowColorHex(readWindowStorageString(window.localStorage, windowLabel, "glowLineGlowColor"));
+    const savedGlowLineWidth = readWindowStorageString(window.localStorage, windowLabel, "glowLineWidth");
+    if (savedGlowLineWidth != null && savedGlowLineWidth !== "") {
+      applyGlowLineWidthPx(savedGlowLineWidth);
+    }
+    const savedGlowLineRadius = readWindowStorageString(window.localStorage, windowLabel, "glowLineGlowRadius");
+    if (savedGlowLineRadius != null && savedGlowLineRadius !== "") {
+      applyGlowLineGlowRadiusPx(savedGlowLineRadius);
+    }
+    const savedGlowLineIntensity = readWindowStorageString(window.localStorage, windowLabel, "glowLineGlowIntensity");
+    if (savedGlowLineIntensity != null && savedGlowLineIntensity !== "") {
+      applyGlowLineGlowIntensityPercent(savedGlowLineIntensity);
+    }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

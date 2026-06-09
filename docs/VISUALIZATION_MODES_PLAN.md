@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 2 已完成，Phase 3 待实施  
+> **状态**：Phase 3 已完成，Phase 4 待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -299,12 +299,12 @@ glowLine: {
 
 #### 3.2 新建 `glowLineRenderer.js`
 
-- [ ] **方案 A（推荐）**：多 pass 绘制同一 `LINE_STRIP`
+- [x] **方案 A（推荐）**：多 pass 绘制同一 `LINE_STRIP`
   - 从外到内：逐 pass 增大 lineWidth（用 ndc offset 模拟）、降低 alpha
   - 需开启 `gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)`
-- [ ] **方案 B**：单 shader 距离场（实现复杂，暂不优先）
-- [ ] 最内层 pass 用 `u_lineColor` alpha=1
-- [ ] 注意 WebGL `gl.lineWidth` 在多数平台仅支持 1；**必须用顶点偏移模拟线宽**（lineRenderer 已有 passes 逻辑，可复用）
+- [x] **方案 B**：单 shader 距离场（实现复杂，暂不优先）
+- [x] 最内层 pass 用 `u_lineColor` alpha=1
+- [x] 注意 WebGL `gl.lineWidth` 在多数平台仅支持 1；**必须用顶点偏移模拟线宽**（lineRenderer 已有 passes 逻辑，可复用）
 
 #### 3.3 集成与设置页
 
@@ -313,9 +313,9 @@ glowLine: {
 
 #### 3.4 验收标准
 
-- [ ] 透明背景上可见柔和外晕
-- [ ] 高 glowRadius 时不明显卡顿（256 分桶下 fps 可接受）
-- [ ] 静默时（points 全 0）画面干净
+- [x] 透明背景上可见柔和外晕
+- [x] 高 glowRadius 时不明显卡顿（256 分桶下 fps 可接受）
+- [x] 静默时（points 全 0）画面干净
 
 ---
 
@@ -564,14 +564,14 @@ oscilloscope: {
 | 0 | 公共基础重构 | `[x]` 已完成 | 2026-06-09 |
 | 1 | 填充波形 Area | `[x]` 已完成 | 2026-06-09 |
 | 2 | 渐变频谱柱 Gradient Bar | `[x]` 已完成 | 2026-06-09 |
-| 3 | 霓虹发光线 Glow Line | `[ ]` 未开始 | |
+| 3 | 霓虹发光线 Glow Line | `[x]` 已完成 | 2026-06-09 |
 | 4 | 圆形频谱 Radial | `[ ]` 未开始 | |
 | 5 | 瀑布频谱 Waterfall | `[ ]` 未开始 | |
 | 6 | 环形圆点 Dot Ring | `[ ]` 未开始 | |
 | 7 | 文档与 README | `[ ]` 未开始 | |
 | 8 | 示波器 Oscilloscope（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 3（霓虹发光线 Glow Line）
+**当前建议下一步**：Phase 4（圆形频谱 Radial）
 
 ---
 

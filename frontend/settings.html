@@ -83,6 +83,7 @@
               <option value="bar">柱状图</option>
               <option value="area">填充波形</option>
               <option value="gradientBar">渐变频谱柱</option>
+              <option value="glowLine">霓虹发光线</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -341,6 +342,48 @@
           <div class="settings-field">
             <label for="gradientBarFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="gradientBarFallEaseValue">52</span>%</label>
             <input id="gradientBarFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="glowLineConfigPanel" aria-labelledby="sec-glow-line-display" hidden>
+        <h2 id="sec-glow-line-display" class="settings-card__title">霓虹发光线配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--glow-line" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="glowLineCoreColor" class="settings-label">核心线颜色</label>
+            <input id="glowLineCoreColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="glowLineGlowColor" class="settings-label">光晕颜色</label>
+            <input id="glowLineGlowColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineWidthRange" class="settings-label">线条粗细 <span class="settings-value" id="glowLineWidthValue">2</span> px</label>
+            <input id="glowLineWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineGlowRadiusRange" class="settings-label">光晕半径 <span class="settings-value" id="glowLineGlowRadiusValue">8</span> px</label>
+            <input id="glowLineGlowRadiusRange" type="range" min="2" max="24" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineGlowIntensityRange" class="settings-label">光晕强度 <span class="settings-value" id="glowLineGlowIntensityValue">70</span>%</label>
+            <input id="glowLineGlowIntensityRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineGainRange" class="settings-label">增益 <span class="settings-value" id="glowLineGainValue">50</span>%</label>
+            <input id="glowLineGainRange" type="range" min="10" max="150" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="glowLineSmoothValue">28</span>%</label>
+            <input id="glowLineSmoothRange" type="range" min="0" max="400" step="1" value="28" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="glowLineSoftClipValue">22</span>%</label>
+            <input id="glowLineSoftClipRange" type="range" min="0" max="100" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="glowLineFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="glowLineFallEaseValue">68</span>%</label>
+            <input id="glowLineFallEaseRange" type="range" min="0" max="100" step="1" value="68" />
           </div>
         </div>
       </section>

@@ -147,3 +147,10 @@
 - `visualizationSchema.js`：新增 `DISPLAY_MODES.gradientBar`、`DEFAULT_CONFIG.gradientBar` 及全套 storage keys；导出 `readGradientBarPeakHoldMode()`。
 - `main.js`：注册 gradientBarRenderer，监听 `waveform-gradient-bar-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「渐变频谱柱」、`#gradientBarConfigPanel`（双色选择器 + 柱宽/间距/方向/镜像/峰值线 + 形状四件套）。
+
+### 可视化模式扩展 — Phase 3：霓虹发光线 Glow Line
+
+- 新建 `frontend/src/renderers/glowLineRenderer.js`：多 pass `LINE_STRIP` 外晕（逐层加宽、递减 alpha）+ 核心亮线；静默时跳过绘制；光晕强度为 0 时退化为普通线。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.glowLine`、`DEFAULT_CONFIG.glowLine` 及 glowLine 相关 storage keys。
+- `main.js`：注册 glowLineRenderer，监听 `waveform-glow-line-*` 事件，加载持久化配置。
+- `settings.html` / `settings.js`：展示模式增加「霓虹发光线」、`#glowLineConfigPanel`（核心色/光晕色/线宽/光晕半径/光晕强度 + 形状四件套）。

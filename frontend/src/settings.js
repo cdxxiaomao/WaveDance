@@ -40,6 +40,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.bar]: "barConfigPanel",
   [DISPLAY_MODES.area]: "areaConfigPanel",
   [DISPLAY_MODES.gradientBar]: "gradientBarConfigPanel",
+  [DISPLAY_MODES.glowLine]: "glowLineConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -115,6 +116,22 @@ const gradientBarSoftClipRange = document.querySelector("#gradientBarSoftClipRan
 const gradientBarSoftClipValue = document.querySelector("#gradientBarSoftClipValue");
 const gradientBarFallEaseRange = document.querySelector("#gradientBarFallEaseRange");
 const gradientBarFallEaseValue = document.querySelector("#gradientBarFallEaseValue");
+const glowLineCoreColor = document.querySelector("#glowLineCoreColor");
+const glowLineGlowColor = document.querySelector("#glowLineGlowColor");
+const glowLineWidthRange = document.querySelector("#glowLineWidthRange");
+const glowLineWidthValue = document.querySelector("#glowLineWidthValue");
+const glowLineGlowRadiusRange = document.querySelector("#glowLineGlowRadiusRange");
+const glowLineGlowRadiusValue = document.querySelector("#glowLineGlowRadiusValue");
+const glowLineGlowIntensityRange = document.querySelector("#glowLineGlowIntensityRange");
+const glowLineGlowIntensityValue = document.querySelector("#glowLineGlowIntensityValue");
+const glowLineGainRange = document.querySelector("#glowLineGainRange");
+const glowLineGainValue = document.querySelector("#glowLineGainValue");
+const glowLineSmoothRange = document.querySelector("#glowLineSmoothRange");
+const glowLineSmoothValue = document.querySelector("#glowLineSmoothValue");
+const glowLineSoftClipRange = document.querySelector("#glowLineSoftClipRange");
+const glowLineSoftClipValue = document.querySelector("#glowLineSoftClipValue");
+const glowLineFallEaseRange = document.querySelector("#glowLineFallEaseRange");
+const glowLineFallEaseValue = document.querySelector("#glowLineFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -402,6 +419,101 @@ function applyGradientBarFormFromStorage(v) {
     const thickness = clampInt(savedPeakTh, 1, 8);
     gradientBarPeakThicknessRange.value = String(thickness);
     if (gradientBarPeakThicknessValue) gradientBarPeakThicknessValue.textContent = String(thickness);
+  }
+}
+
+function readGlowLineShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "glowLineShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncGlowLineShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(glowLineGainRange?.value, 10, 150),
+    smoothPercent: clampInt(glowLineSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(glowLineSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(glowLineFallEaseRange?.value, 0, 100),
+  };
+  if (glowLineGainValue) glowLineGainValue.textContent = String(config.gainPercent);
+  if (glowLineSmoothValue) glowLineSmoothValue.textContent = String(config.smoothPercent);
+  if (glowLineSoftClipValue) glowLineSoftClipValue.textContent = String(config.softClipPercent);
+  if (glowLineFallEaseValue) glowLineFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-glow-line-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步霓虹发光线参数失败：${String(err)}`;
+  }
+}
+
+function applyGlowLineFormFromStorage(v) {
+  const sg = readGlowLineShapeConfig(v) ?? { ...DEFAULT_CONFIG.glowLine.shape };
+  if (glowLineGainRange) glowLineGainRange.value = String(sg.gainPercent);
+  if (glowLineSmoothRange) glowLineSmoothRange.value = String(sg.smoothPercent);
+  if (glowLineSoftClipRange) glowLineSoftClipRange.value = String(sg.softClipPercent);
+  if (glowLineFallEaseRange) glowLineFallEaseRange.value = String(sg.fallEasePercent);
+  if (glowLineGainValue) glowLineGainValue.textContent = String(sg.gainPercent);
+  if (glowLineSmoothValue) glowLineSmoothValue.textContent = String(sg.smoothPercent);
+  if (glowLineSoftClipValue) glowLineSoftClipValue.textContent = String(sg.softClipPercent);
+  if (glowLineFallEaseValue) glowLineFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedCoreColor = readWindowStorageString(window.localStorage, v, "glowLineCoreColor");
+  if (glowLineCoreColor && savedCoreColor && /^#[0-9A-Fa-f]{6}$/.test(savedCoreColor)) {
+    glowLineCoreColor.value = savedCoreColor.toLowerCase();
+  } else if (glowLineCoreColor) {
+    glowLineCoreColor.value = DEFAULT_CONFIG.glowLine.coreColor;
+  }
+
+  const savedGlowColor = readWindowStorageString(window.localStorage, v, "glowLineGlowColor");
+  if (glowLineGlowColor && savedGlowColor && /^#[0-9A-Fa-f]{6}$/.test(savedGlowColor)) {
+    glowLineGlowColor.value = savedGlowColor.toLowerCase();
+  } else if (glowLineGlowColor) {
+    glowLineGlowColor.value = DEFAULT_CONFIG.glowLine.glowColor;
+  }
+
+  const savedLineWidth = readWindowStorageString(window.localStorage, v, "glowLineWidth");
+  if (glowLineWidthRange) {
+    const lineWidth =
+      savedLineWidth != null && savedLineWidth !== ""
+        ? clampInt(savedLineWidth, 1, 12)
+        : DEFAULT_CONFIG.glowLine.lineWidthPx;
+    glowLineWidthRange.value = String(lineWidth);
+    if (glowLineWidthValue) glowLineWidthValue.textContent = String(lineWidth);
+  }
+
+  const savedGlowRadius = readWindowStorageString(window.localStorage, v, "glowLineGlowRadius");
+  if (glowLineGlowRadiusRange) {
+    const glowRadius =
+      savedGlowRadius != null && savedGlowRadius !== ""
+        ? clampInt(savedGlowRadius, 2, 24)
+        : DEFAULT_CONFIG.glowLine.glowRadiusPx;
+    glowLineGlowRadiusRange.value = String(glowRadius);
+    if (glowLineGlowRadiusValue) glowLineGlowRadiusValue.textContent = String(glowRadius);
+  }
+
+  const savedGlowIntensity = readWindowStorageString(window.localStorage, v, "glowLineGlowIntensity");
+  if (glowLineGlowIntensityRange) {
+    const glowIntensity =
+      savedGlowIntensity != null && savedGlowIntensity !== ""
+        ? clampInt(savedGlowIntensity, 0, 100)
+        : DEFAULT_CONFIG.glowLine.glowIntensityPercent;
+    glowLineGlowIntensityRange.value = String(glowIntensity);
+    if (glowLineGlowIntensityValue) glowLineGlowIntensityValue.textContent = String(glowIntensity);
   }
 }
 
@@ -1204,6 +1316,64 @@ async function init() {
   gradientBarFallEaseRange?.addEventListener("input", () => {
     void syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
   });
+  glowLineCoreColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineCoreColor", glowLineCoreColor.value);
+      await emitVisual("waveform-glow-line-core-color", glowLineCoreColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心线颜色失败：${String(err)}`;
+    }
+  });
+  glowLineGlowColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineGlowColor", glowLineGlowColor.value);
+      await emitVisual("waveform-glow-line-glow-color", glowLineGlowColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新光晕颜色失败：${String(err)}`;
+    }
+  });
+  glowLineWidthRange?.addEventListener("input", async (event) => {
+    const lineWidth = clampInt(event.target.value, 1, 12);
+    if (glowLineWidthValue) glowLineWidthValue.textContent = String(lineWidth);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineWidth", String(lineWidth));
+      await emitVisual("waveform-glow-line-width", lineWidth);
+    } catch (err) {
+      statusEl.textContent = `更新线条粗细失败：${String(err)}`;
+    }
+  });
+  glowLineGlowRadiusRange?.addEventListener("input", async (event) => {
+    const glowRadius = clampInt(event.target.value, 2, 24);
+    if (glowLineGlowRadiusValue) glowLineGlowRadiusValue.textContent = String(glowRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineGlowRadius", String(glowRadius));
+      await emitVisual("waveform-glow-line-glow-radius", glowRadius);
+    } catch (err) {
+      statusEl.textContent = `更新光晕半径失败：${String(err)}`;
+    }
+  });
+  glowLineGlowIntensityRange?.addEventListener("input", async (event) => {
+    const glowIntensity = clampInt(event.target.value, 0, 100);
+    if (glowLineGlowIntensityValue) glowLineGlowIntensityValue.textContent = String(glowIntensity);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowLineGlowIntensity", String(glowIntensity));
+      await emitVisual("waveform-glow-line-glow-intensity", glowIntensity);
+    } catch (err) {
+      statusEl.textContent = `更新光晕强度失败：${String(err)}`;
+    }
+  });
+  glowLineGainRange?.addEventListener("input", () => {
+    void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowLineSmoothRange?.addEventListener("input", () => {
+    void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowLineSoftClipRange?.addEventListener("input", () => {
+    void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowLineFallEaseRange?.addEventListener("input", () => {
+    void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -1415,6 +1585,8 @@ async function init() {
   await syncAreaShapeConfig(visualTargetLabel, emitVisual);
   applyGradientBarFormFromStorage(visualTargetLabel);
   await syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
+  applyGlowLineFormFromStorage(visualTargetLabel);
+  await syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -1557,6 +1729,21 @@ async function init() {
   }
   if (gradientBarPeakThicknessRange) {
     await emitVisual("waveform-gradient-bar-peak-thickness", clampInt(gradientBarPeakThicknessRange.value, 1, 8));
+  }
+  if (glowLineCoreColor) {
+    await emitVisual("waveform-glow-line-core-color", glowLineCoreColor.value);
+  }
+  if (glowLineGlowColor) {
+    await emitVisual("waveform-glow-line-glow-color", glowLineGlowColor.value);
+  }
+  if (glowLineWidthRange) {
+    await emitVisual("waveform-glow-line-width", clampInt(glowLineWidthRange.value, 1, 12));
+  }
+  if (glowLineGlowRadiusRange) {
+    await emitVisual("waveform-glow-line-glow-radius", clampInt(glowLineGlowRadiusRange.value, 2, 24));
+  }
+  if (glowLineGlowIntensityRange) {
+    await emitVisual("waveform-glow-line-glow-intensity", clampInt(glowLineGlowIntensityRange.value, 0, 100));
   }
 
   if (closeSettingsBtn) {
