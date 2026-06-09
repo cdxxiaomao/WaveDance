@@ -179,6 +179,13 @@
 
 ## 2026-06-09（续）
 
+### 可视化模式扩展 — Phase 13：3D 频谱地形 Terrain3D（真 3D）
+
+- 新建 `frontend/src/renderers/terrain3dRenderer.js`：环形历史 buffer + band 聚合，生成 3D 网格地形；线框/填充双模式，俯视相机，Z 轴向观众滚动；复用 `gl3d.js` 矩阵与线框 program。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.terrain3d`、`DEFAULT_CONFIG.terrain3d` 及 storage keys。
+- `main.js`：注册 terrain3dRenderer，监听 `waveform-terrain3d-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「3D 频谱地形」、`#terrain3dConfigPanel`（双色/线框色、格点密度、历史深度、滚动、线框/填充、地形高度、相机俯角/距离、自动滚动、形状四件套）。
+
 ### 可视化模式扩展 — Phase 12：3D 旋转圆环 Ring3D（真 3D）
 
 - 新建 `frontend/src/renderers/gl3d.js`：轻量 mat4（perspective/lookAt/rotateY/multiply）、`createCamera` 自动旋转、`createWireframeProgram` / `createBasicLitProgram`。

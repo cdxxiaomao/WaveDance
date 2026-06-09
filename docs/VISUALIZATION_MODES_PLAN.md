@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~12 已完成；Phase 13~14 真 3D 扩展待实施  
+> **状态**：Phase 0~13 已完成；Phase 14 真 3D 螺旋待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -790,12 +790,12 @@ terrain3d: {
 
 #### 13.2 新建 `terrain3dRenderer.js`
 
-- [ ] 环形历史 buffer：`gridRows × gridCols`（同 waterfall）
-- [ ] 每帧写入最新一行频谱（聚合到 gridCols）→ 滚动 Z
-- [ ] 生成 `(gridCols × gridRows)` mesh 顶点 + 索引；Y = amp × heightScale
-- [ ] 线框：绘制 grid lines；填充：按高度 gradient 着色 fragment
-- [ ] 相机固定轻微俯视，网格向 -Z 滚动（`textureOffset` 或顶点 Z 偏移）
-- [ ] resize / bucket 变化时 reset buffer
+- [x] 环形历史 buffer：`gridRows × gridCols`（同 waterfall）
+- [x] 每帧写入最新一行频谱（聚合到 gridCols）→ 滚动 Z
+- [x] 生成 `(gridCols × gridRows)` mesh 顶点 + 索引；Y = amp × heightScale
+- [x] 线框：绘制 grid lines；填充：按高度 gradient 着色 fragment
+- [x] 相机固定轻微俯视，网格向 -Z 滚动（`textureOffset` 或顶点 Z 偏移）
+- [x] resize / bucket 变化时 reset buffer
 
 #### 13.3 集成与设置页
 
@@ -803,9 +803,9 @@ terrain3d: {
 
 #### 13.4 验收标准
 
-- [ ] 播放时地形明显「扑面而来」滚动
-- [ ] 停止后历史逐渐平息，不花屏
-- [ ] 线框模式在透明桌面上清晰可辨
+- [x] 播放时地形明显「扑面而来」滚动
+- [x] 停止后历史逐渐平息，不花屏
+- [x] 线框模式在透明桌面上清晰可辨
 
 ---
 
@@ -952,10 +952,10 @@ helix3d: {
 | 10 | 多层景深 Depth Layers（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 11 | 等距天际线 Isometric Skyline（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[x]` 已完成 | 2026-06-09 |
-| 13 | 3D 频谱地形 Terrain3D（真 3D） | `[ ]` 未开始 | |
+| 13 | 3D 频谱地形 Terrain3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 13（3D 频谱地形 Terrain3D）
+**当前建议下一步**：Phase 14（3D 螺旋频谱 Helix3D）
 
 ---
 

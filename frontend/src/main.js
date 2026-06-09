@@ -15,6 +15,7 @@ import { createObliqueBarRenderer } from "./renderers/obliqueBarRenderer.js";
 import { createDepthLayersRenderer } from "./renderers/depthLayersRenderer.js";
 import { createIsometricSkylineRenderer } from "./renderers/isometricSkylineRenderer.js";
 import { createRing3dRenderer } from "./renderers/ring3dRenderer.js";
+import { createTerrain3dRenderer } from "./renderers/terrain3dRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -54,6 +55,7 @@ const obliqueBarRenderer = createObliqueBarRenderer(gl);
 const depthLayersRenderer = createDepthLayersRenderer(gl);
 const isometricSkylineRenderer = createIsometricSkylineRenderer(gl);
 const ring3dRenderer = createRing3dRenderer(gl);
+const terrain3dRenderer = createTerrain3dRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -70,6 +72,7 @@ const RENDERERS = {
   [DISPLAY_MODES.depthLayers]: depthLayersRenderer,
   [DISPLAY_MODES.isometricSkyline]: isometricSkylineRenderer,
   [DISPLAY_MODES.ring3d]: ring3dRenderer,
+  [DISPLAY_MODES.terrain3d]: terrain3dRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -85,6 +88,7 @@ const obliqueBarShapeConfig = { ...DEFAULT_CONFIG.obliqueBar.shape };
 const depthLayersShapeConfig = { ...DEFAULT_CONFIG.depthLayers.shape };
 const isometricSkylineShapeConfig = { ...DEFAULT_CONFIG.isometricSkyline.shape };
 const ring3dShapeConfig = { ...DEFAULT_CONFIG.ring3d.shape };
+const terrain3dShapeConfig = { ...DEFAULT_CONFIG.terrain3d.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -196,6 +200,14 @@ function applyRing3dShapeConfig(payload) {
   ring3dShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyTerrain3dShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  terrain3dShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  terrain3dShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  terrain3dShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  terrain3dShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -224,6 +236,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (isometricSkylineRaw) applyIsometricSkylineShapeConfig(JSON.parse(isometricSkylineRaw));
     const ring3dRaw = readWindowStorageString(window.localStorage, windowLabel, "ring3dShape");
     if (ring3dRaw) applyRing3dShapeConfig(JSON.parse(ring3dRaw));
+    const terrain3dRaw = readWindowStorageString(window.localStorage, windowLabel, "terrain3dShape");
+    if (terrain3dRaw) applyTerrain3dShapeConfig(JSON.parse(terrain3dRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -266,6 +280,9 @@ const isometricSkylineFaceTopRgb = { r: 0, g: 0, b: 0 };
 const isometricSkylineFaceLeftRgb = { r: 0, g: 0, b: 0 };
 const isometricSkylineFaceRightRgb = { r: 0, g: 0, b: 0 };
 const ring3dBarRgb = { r: 0, g: 0, b: 0 };
+const terrain3dColorLowRgb = { r: 0, g: 0, b: 0 };
+const terrain3dColorHighRgb = { r: 0, g: 0, b: 0 };
+const terrain3dWireframeRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -301,6 +318,9 @@ applyIsometricSkylineFaceTopHex(DEFAULT_CONFIG.isometricSkyline.faceTopColor);
 applyIsometricSkylineFaceLeftHex(DEFAULT_CONFIG.isometricSkyline.faceLeftColor);
 applyIsometricSkylineFaceRightHex(DEFAULT_CONFIG.isometricSkyline.faceRightColor);
 applyRing3dBarColorHex(DEFAULT_CONFIG.ring3d.barColor);
+applyTerrain3dColorLowHex(DEFAULT_CONFIG.terrain3d.colorLow);
+applyTerrain3dColorHighHex(DEFAULT_CONFIG.terrain3d.colorHigh);
+applyTerrain3dWireframeColorHex(DEFAULT_CONFIG.terrain3d.wireframeColor);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -383,6 +403,15 @@ let ring3dAutoRotateSpeedDeg = DEFAULT_CONFIG.ring3d.autoRotateSpeedDeg;
 let ring3dCameraDistance = DEFAULT_CONFIG.ring3d.cameraDistance;
 let ring3dCameraFovDeg = DEFAULT_CONFIG.ring3d.cameraFovDeg;
 let ring3dBreatheWithPeak = DEFAULT_CONFIG.ring3d.breatheWithPeak;
+let terrain3dGridCols = DEFAULT_CONFIG.terrain3d.gridCols;
+let terrain3dGridRows = DEFAULT_CONFIG.terrain3d.gridRows;
+let terrain3dScrollEveryNFrames = DEFAULT_CONFIG.terrain3d.scrollEveryNFrames;
+let terrain3dWireframeEnabled = DEFAULT_CONFIG.terrain3d.wireframeEnabled;
+let terrain3dFillEnabled = DEFAULT_CONFIG.terrain3d.fillEnabled;
+let terrain3dTerrainHeightScale = DEFAULT_CONFIG.terrain3d.terrainHeightScale;
+let terrain3dCameraPitchDeg = DEFAULT_CONFIG.terrain3d.cameraPitchDeg;
+let terrain3dCameraDistance = DEFAULT_CONFIG.terrain3d.cameraDistance;
+let terrain3dAutoScrollEnabled = DEFAULT_CONFIG.terrain3d.autoScrollEnabled;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -899,6 +928,73 @@ function applyRing3dBreatheWithPeak(value) {
   ring3dBreatheWithPeak = parseBoolean(value, DEFAULT_CONFIG.ring3d.breatheWithPeak);
 }
 
+function applyTerrain3dColorLowHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.terrain3d.colorLow;
+  const { r, g, b } = hexToRgb(safe);
+  terrain3dColorLowRgb.r = r / 255;
+  terrain3dColorLowRgb.g = g / 255;
+  terrain3dColorLowRgb.b = b / 255;
+}
+
+function applyTerrain3dColorHighHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.terrain3d.colorHigh;
+  const { r, g, b } = hexToRgb(safe);
+  terrain3dColorHighRgb.r = r / 255;
+  terrain3dColorHighRgb.g = g / 255;
+  terrain3dColorHighRgb.b = b / 255;
+}
+
+function applyTerrain3dWireframeColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.terrain3d.wireframeColor;
+  const { r, g, b } = hexToRgb(safe);
+  terrain3dWireframeRgb.r = r / 255;
+  terrain3dWireframeRgb.g = g / 255;
+  terrain3dWireframeRgb.b = b / 255;
+}
+
+function applyTerrain3dGridCols(value) {
+  terrain3dGridCols = clampInt(value, 16, 96);
+}
+
+function applyTerrain3dGridRows(value) {
+  terrain3dGridRows = clampInt(value, 16, 96);
+}
+
+function applyTerrain3dScrollEveryNFrames(value) {
+  terrain3dScrollEveryNFrames = clampInt(value, 1, 8);
+}
+
+function applyTerrain3dWireframeEnabled(value) {
+  terrain3dWireframeEnabled = parseBoolean(value, DEFAULT_CONFIG.terrain3d.wireframeEnabled);
+}
+
+function applyTerrain3dFillEnabled(value) {
+  terrain3dFillEnabled = parseBoolean(value, DEFAULT_CONFIG.terrain3d.fillEnabled);
+}
+
+function applyTerrain3dTerrainHeightScale(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  terrain3dTerrainHeightScale = Math.min(1.2, Math.max(0.05, n));
+}
+
+function applyTerrain3dCameraPitchDeg(value) {
+  terrain3dCameraPitchDeg = clampInt(value, 30, 75);
+}
+
+function applyTerrain3dCameraDistance(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  terrain3dCameraDistance = Math.min(4.5, Math.max(1.2, n));
+}
+
+function applyTerrain3dAutoScrollEnabled(value) {
+  terrain3dAutoScrollEnabled = parseBoolean(value, DEFAULT_CONFIG.terrain3d.autoScrollEnabled);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -990,6 +1086,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.depthLayers) return depthLayersShapeConfig;
   if (mode === DISPLAY_MODES.isometricSkyline) return isometricSkylineShapeConfig;
   if (mode === DISPLAY_MODES.ring3d) return ring3dShapeConfig;
+  if (mode === DISPLAY_MODES.terrain3d) return terrain3dShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1157,6 +1254,23 @@ function getStyleConfigForMode(mode) {
       cameraDistance: ring3dCameraDistance,
       cameraFovDeg: ring3dCameraFovDeg,
       breatheWithPeak: ring3dBreatheWithPeak,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.terrain3d) {
+    return {
+      colorLow: terrain3dColorLowRgb,
+      colorHigh: terrain3dColorHighRgb,
+      wireframeColor: terrain3dWireframeRgb,
+      gridCols: terrain3dGridCols,
+      gridRows: terrain3dGridRows,
+      scrollEveryNFrames: terrain3dScrollEveryNFrames,
+      wireframeEnabled: terrain3dWireframeEnabled,
+      fillEnabled: terrain3dFillEnabled,
+      terrainHeightScale: terrain3dTerrainHeightScale,
+      cameraPitchDeg: terrain3dCameraPitchDeg,
+      cameraDistance: terrain3dCameraDistance,
+      autoScrollEnabled: terrain3dAutoScrollEnabled,
       freqReversed,
     };
   }
@@ -2169,6 +2283,100 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-terrain3d-color-low",
+    (event) => {
+      const raw = event.payload;
+      applyTerrain3dColorLowHex(typeof raw === "string" ? raw : "");
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-color-high",
+    (event) => {
+      const raw = event.payload;
+      applyTerrain3dColorHighHex(typeof raw === "string" ? raw : "");
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-wireframe-color",
+    (event) => {
+      const raw = event.payload;
+      applyTerrain3dWireframeColorHex(typeof raw === "string" ? raw : "");
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-grid-cols",
+    (event) => {
+      applyTerrain3dGridCols(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-grid-rows",
+    (event) => {
+      applyTerrain3dGridRows(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-scroll-every-n-frames",
+    (event) => {
+      applyTerrain3dScrollEveryNFrames(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-wireframe",
+    (event) => {
+      applyTerrain3dWireframeEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-fill",
+    (event) => {
+      applyTerrain3dFillEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-height-scale",
+    (event) => {
+      applyTerrain3dTerrainHeightScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-camera-pitch",
+    (event) => {
+      applyTerrain3dCameraPitchDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-camera-distance",
+    (event) => {
+      applyTerrain3dCameraDistance(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-auto-scroll",
+    (event) => {
+      applyTerrain3dAutoScrollEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-terrain3d-shape-config",
+    (event) => {
+      applyTerrain3dShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -2538,6 +2746,58 @@ async function init() {
       applyRing3dCameraFovDeg(savedRing3dCameraFov);
     }
     applyRing3dBreatheWithPeak(readWindowStorageString(window.localStorage, windowLabel, "ring3dBreathePeak"));
+    applyTerrain3dColorLowHex(readWindowStorageString(window.localStorage, windowLabel, "terrain3dColorLow"));
+    applyTerrain3dColorHighHex(readWindowStorageString(window.localStorage, windowLabel, "terrain3dColorHigh"));
+    applyTerrain3dWireframeColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "terrain3dWireframeColor"),
+    );
+    const savedTerrain3dCols = readWindowStorageString(window.localStorage, windowLabel, "terrain3dGridCols");
+    if (savedTerrain3dCols != null && savedTerrain3dCols !== "") {
+      applyTerrain3dGridCols(savedTerrain3dCols);
+    }
+    const savedTerrain3dRows = readWindowStorageString(window.localStorage, windowLabel, "terrain3dGridRows");
+    if (savedTerrain3dRows != null && savedTerrain3dRows !== "") {
+      applyTerrain3dGridRows(savedTerrain3dRows);
+    }
+    const savedTerrain3dScroll = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "terrain3dScrollEveryNFrames",
+    );
+    if (savedTerrain3dScroll != null && savedTerrain3dScroll !== "") {
+      applyTerrain3dScrollEveryNFrames(savedTerrain3dScroll);
+    }
+    applyTerrain3dWireframeEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "terrain3dWireframe"),
+    );
+    applyTerrain3dFillEnabled(readWindowStorageString(window.localStorage, windowLabel, "terrain3dFill"));
+    const savedTerrain3dHeight = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "terrain3dHeightScale",
+    );
+    if (savedTerrain3dHeight != null && savedTerrain3dHeight !== "") {
+      applyTerrain3dTerrainHeightScale(savedTerrain3dHeight);
+    }
+    const savedTerrain3dPitch = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "terrain3dCameraPitch",
+    );
+    if (savedTerrain3dPitch != null && savedTerrain3dPitch !== "") {
+      applyTerrain3dCameraPitchDeg(savedTerrain3dPitch);
+    }
+    const savedTerrain3dCameraDistance = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "terrain3dCameraDistance",
+    );
+    if (savedTerrain3dCameraDistance != null && savedTerrain3dCameraDistance !== "") {
+      applyTerrain3dCameraDistance(savedTerrain3dCameraDistance);
+    }
+    applyTerrain3dAutoScrollEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "terrain3dAutoScroll"),
+    );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

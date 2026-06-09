@@ -93,6 +93,7 @@
               <option value="depthLayers">多层景深</option>
               <option value="isometricSkyline">等距天际线</option>
               <option value="ring3d">3D 旋转圆环</option>
+              <option value="terrain3d">3D 频谱地形</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -841,6 +842,79 @@
           <div class="settings-field">
             <label for="ring3dFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="ring3dFallEaseValue">52</span>%</label>
             <input id="ring3dFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="terrain3dConfigPanel" aria-labelledby="sec-terrain3d-display" hidden>
+        <h2 id="sec-terrain3d-display" class="settings-card__title">3D 频谱地形配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--terrain3d" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="terrain3dColorLow" class="settings-label">低能量色</label>
+            <input id="terrain3dColorLow" type="color" value="#1a1a2e" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="terrain3dColorHigh" class="settings-label">高能量色</label>
+            <input id="terrain3dColorHigh" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="terrain3dWireframeColor" class="settings-label">线框颜色</label>
+            <input id="terrain3dWireframeColor" type="color" value="#c4b5fd" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dGridColsRange" class="settings-label">频率格点 <span class="settings-value" id="terrain3dGridColsValue">64</span></label>
+            <input id="terrain3dGridColsRange" type="range" min="16" max="96" step="1" value="64" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dGridRowsRange" class="settings-label">历史深度 <span class="settings-value" id="terrain3dGridRowsValue">48</span> 行</label>
+            <input id="terrain3dGridRowsRange" type="range" min="16" max="96" step="1" value="48" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dScrollRange" class="settings-label">滚动速度 <span class="settings-value" id="terrain3dScrollValue">1</span> 帧/行</label>
+            <input id="terrain3dScrollRange" type="range" min="1" max="8" step="1" value="1" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="terrain3dWireframeToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>线框模式</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="terrain3dFillToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>填充地形</span>
+          </label>
+          <div class="settings-field">
+            <label for="terrain3dHeightScaleRange" class="settings-label">地形高度 <span class="settings-value" id="terrain3dHeightScaleValue">0.35</span></label>
+            <input id="terrain3dHeightScaleRange" type="range" min="5" max="120" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dCameraPitchRange" class="settings-label">相机俯角 <span class="settings-value" id="terrain3dCameraPitchValue">55</span>°</label>
+            <input id="terrain3dCameraPitchRange" type="range" min="30" max="75" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dCameraDistanceRange" class="settings-label">相机距离 <span class="settings-value" id="terrain3dCameraDistanceValue">2.8</span></label>
+            <input id="terrain3dCameraDistanceRange" type="range" min="12" max="45" step="1" value="28" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="terrain3dAutoScrollToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>自动滚动</span>
+          </label>
+          <div class="settings-field">
+            <label for="terrain3dGainRange" class="settings-label">增益 <span class="settings-value" id="terrain3dGainValue">55</span>%</label>
+            <input id="terrain3dGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="terrain3dSmoothValue">12</span>%</label>
+            <input id="terrain3dSmoothRange" type="range" min="0" max="400" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="terrain3dSoftClipValue">10</span>%</label>
+            <input id="terrain3dSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="terrain3dFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="terrain3dFallEaseValue">40</span>%</label>
+            <input id="terrain3dFallEaseRange" type="range" min="0" max="100" step="1" value="40" />
           </div>
         </div>
       </section>

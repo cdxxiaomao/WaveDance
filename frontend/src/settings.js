@@ -51,6 +51,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.depthLayers]: "depthLayersConfigPanel",
   [DISPLAY_MODES.isometricSkyline]: "isometricSkylineConfigPanel",
   [DISPLAY_MODES.ring3d]: "ring3dConfigPanel",
+  [DISPLAY_MODES.terrain3d]: "terrain3dConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -314,6 +315,32 @@ const ring3dSoftClipRange = document.querySelector("#ring3dSoftClipRange");
 const ring3dSoftClipValue = document.querySelector("#ring3dSoftClipValue");
 const ring3dFallEaseRange = document.querySelector("#ring3dFallEaseRange");
 const ring3dFallEaseValue = document.querySelector("#ring3dFallEaseValue");
+const terrain3dColorLow = document.querySelector("#terrain3dColorLow");
+const terrain3dColorHigh = document.querySelector("#terrain3dColorHigh");
+const terrain3dWireframeColor = document.querySelector("#terrain3dWireframeColor");
+const terrain3dGridColsRange = document.querySelector("#terrain3dGridColsRange");
+const terrain3dGridColsValue = document.querySelector("#terrain3dGridColsValue");
+const terrain3dGridRowsRange = document.querySelector("#terrain3dGridRowsRange");
+const terrain3dGridRowsValue = document.querySelector("#terrain3dGridRowsValue");
+const terrain3dScrollRange = document.querySelector("#terrain3dScrollRange");
+const terrain3dScrollValue = document.querySelector("#terrain3dScrollValue");
+const terrain3dWireframeToggle = document.querySelector("#terrain3dWireframeToggle");
+const terrain3dFillToggle = document.querySelector("#terrain3dFillToggle");
+const terrain3dHeightScaleRange = document.querySelector("#terrain3dHeightScaleRange");
+const terrain3dHeightScaleValue = document.querySelector("#terrain3dHeightScaleValue");
+const terrain3dCameraPitchRange = document.querySelector("#terrain3dCameraPitchRange");
+const terrain3dCameraPitchValue = document.querySelector("#terrain3dCameraPitchValue");
+const terrain3dCameraDistanceRange = document.querySelector("#terrain3dCameraDistanceRange");
+const terrain3dCameraDistanceValue = document.querySelector("#terrain3dCameraDistanceValue");
+const terrain3dAutoScrollToggle = document.querySelector("#terrain3dAutoScrollToggle");
+const terrain3dGainRange = document.querySelector("#terrain3dGainRange");
+const terrain3dGainValue = document.querySelector("#terrain3dGainValue");
+const terrain3dSmoothRange = document.querySelector("#terrain3dSmoothRange");
+const terrain3dSmoothValue = document.querySelector("#terrain3dSmoothValue");
+const terrain3dSoftClipRange = document.querySelector("#terrain3dSoftClipRange");
+const terrain3dSoftClipValue = document.querySelector("#terrain3dSoftClipValue");
+const terrain3dFallEaseRange = document.querySelector("#terrain3dFallEaseRange");
+const terrain3dFallEaseValue = document.querySelector("#terrain3dFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1502,6 +1529,160 @@ function applyRing3dFormFromStorage(v) {
   }
 }
 
+function readTerrain3dShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncTerrain3dShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(terrain3dGainRange?.value, 10, 150),
+    smoothPercent: clampInt(terrain3dSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(terrain3dSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(terrain3dFallEaseRange?.value, 0, 100),
+  };
+  if (terrain3dGainValue) terrain3dGainValue.textContent = String(config.gainPercent);
+  if (terrain3dSmoothValue) terrain3dSmoothValue.textContent = String(config.smoothPercent);
+  if (terrain3dSoftClipValue) terrain3dSoftClipValue.textContent = String(config.softClipPercent);
+  if (terrain3dFallEaseValue) terrain3dFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-terrain3d-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyTerrain3dFormFromStorage(v) {
+  const sg = readTerrain3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.terrain3d.shape };
+  if (terrain3dGainRange) terrain3dGainRange.value = String(sg.gainPercent);
+  if (terrain3dSmoothRange) terrain3dSmoothRange.value = String(sg.smoothPercent);
+  if (terrain3dSoftClipRange) terrain3dSoftClipRange.value = String(sg.softClipPercent);
+  if (terrain3dFallEaseRange) terrain3dFallEaseRange.value = String(sg.fallEasePercent);
+  if (terrain3dGainValue) terrain3dGainValue.textContent = String(sg.gainPercent);
+  if (terrain3dSmoothValue) terrain3dSmoothValue.textContent = String(sg.smoothPercent);
+  if (terrain3dSoftClipValue) terrain3dSoftClipValue.textContent = String(sg.softClipPercent);
+  if (terrain3dFallEaseValue) terrain3dFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "terrain3dColorLow");
+  if (terrain3dColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    terrain3dColorLow.value = savedColorLow.toLowerCase();
+  } else if (terrain3dColorLow) {
+    terrain3dColorLow.value = DEFAULT_CONFIG.terrain3d.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "terrain3dColorHigh");
+  if (terrain3dColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    terrain3dColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (terrain3dColorHigh) {
+    terrain3dColorHigh.value = DEFAULT_CONFIG.terrain3d.colorHigh;
+  }
+
+  const savedWireframeColor = readWindowStorageString(window.localStorage, v, "terrain3dWireframeColor");
+  if (terrain3dWireframeColor && savedWireframeColor && /^#[0-9A-Fa-f]{6}$/.test(savedWireframeColor)) {
+    terrain3dWireframeColor.value = savedWireframeColor.toLowerCase();
+  } else if (terrain3dWireframeColor) {
+    terrain3dWireframeColor.value = DEFAULT_CONFIG.terrain3d.wireframeColor;
+  }
+
+  const savedCols = readWindowStorageString(window.localStorage, v, "terrain3dGridCols");
+  if (terrain3dGridColsRange) {
+    const gridCols =
+      savedCols != null && savedCols !== ""
+        ? clampInt(savedCols, 16, 96)
+        : DEFAULT_CONFIG.terrain3d.gridCols;
+    terrain3dGridColsRange.value = String(gridCols);
+    if (terrain3dGridColsValue) terrain3dGridColsValue.textContent = String(gridCols);
+  }
+
+  const savedRows = readWindowStorageString(window.localStorage, v, "terrain3dGridRows");
+  if (terrain3dGridRowsRange) {
+    const gridRows =
+      savedRows != null && savedRows !== ""
+        ? clampInt(savedRows, 16, 96)
+        : DEFAULT_CONFIG.terrain3d.gridRows;
+    terrain3dGridRowsRange.value = String(gridRows);
+    if (terrain3dGridRowsValue) terrain3dGridRowsValue.textContent = String(gridRows);
+  }
+
+  const savedScroll = readWindowStorageString(window.localStorage, v, "terrain3dScrollEveryNFrames");
+  if (terrain3dScrollRange) {
+    const scrollEveryNFrames =
+      savedScroll != null && savedScroll !== ""
+        ? clampInt(savedScroll, 1, 8)
+        : DEFAULT_CONFIG.terrain3d.scrollEveryNFrames;
+    terrain3dScrollRange.value = String(scrollEveryNFrames);
+    if (terrain3dScrollValue) terrain3dScrollValue.textContent = String(scrollEveryNFrames);
+  }
+
+  if (terrain3dWireframeToggle) {
+    terrain3dWireframeToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "terrain3dWireframe"),
+      DEFAULT_CONFIG.terrain3d.wireframeEnabled,
+    );
+  }
+  if (terrain3dFillToggle) {
+    terrain3dFillToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "terrain3dFill"),
+      DEFAULT_CONFIG.terrain3d.fillEnabled,
+    );
+  }
+
+  const savedHeightScale = readWindowStorageString(window.localStorage, v, "terrain3dHeightScale");
+  if (terrain3dHeightScaleRange) {
+    const heightScale =
+      savedHeightScale != null && savedHeightScale !== ""
+        ? Math.min(1.2, Math.max(0.05, Number(savedHeightScale)))
+        : DEFAULT_CONFIG.terrain3d.terrainHeightScale;
+    terrain3dHeightScaleRange.value = String(Math.round(heightScale * 100));
+    if (terrain3dHeightScaleValue) terrain3dHeightScaleValue.textContent = formatRing3dRadiusDisplay(heightScale);
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "terrain3dCameraPitch");
+  if (terrain3dCameraPitchRange) {
+    const cameraPitchDeg =
+      savedPitch != null && savedPitch !== ""
+        ? clampInt(savedPitch, 30, 75)
+        : DEFAULT_CONFIG.terrain3d.cameraPitchDeg;
+    terrain3dCameraPitchRange.value = String(cameraPitchDeg);
+    if (terrain3dCameraPitchValue) terrain3dCameraPitchValue.textContent = String(cameraPitchDeg);
+  }
+
+  const savedCameraDistance = readWindowStorageString(window.localStorage, v, "terrain3dCameraDistance");
+  if (terrain3dCameraDistanceRange) {
+    const cameraDistance =
+      savedCameraDistance != null && savedCameraDistance !== ""
+        ? Math.min(4.5, Math.max(1.2, Number(savedCameraDistance)))
+        : DEFAULT_CONFIG.terrain3d.cameraDistance;
+    terrain3dCameraDistanceRange.value = String(Math.round(cameraDistance * 10));
+    if (terrain3dCameraDistanceValue) {
+      terrain3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+    }
+  }
+
+  if (terrain3dAutoScrollToggle) {
+    terrain3dAutoScrollToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "terrain3dAutoScroll"),
+      DEFAULT_CONFIG.terrain3d.autoScrollEnabled,
+    );
+  }
+}
+
 function applyDepthLayersFormFromStorage(v) {
   const sg = readDepthLayersShapeConfig(v) ?? { ...DEFAULT_CONFIG.depthLayers.shape };
   if (depthLayersGainRange) depthLayersGainRange.value = String(sg.gainPercent);
@@ -2008,6 +2189,7 @@ async function init() {
     applyDepthLayersFormFromStorage(v);
     applyIsometricSkylineFormFromStorage(v);
     applyRing3dFormFromStorage(v);
+    applyTerrain3dFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -3489,6 +3671,140 @@ async function init() {
   });
   ring3dFallEaseRange?.addEventListener("input", () => {
     void syncRing3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  terrain3dColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dColorLow", terrain3dColorLow.value);
+      await emitVisual("waveform-terrain3d-color-low", terrain3dColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  terrain3dColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dColorHigh", terrain3dColorHigh.value);
+      await emitVisual("waveform-terrain3d-color-high", terrain3dColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  terrain3dWireframeColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "terrain3dWireframeColor",
+        terrain3dWireframeColor.value,
+      );
+      await emitVisual("waveform-terrain3d-wireframe-color", terrain3dWireframeColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新线框颜色失败：${String(err)}`;
+    }
+  });
+  terrain3dGridColsRange?.addEventListener("input", async (event) => {
+    const gridCols = clampInt(event.target.value, 16, 96);
+    if (terrain3dGridColsValue) terrain3dGridColsValue.textContent = String(gridCols);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dGridCols", String(gridCols));
+      await emitVisual("waveform-terrain3d-grid-cols", gridCols);
+    } catch (err) {
+      statusEl.textContent = `更新频率格点失败：${String(err)}`;
+    }
+  });
+  terrain3dGridRowsRange?.addEventListener("input", async (event) => {
+    const gridRows = clampInt(event.target.value, 16, 96);
+    if (terrain3dGridRowsValue) terrain3dGridRowsValue.textContent = String(gridRows);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dGridRows", String(gridRows));
+      await emitVisual("waveform-terrain3d-grid-rows", gridRows);
+    } catch (err) {
+      statusEl.textContent = `更新历史深度失败：${String(err)}`;
+    }
+  });
+  terrain3dScrollRange?.addEventListener("input", async (event) => {
+    const scrollEveryNFrames = clampInt(event.target.value, 1, 8);
+    if (terrain3dScrollValue) terrain3dScrollValue.textContent = String(scrollEveryNFrames);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "terrain3dScrollEveryNFrames",
+        String(scrollEveryNFrames),
+      );
+      await emitVisual("waveform-terrain3d-scroll-every-n-frames", scrollEveryNFrames);
+    } catch (err) {
+      statusEl.textContent = `更新滚动速度失败：${String(err)}`;
+    }
+  });
+  terrain3dWireframeToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(terrain3dWireframeToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dWireframe", String(enabled));
+      await emitVisual("waveform-terrain3d-wireframe", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新线框模式失败：${String(err)}`;
+    }
+  });
+  terrain3dFillToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(terrain3dFillToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dFill", String(enabled));
+      await emitVisual("waveform-terrain3d-fill", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新填充地形失败：${String(err)}`;
+    }
+  });
+  terrain3dHeightScaleRange?.addEventListener("input", async (event) => {
+    const heightScale = clampInt(event.target.value, 5, 120) / 100;
+    if (terrain3dHeightScaleValue) terrain3dHeightScaleValue.textContent = formatRing3dRadiusDisplay(heightScale);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dHeightScale", String(heightScale));
+      await emitVisual("waveform-terrain3d-height-scale", heightScale);
+    } catch (err) {
+      statusEl.textContent = `更新地形高度失败：${String(err)}`;
+    }
+  });
+  terrain3dCameraPitchRange?.addEventListener("input", async (event) => {
+    const cameraPitchDeg = clampInt(event.target.value, 30, 75);
+    if (terrain3dCameraPitchValue) terrain3dCameraPitchValue.textContent = String(cameraPitchDeg);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dCameraPitch", String(cameraPitchDeg));
+      await emitVisual("waveform-terrain3d-camera-pitch", cameraPitchDeg);
+    } catch (err) {
+      statusEl.textContent = `更新相机俯角失败：${String(err)}`;
+    }
+  });
+  terrain3dCameraDistanceRange?.addEventListener("input", async (event) => {
+    const cameraDistance = clampInt(event.target.value, 12, 45) / 10;
+    if (terrain3dCameraDistanceValue) terrain3dCameraDistanceValue.textContent = formatRing3dRadiusDisplay(cameraDistance);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dCameraDistance", String(cameraDistance));
+      await emitVisual("waveform-terrain3d-camera-distance", cameraDistance);
+    } catch (err) {
+      statusEl.textContent = `更新相机距离失败：${String(err)}`;
+    }
+  });
+  terrain3dAutoScrollToggle?.addEventListener("change", async () => {
+    const enabled = Boolean(terrain3dAutoScrollToggle.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "terrain3dAutoScroll", String(enabled));
+      await emitVisual("waveform-terrain3d-auto-scroll", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新自动滚动失败：${String(err)}`;
+    }
+  });
+  terrain3dGainRange?.addEventListener("input", () => {
+    void syncTerrain3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  terrain3dSmoothRange?.addEventListener("input", () => {
+    void syncTerrain3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  terrain3dSoftClipRange?.addEventListener("input", () => {
+    void syncTerrain3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+  terrain3dFallEaseRange?.addEventListener("input", () => {
+    void syncTerrain3dShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

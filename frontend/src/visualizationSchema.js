@@ -118,6 +118,19 @@ export const STORAGE_KEYS = {
   ring3dCameraFov: "wavedance.ring3dCameraFovDeg",
   ring3dBreathePeak: "wavedance.ring3dBreatheWithPeak",
   ring3dShape: "wavedance.ring3dShapeConfig",
+  terrain3dColorLow: "wavedance.terrain3dColorLow",
+  terrain3dColorHigh: "wavedance.terrain3dColorHigh",
+  terrain3dWireframeColor: "wavedance.terrain3dWireframeColor",
+  terrain3dGridCols: "wavedance.terrain3dGridCols",
+  terrain3dGridRows: "wavedance.terrain3dGridRows",
+  terrain3dScrollEveryNFrames: "wavedance.terrain3dScrollEveryNFrames",
+  terrain3dWireframe: "wavedance.terrain3dWireframeEnabled",
+  terrain3dFill: "wavedance.terrain3dFillEnabled",
+  terrain3dHeightScale: "wavedance.terrain3dTerrainHeightScale",
+  terrain3dCameraPitch: "wavedance.terrain3dCameraPitchDeg",
+  terrain3dCameraDistance: "wavedance.terrain3dCameraDistance",
+  terrain3dAutoScroll: "wavedance.terrain3dAutoScrollEnabled",
+  terrain3dShape: "wavedance.terrain3dShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -138,6 +151,7 @@ export const DISPLAY_MODES = {
   depthLayers: "depthLayers",
   isometricSkyline: "isometricSkyline",
   ring3d: "ring3d",
+  terrain3d: "terrain3d",
 };
 
 export const PANEL_STYLES = {
@@ -370,6 +384,26 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  terrain3d: {
+    colorLow: "#1a1a2e",
+    colorHigh: "#8f7cff",
+    wireframeColor: "#c4b5fd",
+    gridCols: 64,
+    gridRows: 48,
+    scrollEveryNFrames: 1,
+    wireframeEnabled: true,
+    fillEnabled: false,
+    terrainHeightScale: 0.35,
+    cameraPitchDeg: 55,
+    cameraDistance: 2.8,
+    autoScrollEnabled: true,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 12,
+      softClipPercent: 10,
+      fallEasePercent: 40,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -388,6 +422,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.depthLayers) return DISPLAY_MODES.depthLayers;
   if (s === DISPLAY_MODES.isometricSkyline) return DISPLAY_MODES.isometricSkyline;
   if (s === DISPLAY_MODES.ring3d) return DISPLAY_MODES.ring3d;
+  if (s === DISPLAY_MODES.terrain3d) return DISPLAY_MODES.terrain3d;
   return DISPLAY_MODES.line;
 }
 
@@ -597,6 +632,19 @@ export function windowStorageKeys(windowLabel) {
     ring3dCameraFov: `${pre}.ring3dCameraFovDeg`,
     ring3dBreathePeak: `${pre}.ring3dBreatheWithPeak`,
     ring3dShape: `${pre}.ring3dShapeConfig`,
+    terrain3dColorLow: `${pre}.terrain3dColorLow`,
+    terrain3dColorHigh: `${pre}.terrain3dColorHigh`,
+    terrain3dWireframeColor: `${pre}.terrain3dWireframeColor`,
+    terrain3dGridCols: `${pre}.terrain3dGridCols`,
+    terrain3dGridRows: `${pre}.terrain3dGridRows`,
+    terrain3dScrollEveryNFrames: `${pre}.terrain3dScrollEveryNFrames`,
+    terrain3dWireframe: `${pre}.terrain3dWireframeEnabled`,
+    terrain3dFill: `${pre}.terrain3dFillEnabled`,
+    terrain3dHeightScale: `${pre}.terrain3dTerrainHeightScale`,
+    terrain3dCameraPitch: `${pre}.terrain3dCameraPitchDeg`,
+    terrain3dCameraDistance: `${pre}.terrain3dCameraDistance`,
+    terrain3dAutoScroll: `${pre}.terrain3dAutoScrollEnabled`,
+    terrain3dShape: `${pre}.terrain3dShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,
