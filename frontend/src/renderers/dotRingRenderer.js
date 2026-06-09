@@ -2,28 +2,7 @@ import { createProgram } from "./shaderUtils.js";
 import { processSpectrumPoints } from "./shapePipeline.js";
 import { applyAdaptiveSmooth, minNdcForPixels } from "./common.js";
 import { getAspectScale, polarToNdc, slotToAngle } from "./polar.js";
-
-/**
- * 将频谱桶聚合为 dotCount 个频段（取各段峰值）。
- * @param {Float32Array | number[]} values
- * @param {number} dotCount
- * @returns {Float32Array}
- */
-export function aggregateBands(values, dotCount) {
-  const len = values.length;
-  const count = Math.max(1, Math.min(Math.round(Number(dotCount) || 1), len));
-  const result = new Float32Array(count);
-  for (let band = 0; band < count; band++) {
-    const start = Math.floor((band * len) / count);
-    const end = Math.floor(((band + 1) * len) / count);
-    let peak = 0;
-    for (let i = start; i < end; i++) {
-      if (values[i] > peak) peak = values[i];
-    }
-    result[band] = peak;
-  }
-  return result;
-}
+import { aggregateBands } from "./bandAggregate.js";
 
 /** 每个顶点：position(2) + localCoord(2) + alpha(1) */
 function writeCircleQuad(vertices, offset, cx, cy, halfW, halfH, alpha) {

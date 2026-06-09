@@ -46,6 +46,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.waterfall]: "waterfallConfigPanel",
   [DISPLAY_MODES.dotRing]: "dotRingConfigPanel",
   [DISPLAY_MODES.oscilloscope]: "oscilloscopeConfigPanel",
+  [DISPLAY_MODES.obliqueBar]: "obliqueBarConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -215,6 +216,28 @@ const oscilloscopeWidthValue = document.querySelector("#oscilloscopeWidthValue")
 const oscilloscopePhosphorToggle = document.querySelector("#oscilloscopePhosphorToggle");
 const oscilloscopePhosphorDecayRange = document.querySelector("#oscilloscopePhosphorDecayRange");
 const oscilloscopePhosphorDecayValue = document.querySelector("#oscilloscopePhosphorDecayValue");
+const obliqueBarColor = document.querySelector("#obliqueBarColor");
+const obliqueBarColorFar = document.querySelector("#obliqueBarColorFar");
+const obliqueBarWidthRange = document.querySelector("#obliqueBarWidthRange");
+const obliqueBarWidthValue = document.querySelector("#obliqueBarWidthValue");
+const obliqueBarGapRange = document.querySelector("#obliqueBarGapRange");
+const obliqueBarGapValue = document.querySelector("#obliqueBarGapValue");
+const obliqueBarHeadroomRange = document.querySelector("#obliqueBarHeadroomRange");
+const obliqueBarHeadroomValue = document.querySelector("#obliqueBarHeadroomValue");
+const obliqueBarTiltRange = document.querySelector("#obliqueBarTiltRange");
+const obliqueBarTiltValue = document.querySelector("#obliqueBarTiltValue");
+const obliqueBarDisplayCountRange = document.querySelector("#obliqueBarDisplayCountRange");
+const obliqueBarDisplayCountValue = document.querySelector("#obliqueBarDisplayCountValue");
+const obliqueBarGroundLineToggle = document.querySelector("#obliqueBarGroundLineToggle");
+const obliqueBarMirrorToggle = document.querySelector("#obliqueBarMirrorToggle");
+const obliqueBarGainRange = document.querySelector("#obliqueBarGainRange");
+const obliqueBarGainValue = document.querySelector("#obliqueBarGainValue");
+const obliqueBarSmoothRange = document.querySelector("#obliqueBarSmoothRange");
+const obliqueBarSmoothValue = document.querySelector("#obliqueBarSmoothValue");
+const obliqueBarSoftClipRange = document.querySelector("#obliqueBarSoftClipRange");
+const obliqueBarSoftClipValue = document.querySelector("#obliqueBarSoftClipValue");
+const obliqueBarFallEaseRange = document.querySelector("#obliqueBarFallEaseRange");
+const obliqueBarFallEaseValue = document.querySelector("#obliqueBarFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1023,6 +1046,142 @@ function applyDotRingFormFromStorage(v) {
   }
 }
 
+function readObliqueBarShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "obliqueBarShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncObliqueBarShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(obliqueBarGainRange?.value, 10, 150),
+    smoothPercent: clampInt(obliqueBarSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(obliqueBarSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(obliqueBarFallEaseRange?.value, 0, 100),
+  };
+  if (obliqueBarGainValue) obliqueBarGainValue.textContent = String(config.gainPercent);
+  if (obliqueBarSmoothValue) obliqueBarSmoothValue.textContent = String(config.smoothPercent);
+  if (obliqueBarSoftClipValue) obliqueBarSoftClipValue.textContent = String(config.softClipPercent);
+  if (obliqueBarFallEaseValue) obliqueBarFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "obliqueBarShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-oblique-bar-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步斜透视参数失败：${String(err)}`;
+  }
+}
+
+function applyObliqueBarFormFromStorage(v) {
+  const sg = readObliqueBarShapeConfig(v) ?? { ...DEFAULT_CONFIG.obliqueBar.shape };
+  if (obliqueBarGainRange) obliqueBarGainRange.value = String(sg.gainPercent);
+  if (obliqueBarSmoothRange) obliqueBarSmoothRange.value = String(sg.smoothPercent);
+  if (obliqueBarSoftClipRange) obliqueBarSoftClipRange.value = String(sg.softClipPercent);
+  if (obliqueBarFallEaseRange) obliqueBarFallEaseRange.value = String(sg.fallEasePercent);
+  if (obliqueBarGainValue) obliqueBarGainValue.textContent = String(sg.gainPercent);
+  if (obliqueBarSmoothValue) obliqueBarSmoothValue.textContent = String(sg.smoothPercent);
+  if (obliqueBarSoftClipValue) obliqueBarSoftClipValue.textContent = String(sg.softClipPercent);
+  if (obliqueBarFallEaseValue) obliqueBarFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "obliqueBarColor");
+  if (obliqueBarColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    obliqueBarColor.value = savedColor.toLowerCase();
+  } else if (obliqueBarColor) {
+    obliqueBarColor.value = DEFAULT_CONFIG.obliqueBar.barColor;
+  }
+
+  const savedColorFar = readWindowStorageString(window.localStorage, v, "obliqueBarColorFar");
+  if (obliqueBarColorFar && savedColorFar && /^#[0-9A-Fa-f]{6}$/.test(savedColorFar)) {
+    obliqueBarColorFar.value = savedColorFar.toLowerCase();
+  } else if (obliqueBarColorFar) {
+    obliqueBarColorFar.value = DEFAULT_CONFIG.obliqueBar.barColorFar;
+  }
+
+  const savedWidth = readWindowStorageString(window.localStorage, v, "obliqueBarWidth");
+  if (obliqueBarWidthRange) {
+    const widthPercent =
+      savedWidth != null && savedWidth !== ""
+        ? clampInt(savedWidth, 20, 100)
+        : DEFAULT_CONFIG.obliqueBar.widthPercent;
+    obliqueBarWidthRange.value = String(widthPercent);
+    if (obliqueBarWidthValue) obliqueBarWidthValue.textContent = String(widthPercent);
+  }
+
+  const savedGap = readWindowStorageString(window.localStorage, v, "obliqueBarGap");
+  if (obliqueBarGapRange) {
+    const gapPercent =
+      savedGap != null && savedGap !== ""
+        ? clampInt(savedGap, 0, 70)
+        : DEFAULT_CONFIG.obliqueBar.gapPercent;
+    obliqueBarGapRange.value = String(gapPercent);
+    if (obliqueBarGapValue) obliqueBarGapValue.textContent = String(gapPercent);
+  }
+
+  const savedHeadroom = readWindowStorageString(window.localStorage, v, "obliqueBarHeadroom");
+  if (obliqueBarHeadroomRange) {
+    const headroomPercent =
+      savedHeadroom != null && savedHeadroom !== ""
+        ? clampInt(savedHeadroom, 0, 40)
+        : DEFAULT_CONFIG.obliqueBar.headroomPercent;
+    obliqueBarHeadroomRange.value = String(headroomPercent);
+    if (obliqueBarHeadroomValue) obliqueBarHeadroomValue.textContent = String(headroomPercent);
+  }
+
+  const savedTilt = readWindowStorageString(window.localStorage, v, "obliqueBarTilt");
+  if (obliqueBarTiltRange) {
+    const tiltDeg =
+      savedTilt != null && savedTilt !== ""
+        ? clampInt(savedTilt, 30, 70)
+        : DEFAULT_CONFIG.obliqueBar.tiltDeg;
+    obliqueBarTiltRange.value = String(tiltDeg);
+    if (obliqueBarTiltValue) obliqueBarTiltValue.textContent = String(tiltDeg);
+  }
+
+  const savedDisplayCount = readWindowStorageString(window.localStorage, v, "obliqueBarDisplayCount");
+  if (obliqueBarDisplayCountRange) {
+    const displayBarCount =
+      savedDisplayCount != null && savedDisplayCount !== ""
+        ? clampInt(savedDisplayCount, 0, 128)
+        : DEFAULT_CONFIG.obliqueBar.displayBarCount;
+    obliqueBarDisplayCountRange.value = String(displayBarCount);
+    if (obliqueBarDisplayCountValue) {
+      obliqueBarDisplayCountValue.textContent = String(displayBarCount);
+    }
+  }
+
+  if (obliqueBarGroundLineToggle) {
+    obliqueBarGroundLineToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "obliqueBarGroundLine"),
+      DEFAULT_CONFIG.obliqueBar.showGroundLine,
+    );
+  }
+
+  if (obliqueBarMirrorToggle) {
+    obliqueBarMirrorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "obliqueBarMirror"),
+      DEFAULT_CONFIG.obliqueBar.mirrorEnabled,
+    );
+  }
+}
+
 function applyOscilloscopeFormFromStorage(v) {
   const savedColor = readWindowStorageString(window.localStorage, v, "oscilloscopeColor");
   if (oscilloscopeColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
@@ -1342,6 +1501,7 @@ async function init() {
     applyWaterfallFormFromStorage(v);
     applyDotRingFormFromStorage(v);
     applyOscilloscopeFormFromStorage(v);
+    applyObliqueBarFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -2270,6 +2430,149 @@ async function init() {
       statusEl.textContent = `更新拖尾衰减失败：${String(err)}`;
     }
   });
+  obliqueBarColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarColor",
+        obliqueBarColor.value,
+      );
+      await emitVisual("waveform-oblique-bar-color", obliqueBarColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新近处柱色失败：${String(err)}`;
+    }
+  });
+  obliqueBarColorFar?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarColorFar",
+        obliqueBarColorFar.value,
+      );
+      await emitVisual("waveform-oblique-bar-color-far", obliqueBarColorFar.value);
+    } catch (err) {
+      statusEl.textContent = `更新远处柱色失败：${String(err)}`;
+    }
+  });
+  obliqueBarWidthRange?.addEventListener("input", async (event) => {
+    const widthPercent = clampInt(event.target.value, 20, 100);
+    if (obliqueBarWidthValue) obliqueBarWidthValue.textContent = String(widthPercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarWidth",
+        String(widthPercent),
+      );
+      await emitVisual("waveform-oblique-bar-width", widthPercent);
+    } catch (err) {
+      statusEl.textContent = `更新柱宽失败：${String(err)}`;
+    }
+  });
+  obliqueBarGapRange?.addEventListener("input", async (event) => {
+    const gapPercent = clampInt(event.target.value, 0, 70);
+    if (obliqueBarGapValue) obliqueBarGapValue.textContent = String(gapPercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarGap",
+        String(gapPercent),
+      );
+      await emitVisual("waveform-oblique-bar-gap", gapPercent);
+    } catch (err) {
+      statusEl.textContent = `更新柱间距失败：${String(err)}`;
+    }
+  });
+  obliqueBarHeadroomRange?.addEventListener("input", async (event) => {
+    const headroomPercent = clampInt(event.target.value, 0, 40);
+    if (obliqueBarHeadroomValue) obliqueBarHeadroomValue.textContent = String(headroomPercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarHeadroom",
+        String(headroomPercent),
+      );
+      await emitVisual("waveform-oblique-bar-headroom", headroomPercent);
+    } catch (err) {
+      statusEl.textContent = `更新顶部留白失败：${String(err)}`;
+    }
+  });
+  obliqueBarTiltRange?.addEventListener("input", async (event) => {
+    const tiltDeg = clampInt(event.target.value, 30, 70);
+    if (obliqueBarTiltValue) obliqueBarTiltValue.textContent = String(tiltDeg);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarTilt",
+        String(tiltDeg),
+      );
+      await emitVisual("waveform-oblique-bar-tilt", tiltDeg);
+    } catch (err) {
+      statusEl.textContent = `更新透视倾角失败：${String(err)}`;
+    }
+  });
+  obliqueBarDisplayCountRange?.addEventListener("input", async (event) => {
+    const displayBarCount = clampInt(event.target.value, 0, 128);
+    if (obliqueBarDisplayCountValue) {
+      obliqueBarDisplayCountValue.textContent = String(displayBarCount);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarDisplayCount",
+        String(displayBarCount),
+      );
+      await emitVisual("waveform-oblique-bar-display-count", displayBarCount);
+    } catch (err) {
+      statusEl.textContent = `更新显示条数失败：${String(err)}`;
+    }
+  });
+  obliqueBarGroundLineToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarGroundLine",
+        String(enabled),
+      );
+      await emitVisual("waveform-oblique-bar-ground-line", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新地面线失败：${String(err)}`;
+    }
+  });
+  obliqueBarMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "obliqueBarMirror",
+        String(enabled),
+      );
+      await emitVisual("waveform-oblique-bar-mirror", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新镜像柱体失败：${String(err)}`;
+    }
+  });
+  obliqueBarGainRange?.addEventListener("input", () => {
+    void syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  obliqueBarSmoothRange?.addEventListener("input", () => {
+    void syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  obliqueBarSoftClipRange?.addEventListener("input", () => {
+    void syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
+  });
+  obliqueBarFallEaseRange?.addEventListener("input", () => {
+    void syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -2491,6 +2794,8 @@ async function init() {
   await syncWaterfallShapeConfig(visualTargetLabel, emitVisual);
   applyDotRingFormFromStorage(visualTargetLabel);
   await syncDotRingShapeConfig(visualTargetLabel, emitVisual);
+  applyObliqueBarFormFromStorage(visualTargetLabel);
+  await syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -2741,6 +3046,36 @@ async function init() {
       "waveform-oscilloscope-phosphor-decay",
       clampInt(oscilloscopePhosphorDecayRange.value, 10, 95),
     );
+  }
+  if (obliqueBarColor) {
+    await emitVisual("waveform-oblique-bar-color", obliqueBarColor.value);
+  }
+  if (obliqueBarColorFar) {
+    await emitVisual("waveform-oblique-bar-color-far", obliqueBarColorFar.value);
+  }
+  if (obliqueBarWidthRange) {
+    await emitVisual("waveform-oblique-bar-width", clampInt(obliqueBarWidthRange.value, 20, 100));
+  }
+  if (obliqueBarGapRange) {
+    await emitVisual("waveform-oblique-bar-gap", clampInt(obliqueBarGapRange.value, 0, 70));
+  }
+  if (obliqueBarHeadroomRange) {
+    await emitVisual("waveform-oblique-bar-headroom", clampInt(obliqueBarHeadroomRange.value, 0, 40));
+  }
+  if (obliqueBarTiltRange) {
+    await emitVisual("waveform-oblique-bar-tilt", clampInt(obliqueBarTiltRange.value, 30, 70));
+  }
+  if (obliqueBarDisplayCountRange) {
+    await emitVisual(
+      "waveform-oblique-bar-display-count",
+      clampInt(obliqueBarDisplayCountRange.value, 0, 128),
+    );
+  }
+  if (obliqueBarGroundLineToggle) {
+    await emitVisual("waveform-oblique-bar-ground-line", Boolean(obliqueBarGroundLineToggle.checked));
+  }
+  if (obliqueBarMirrorToggle) {
+    await emitVisual("waveform-oblique-bar-mirror", Boolean(obliqueBarMirrorToggle.checked));
   }
 
   if (closeSettingsBtn) {

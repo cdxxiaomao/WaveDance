@@ -177,6 +177,14 @@
 - `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。
 
+### 可视化模式扩展 — Phase 9：斜透视频谱柱 Oblique Bar（2.5D）
+
+- 新建 `frontend/src/renderers/bandAggregate.js`：频谱桶 band 聚合（`dotRingRenderer` 改为复用）。
+- 新建 `frontend/src/renderers/obliqueBarRenderer.js`：透视缩放 + 深度明暗 + 可选地面参考线；支持 `displayBarCount` 聚合与 `freqReversed`。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.obliqueBar`、`DEFAULT_CONFIG.obliqueBar` 及 storage keys。
+- `main.js`：注册 obliqueBarRenderer，监听 `waveform-oblique-bar-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「斜透视频谱柱」、`#obliqueBarConfigPanel`（近/远柱色、柱宽/间距、倾角、显示条数、地面线、镜像、形状四件套）。
+
 ### 可视化模式扩展 — Phase 8：示波器 Oscilloscope
 
 - `src/audio_processing/mod.rs`：`WaveformFrame` 新增 `time_samples` 字段；导出 `TIME_DOMAIN_SAMPLE_COUNT`（512）与 `downsample_time_domain`。

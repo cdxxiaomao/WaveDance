@@ -11,6 +11,7 @@ import { createRadialRenderer } from "./renderers/radialRenderer.js";
 import { createWaterfallRenderer } from "./renderers/waterfallRenderer.js";
 import { createDotRingRenderer } from "./renderers/dotRingRenderer.js";
 import { createOscilloscopeRenderer } from "./renderers/oscilloscopeRenderer.js";
+import { createObliqueBarRenderer } from "./renderers/obliqueBarRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
@@ -45,6 +46,7 @@ const radialRenderer = createRadialRenderer(gl);
 const waterfallRenderer = createWaterfallRenderer(gl);
 const dotRingRenderer = createDotRingRenderer(gl);
 const oscilloscopeRenderer = createOscilloscopeRenderer(gl);
+const obliqueBarRenderer = createObliqueBarRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -57,6 +59,7 @@ const RENDERERS = {
   [DISPLAY_MODES.waterfall]: waterfallRenderer,
   [DISPLAY_MODES.dotRing]: dotRingRenderer,
   [DISPLAY_MODES.oscilloscope]: oscilloscopeRenderer,
+  [DISPLAY_MODES.obliqueBar]: obliqueBarRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -68,6 +71,7 @@ const glowCircleShapeConfig = { ...DEFAULT_CONFIG.glowCircle.shape };
 const radialShapeConfig = { ...DEFAULT_CONFIG.radial.shape };
 const waterfallShapeConfig = { ...DEFAULT_CONFIG.waterfall.shape };
 const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
+const obliqueBarShapeConfig = { ...DEFAULT_CONFIG.obliqueBar.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -145,6 +149,14 @@ function applyDotRingShapeConfig(payload) {
   dotRingShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyObliqueBarShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  obliqueBarShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  obliqueBarShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  obliqueBarShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  obliqueBarShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -165,6 +177,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (waterfallRaw) applyWaterfallShapeConfig(JSON.parse(waterfallRaw));
     const dotRingRaw = readWindowStorageString(window.localStorage, windowLabel, "dotRingShape");
     if (dotRingRaw) applyDotRingShapeConfig(JSON.parse(dotRingRaw));
+    const obliqueBarRaw = readWindowStorageString(window.localStorage, windowLabel, "obliqueBarShape");
+    if (obliqueBarRaw) applyObliqueBarShapeConfig(JSON.parse(obliqueBarRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -199,6 +213,8 @@ const waterfallColorLowRgb = { r: 0, g: 0, b: 0 };
 const waterfallColorHighRgb = { r: 0, g: 0, b: 0 };
 const dotRingDotRgb = { r: 0, g: 0, b: 0 };
 const oscilloscopeLineRgb = { r: 0, g: 0, b: 0 };
+const obliqueBarColorNearRgb = { r: 0, g: 0, b: 0 };
+const obliqueBarColorFarRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -226,6 +242,8 @@ applyWaterfallColorLowHex(DEFAULT_CONFIG.waterfall.colorLow);
 applyWaterfallColorHighHex(DEFAULT_CONFIG.waterfall.colorHigh);
 applyDotRingDotColorHex(DEFAULT_CONFIG.dotRing.dotColor);
 applyOscilloscopeColorHex(DEFAULT_CONFIG.oscilloscope.lineColor);
+applyObliqueBarColorNearHex(DEFAULT_CONFIG.obliqueBar.barColor);
+applyObliqueBarColorFarHex(DEFAULT_CONFIG.obliqueBar.barColorFar);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -277,6 +295,13 @@ let dotRingPulseEnabled = DEFAULT_CONFIG.dotRing.pulseEnabled;
 let oscilloscopeLineWidthPx = DEFAULT_CONFIG.oscilloscope.lineWidthPx;
 let oscilloscopePhosphorEnabled = DEFAULT_CONFIG.oscilloscope.phosphorEnabled;
 let oscilloscopePhosphorDecayPercent = DEFAULT_CONFIG.oscilloscope.phosphorDecayPercent;
+let obliqueBarWidthPercent = DEFAULT_CONFIG.obliqueBar.widthPercent;
+let obliqueBarGapPercent = DEFAULT_CONFIG.obliqueBar.gapPercent;
+let obliqueBarHeadroomPercent = DEFAULT_CONFIG.obliqueBar.headroomPercent;
+let obliqueBarTiltDeg = DEFAULT_CONFIG.obliqueBar.tiltDeg;
+let obliqueBarShowGroundLine = DEFAULT_CONFIG.obliqueBar.showGroundLine;
+let obliqueBarMirrorEnabled = DEFAULT_CONFIG.obliqueBar.mirrorEnabled;
+let obliqueBarDisplayBarCount = DEFAULT_CONFIG.obliqueBar.displayBarCount;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -585,6 +610,54 @@ function applyOscilloscopePhosphorDecayPercent(n) {
   oscilloscopePhosphorDecayPercent = clampInt(n, 10, 95);
 }
 
+function applyObliqueBarColorNearHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.obliqueBar.barColor;
+  const { r, g, b } = hexToRgb(safe);
+  obliqueBarColorNearRgb.r = r / 255;
+  obliqueBarColorNearRgb.g = g / 255;
+  obliqueBarColorNearRgb.b = b / 255;
+}
+
+function applyObliqueBarColorFarHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.obliqueBar.barColorFar;
+  const { r, g, b } = hexToRgb(safe);
+  obliqueBarColorFarRgb.r = r / 255;
+  obliqueBarColorFarRgb.g = g / 255;
+  obliqueBarColorFarRgb.b = b / 255;
+}
+
+function applyObliqueBarWidthPercent(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  obliqueBarWidthPercent = Math.max(20, Math.min(100, v));
+}
+
+function applyObliqueBarGapPercent(n) {
+  obliqueBarGapPercent = clampInt(n, 0, 70);
+}
+
+function applyObliqueBarHeadroomPercent(n) {
+  obliqueBarHeadroomPercent = clampInt(n, 0, 40);
+}
+
+function applyObliqueBarTiltDeg(n) {
+  obliqueBarTiltDeg = clampInt(n, 30, 70);
+}
+
+function applyObliqueBarShowGroundLine(value) {
+  obliqueBarShowGroundLine = parseBoolean(value, DEFAULT_CONFIG.obliqueBar.showGroundLine);
+}
+
+function applyObliqueBarMirrorEnabled(value) {
+  obliqueBarMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.obliqueBar.mirrorEnabled);
+}
+
+function applyObliqueBarDisplayBarCount(n) {
+  obliqueBarDisplayBarCount = clampInt(n, 0, 128);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -672,6 +745,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.radial) return radialShapeConfig;
   if (mode === DISPLAY_MODES.waterfall) return waterfallShapeConfig;
   if (mode === DISPLAY_MODES.dotRing) return dotRingShapeConfig;
+  if (mode === DISPLAY_MODES.obliqueBar) return obliqueBarShapeConfig;
   return waveShapeConfig;
 }
 
@@ -781,6 +855,20 @@ function getStyleConfigForMode(mode) {
       lineWidthPx: oscilloscopeLineWidthPx,
       phosphorEnabled: oscilloscopePhosphorEnabled,
       phosphorDecay: oscilloscopePhosphorDecayPercent / 100,
+    };
+  }
+  if (mode === DISPLAY_MODES.obliqueBar) {
+    return {
+      colorNear: obliqueBarColorNearRgb,
+      colorFar: obliqueBarColorFarRgb,
+      widthPercent: obliqueBarWidthPercent,
+      gapPercent: obliqueBarGapPercent,
+      headroomPercent: obliqueBarHeadroomPercent,
+      tiltDeg: obliqueBarTiltDeg,
+      showGroundLine: obliqueBarShowGroundLine,
+      mirrorEnabled: obliqueBarMirrorEnabled,
+      displayBarCount: obliqueBarDisplayBarCount,
+      freqReversed,
     };
   }
   return {
@@ -1465,6 +1553,80 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-oblique-bar-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyObliqueBarColorNearHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-color-far",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyObliqueBarColorFarHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-width",
+    (event) => {
+      applyObliqueBarWidthPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-gap",
+    (event) => {
+      applyObliqueBarGapPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-headroom",
+    (event) => {
+      applyObliqueBarHeadroomPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-tilt",
+    (event) => {
+      applyObliqueBarTiltDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-ground-line",
+    (event) => {
+      applyObliqueBarShowGroundLine(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-mirror",
+    (event) => {
+      applyObliqueBarMirrorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-display-count",
+    (event) => {
+      applyObliqueBarDisplayBarCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-oblique-bar-shape-config",
+    (event) => {
+      applyObliqueBarShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -1676,6 +1838,42 @@ async function init() {
     );
     if (savedOscilloscopeDecay != null && savedOscilloscopeDecay !== "") {
       applyOscilloscopePhosphorDecayPercent(savedOscilloscopeDecay);
+    }
+    applyObliqueBarColorNearHex(readWindowStorageString(window.localStorage, windowLabel, "obliqueBarColor"));
+    applyObliqueBarColorFarHex(readWindowStorageString(window.localStorage, windowLabel, "obliqueBarColorFar"));
+    const savedObliqueBarWidth = readWindowStorageString(window.localStorage, windowLabel, "obliqueBarWidth");
+    if (savedObliqueBarWidth) {
+      applyObliqueBarWidthPercent(savedObliqueBarWidth);
+    }
+    const savedObliqueBarGap = readWindowStorageString(window.localStorage, windowLabel, "obliqueBarGap");
+    if (savedObliqueBarGap) {
+      applyObliqueBarGapPercent(savedObliqueBarGap);
+    }
+    const savedObliqueBarHeadroom = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "obliqueBarHeadroom",
+    );
+    if (savedObliqueBarHeadroom) {
+      applyObliqueBarHeadroomPercent(savedObliqueBarHeadroom);
+    }
+    const savedObliqueBarTilt = readWindowStorageString(window.localStorage, windowLabel, "obliqueBarTilt");
+    if (savedObliqueBarTilt != null && savedObliqueBarTilt !== "") {
+      applyObliqueBarTiltDeg(savedObliqueBarTilt);
+    }
+    applyObliqueBarShowGroundLine(
+      readWindowStorageString(window.localStorage, windowLabel, "obliqueBarGroundLine"),
+    );
+    applyObliqueBarMirrorEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "obliqueBarMirror"),
+    );
+    const savedObliqueBarDisplayCount = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "obliqueBarDisplayCount",
+    );
+    if (savedObliqueBarDisplayCount != null && savedObliqueBarDisplayCount !== "") {
+      applyObliqueBarDisplayBarCount(savedObliqueBarDisplayCount);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

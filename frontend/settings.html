@@ -89,6 +89,7 @@
               <option value="waterfall">瀑布频谱</option>
               <option value="dotRing">环形圆点</option>
               <option value="oscilloscope">示波器</option>
+              <option value="obliqueBar">斜透视频谱柱</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -581,6 +582,67 @@
           <div class="settings-field">
             <label for="dotRingFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="dotRingFallEaseValue">55</span>%</label>
             <input id="dotRingFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="obliqueBarConfigPanel" aria-labelledby="sec-oblique-bar-display" hidden>
+        <h2 id="sec-oblique-bar-display" class="settings-card__title">斜透视频谱柱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--oblique-bar" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="obliqueBarColor" class="settings-label">近处柱色</label>
+            <input id="obliqueBarColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="obliqueBarColorFar" class="settings-label">远处柱色</label>
+            <input id="obliqueBarColorFar" type="color" value="#4a4580" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarWidthRange" class="settings-label">柱体宽度 <span class="settings-value" id="obliqueBarWidthValue">76</span>%</label>
+            <input id="obliqueBarWidthRange" type="range" min="20" max="100" step="1" value="76" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarGapRange" class="settings-label">柱间距 <span class="settings-value" id="obliqueBarGapValue">18</span>%</label>
+            <input id="obliqueBarGapRange" type="range" min="0" max="70" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarHeadroomRange" class="settings-label">顶部留白 <span class="settings-value" id="obliqueBarHeadroomValue">8</span>%</label>
+            <input id="obliqueBarHeadroomRange" type="range" min="0" max="40" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarTiltRange" class="settings-label">透视倾角 <span class="settings-value" id="obliqueBarTiltValue">55</span>°</label>
+            <input id="obliqueBarTiltRange" type="range" min="30" max="70" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarDisplayCountRange" class="settings-label">显示条数 <span class="settings-value" id="obliqueBarDisplayCountValue">0</span></label>
+            <input id="obliqueBarDisplayCountRange" type="range" min="0" max="128" step="1" value="0" />
+            <p class="settings-muted settings-muted--inline">0 表示跟随分桶数量；小窗建议 32~64</p>
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="obliqueBarGroundLineToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>地面参考线</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="obliqueBarMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像柱体（中心对称）</span>
+          </label>
+          <div class="settings-field">
+            <label for="obliqueBarGainRange" class="settings-label">增益 <span class="settings-value" id="obliqueBarGainValue">62</span>%</label>
+            <input id="obliqueBarGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="obliqueBarSmoothValue">18</span>%</label>
+            <input id="obliqueBarSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="obliqueBarSoftClipValue">12</span>%</label>
+            <input id="obliqueBarSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="obliqueBarFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="obliqueBarFallEaseValue">52</span>%</label>
+            <input id="obliqueBarFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

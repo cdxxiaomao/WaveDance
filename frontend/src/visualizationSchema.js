@@ -75,6 +75,16 @@ export const STORAGE_KEYS = {
   oscilloscopeLineWidth: "wavedance.oscilloscopeLineWidthPx",
   oscilloscopePhosphor: "wavedance.oscilloscopePhosphorEnabled",
   oscilloscopePhosphorDecay: "wavedance.oscilloscopePhosphorDecayPercent",
+  obliqueBarColor: "wavedance.obliqueBarColor",
+  obliqueBarColorFar: "wavedance.obliqueBarColorFar",
+  obliqueBarWidth: "wavedance.obliqueBarWidthPercent",
+  obliqueBarGap: "wavedance.obliqueBarGapPercent",
+  obliqueBarHeadroom: "wavedance.obliqueBarHeadroomPercent",
+  obliqueBarTilt: "wavedance.obliqueBarTiltDeg",
+  obliqueBarGroundLine: "wavedance.obliqueBarShowGroundLine",
+  obliqueBarMirror: "wavedance.obliqueBarMirrorEnabled",
+  obliqueBarDisplayCount: "wavedance.obliqueBarDisplayBarCount",
+  obliqueBarShape: "wavedance.obliqueBarShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -91,6 +101,7 @@ export const DISPLAY_MODES = {
   waterfall: "waterfall",
   dotRing: "dotRing",
   oscilloscope: "oscilloscope",
+  obliqueBar: "obliqueBar",
 };
 
 export const PANEL_STYLES = {
@@ -252,6 +263,23 @@ export const DEFAULT_CONFIG = {
     phosphorEnabled: false,
     phosphorDecayPercent: 60,
   },
+  obliqueBar: {
+    barColor: "#8f7cff",
+    barColorFar: "#4a4580",
+    widthPercent: 76,
+    gapPercent: 18,
+    headroomPercent: 8,
+    tiltDeg: 55,
+    showGroundLine: true,
+    mirrorEnabled: false,
+    displayBarCount: 0,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -266,6 +294,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.waterfall) return DISPLAY_MODES.waterfall;
   if (s === DISPLAY_MODES.dotRing) return DISPLAY_MODES.dotRing;
   if (s === DISPLAY_MODES.oscilloscope) return DISPLAY_MODES.oscilloscope;
+  if (s === DISPLAY_MODES.obliqueBar) return DISPLAY_MODES.obliqueBar;
   return DISPLAY_MODES.line;
 }
 
@@ -424,6 +453,16 @@ export function windowStorageKeys(windowLabel) {
     oscilloscopeLineWidth: `${pre}.oscilloscopeLineWidthPx`,
     oscilloscopePhosphor: `${pre}.oscilloscopePhosphorEnabled`,
     oscilloscopePhosphorDecay: `${pre}.oscilloscopePhosphorDecayPercent`,
+    obliqueBarColor: `${pre}.obliqueBarColor`,
+    obliqueBarColorFar: `${pre}.obliqueBarColorFar`,
+    obliqueBarWidth: `${pre}.obliqueBarWidthPercent`,
+    obliqueBarGap: `${pre}.obliqueBarGapPercent`,
+    obliqueBarHeadroom: `${pre}.obliqueBarHeadroomPercent`,
+    obliqueBarTilt: `${pre}.obliqueBarTiltDeg`,
+    obliqueBarGroundLine: `${pre}.obliqueBarShowGroundLine`,
+    obliqueBarMirror: `${pre}.obliqueBarMirrorEnabled`,
+    obliqueBarDisplayCount: `${pre}.obliqueBarDisplayBarCount`,
+    obliqueBarShape: `${pre}.obliqueBarShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,
