@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~9 已完成；Phase 10~14 3D/2.5D 扩展待实施  
+> **状态**：Phase 0~10 已完成；Phase 11~14 3D/2.5D 扩展待实施  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -627,11 +627,11 @@ depthLayers: {
 
 #### 10.2 新建 `depthLayersRenderer.js`
 
-- [ ] `processSpectrumPoints` 一次，多层共用同一份 normalized 数据
-- [ ] 第 `layer` 层（0=最远）：`scale = mix(farScale, 1, layer/(N-1))`，`alpha = mix(farAlpha, 1, …)`，`yOffset = layer * spacingNdc`
-- [ ] `bassFrontEnabled`：可对 points 做 band 分群，每层 emphasis 不同频段（远层偏高频、近层偏低频）
-- [ ] 绘制顺序：远 → 近；开启 `gl.blendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)`
-- [ ] `renderStyle=line` 复用 glowLine 的 stroke mesh 思路；`bar` 复用窄 rect
+- [x] `processSpectrumPoints` 一次，多层共用同一份 normalized 数据
+- [x] 第 `layer` 层（0=最远）：`scale = mix(farScale, 1, layer/(N-1))`，`alpha = mix(farAlpha, 1, …)`，`yOffset = layer * spacingNdc`
+- [x] `bassFrontEnabled`：可对 points 做 band 分群，每层 emphasis 不同频段（远层偏高频、近层偏低频）
+- [x] 绘制顺序：远 → 近；开启 `gl.blendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)`
+- [x] `renderStyle=line` 复用 glowLine 的 stroke mesh 思路；`bar` 复用窄 rect
 
 #### 10.3 集成与设置页
 
@@ -652,9 +652,9 @@ depthLayers: {
 
 #### 10.5 验收标准
 
-- [ ] 层间视差随音乐明显，但不遮挡桌面过多（远层足够淡）
-- [ ] layerCount=2 与 layerCount=6 均稳定
-- [ ] 静默时各层归零干净
+- [x] 层间视差随音乐明显，但不遮挡桌面过多（远层足够淡）
+- [x] layerCount=2 与 layerCount=6 均稳定
+- [x] 静默时各层归零干净
 
 ---
 
@@ -949,13 +949,13 @@ helix3d: {
 | 7 | 文档与 README | `[x]` 已完成 | 2026-06-09 |
 | 8 | 示波器 Oscilloscope（可选） | `[x]` 已完成 | 2026-06-09 |
 | 9 | 斜透视频谱柱 Oblique Bar（2.5D） | `[x]` 已完成 | 2026-06-09 |
-| 10 | 多层景深 Depth Layers（2.5D） | `[ ]` 未开始 | |
+| 10 | 多层景深 Depth Layers（2.5D） | `[x]` 已完成 | 2026-06-09 |
 | 11 | 等距天际线 Isometric Skyline（2.5D） | `[ ]` 未开始 | |
 | 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[ ]` 未开始 | |
 | 13 | 3D 频谱地形 Terrain3D（真 3D） | `[ ]` 未开始 | |
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 10（多层景深 Depth Layers）
+**当前建议下一步**：Phase 11（等距天际线 Isometric Skyline）
 
 ---
 

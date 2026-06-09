@@ -177,6 +177,13 @@
 - `main.js`：注册 dotRingRenderer，监听 `waveform-dot-ring-*` 事件，加载持久化配置。
 - `settings.html` / `settings.js`：展示模式增加「环形圆点」、`#dotRingConfigPanel`（圆点色/圆环半径/圆点数量/点大小/强拍脉冲 + 形状四件套）。
 
+### 可视化模式扩展 — Phase 10：多层景深 Depth Layers（2.5D）
+
+- 新建 `frontend/src/renderers/depthLayersRenderer.js`：多层视差（缩放/Y 偏移/透明度递减），支持低频靠前频段强调、`line`/`bar` 两种绘制样式，远→近绘制顺序。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.depthLayers`、`DEFAULT_CONFIG.depthLayers`、`normalizeDepthLayersRenderStyle` 及 storage keys。
+- `main.js`：注册 depthLayersRenderer，监听 `waveform-depth-layers-*` 事件，持久化加载。
+- `settings.html` / `settings.js`：展示模式增加「多层景深」、`#depthLayersConfigPanel`（层数/间距/远层缩放与透明度、低频靠前、近远层颜色、绘制样式、线宽、形状四件套）。
+
 ### 可视化模式扩展 — Phase 9：斜透视频谱柱 Oblique Bar（2.5D）
 
 - 新建 `frontend/src/renderers/bandAggregate.js`：频谱桶 band 聚合（`dotRingRenderer` 改为复用）。

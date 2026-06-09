@@ -85,6 +85,16 @@ export const STORAGE_KEYS = {
   obliqueBarMirror: "wavedance.obliqueBarMirrorEnabled",
   obliqueBarDisplayCount: "wavedance.obliqueBarDisplayBarCount",
   obliqueBarShape: "wavedance.obliqueBarShapeConfig",
+  depthLayersCount: "wavedance.depthLayersLayerCount",
+  depthLayersSpacing: "wavedance.depthLayersLayerSpacingPx",
+  depthLayersFarScale: "wavedance.depthLayersFarScalePercent",
+  depthLayersFarAlpha: "wavedance.depthLayersFarAlphaPercent",
+  depthLayersBassFront: "wavedance.depthLayersBassFrontEnabled",
+  depthLayersColor: "wavedance.depthLayersColor",
+  depthLayersColorFar: "wavedance.depthLayersColorFar",
+  depthLayersLineWidth: "wavedance.depthLayersLineWidthPx",
+  depthLayersRenderStyle: "wavedance.depthLayersRenderStyle",
+  depthLayersShape: "wavedance.depthLayersShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -102,6 +112,7 @@ export const DISPLAY_MODES = {
   dotRing: "dotRing",
   oscilloscope: "oscilloscope",
   obliqueBar: "obliqueBar",
+  depthLayers: "depthLayers",
 };
 
 export const PANEL_STYLES = {
@@ -280,6 +291,23 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  depthLayers: {
+    layerCount: 4,
+    color: "#8f7cff",
+    colorFar: "#3d3866",
+    layerSpacingPx: 6,
+    farScalePercent: 72,
+    farAlphaPercent: 25,
+    bassFrontEnabled: true,
+    lineWidthPx: 2,
+    renderStyle: "line",
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 24,
+      softClipPercent: 14,
+      fallEasePercent: 58,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -295,7 +323,16 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.dotRing) return DISPLAY_MODES.dotRing;
   if (s === DISPLAY_MODES.oscilloscope) return DISPLAY_MODES.oscilloscope;
   if (s === DISPLAY_MODES.obliqueBar) return DISPLAY_MODES.obliqueBar;
+  if (s === DISPLAY_MODES.depthLayers) return DISPLAY_MODES.depthLayers;
   return DISPLAY_MODES.line;
+}
+
+/** @param {string} value */
+export function normalizeDepthLayersRenderStyle(value, fallback = "line") {
+  const s = String(value ?? "").trim();
+  if (s === "bar") return "bar";
+  if (s === "line") return "line";
+  return fallback;
 }
 
 export function clampInt(value, min, max) {
@@ -463,6 +500,16 @@ export function windowStorageKeys(windowLabel) {
     obliqueBarMirror: `${pre}.obliqueBarMirrorEnabled`,
     obliqueBarDisplayCount: `${pre}.obliqueBarDisplayBarCount`,
     obliqueBarShape: `${pre}.obliqueBarShapeConfig`,
+    depthLayersCount: `${pre}.depthLayersLayerCount`,
+    depthLayersSpacing: `${pre}.depthLayersLayerSpacingPx`,
+    depthLayersFarScale: `${pre}.depthLayersFarScalePercent`,
+    depthLayersFarAlpha: `${pre}.depthLayersFarAlphaPercent`,
+    depthLayersBassFront: `${pre}.depthLayersBassFrontEnabled`,
+    depthLayersColor: `${pre}.depthLayersColor`,
+    depthLayersColorFar: `${pre}.depthLayersColorFar`,
+    depthLayersLineWidth: `${pre}.depthLayersLineWidthPx`,
+    depthLayersRenderStyle: `${pre}.depthLayersRenderStyle`,
+    depthLayersShape: `${pre}.depthLayersShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

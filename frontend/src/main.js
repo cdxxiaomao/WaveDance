@@ -12,11 +12,13 @@ import { createWaterfallRenderer } from "./renderers/waterfallRenderer.js";
 import { createDotRingRenderer } from "./renderers/dotRingRenderer.js";
 import { createOscilloscopeRenderer } from "./renderers/oscilloscopeRenderer.js";
 import { createObliqueBarRenderer } from "./renderers/obliqueBarRenderer.js";
+import { createDepthLayersRenderer } from "./renderers/depthLayersRenderer.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
   DISPLAY_MODES,
   normalizeDisplayMode,
+  normalizeDepthLayersRenderStyle,
   parseBoolean,
   readWindowStorageString,
   readBarPeakHoldMode,
@@ -47,6 +49,7 @@ const waterfallRenderer = createWaterfallRenderer(gl);
 const dotRingRenderer = createDotRingRenderer(gl);
 const oscilloscopeRenderer = createOscilloscopeRenderer(gl);
 const obliqueBarRenderer = createObliqueBarRenderer(gl);
+const depthLayersRenderer = createDepthLayersRenderer(gl);
 
 const RENDERERS = {
   [DISPLAY_MODES.line]: lineRenderer,
@@ -60,6 +63,7 @@ const RENDERERS = {
   [DISPLAY_MODES.dotRing]: dotRingRenderer,
   [DISPLAY_MODES.oscilloscope]: oscilloscopeRenderer,
   [DISPLAY_MODES.obliqueBar]: obliqueBarRenderer,
+  [DISPLAY_MODES.depthLayers]: depthLayersRenderer,
 };
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
@@ -72,6 +76,7 @@ const radialShapeConfig = { ...DEFAULT_CONFIG.radial.shape };
 const waterfallShapeConfig = { ...DEFAULT_CONFIG.waterfall.shape };
 const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
 const obliqueBarShapeConfig = { ...DEFAULT_CONFIG.obliqueBar.shape };
+const depthLayersShapeConfig = { ...DEFAULT_CONFIG.depthLayers.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -157,6 +162,14 @@ function applyObliqueBarShapeConfig(payload) {
   obliqueBarShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyDepthLayersShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  depthLayersShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  depthLayersShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  depthLayersShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  depthLayersShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -179,6 +192,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (dotRingRaw) applyDotRingShapeConfig(JSON.parse(dotRingRaw));
     const obliqueBarRaw = readWindowStorageString(window.localStorage, windowLabel, "obliqueBarShape");
     if (obliqueBarRaw) applyObliqueBarShapeConfig(JSON.parse(obliqueBarRaw));
+    const depthLayersRaw = readWindowStorageString(window.localStorage, windowLabel, "depthLayersShape");
+    if (depthLayersRaw) applyDepthLayersShapeConfig(JSON.parse(depthLayersRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -215,6 +230,8 @@ const dotRingDotRgb = { r: 0, g: 0, b: 0 };
 const oscilloscopeLineRgb = { r: 0, g: 0, b: 0 };
 const obliqueBarColorNearRgb = { r: 0, g: 0, b: 0 };
 const obliqueBarColorFarRgb = { r: 0, g: 0, b: 0 };
+const depthLayersColorRgb = { r: 0, g: 0, b: 0 };
+const depthLayersColorFarRgb = { r: 0, g: 0, b: 0 };
 
 function applyWaveformColorHex(hex) {
   const raw = typeof hex === "string" ? hex.trim() : "";
@@ -244,6 +261,8 @@ applyDotRingDotColorHex(DEFAULT_CONFIG.dotRing.dotColor);
 applyOscilloscopeColorHex(DEFAULT_CONFIG.oscilloscope.lineColor);
 applyObliqueBarColorNearHex(DEFAULT_CONFIG.obliqueBar.barColor);
 applyObliqueBarColorFarHex(DEFAULT_CONFIG.obliqueBar.barColorFar);
+applyDepthLayersColorHex(DEFAULT_CONFIG.depthLayers.color);
+applyDepthLayersColorFarHex(DEFAULT_CONFIG.depthLayers.colorFar);
 
 const WAVEFORM_WIDTH_MIN = 1;
 const WAVEFORM_WIDTH_MAX = 12;
@@ -302,6 +321,13 @@ let obliqueBarTiltDeg = DEFAULT_CONFIG.obliqueBar.tiltDeg;
 let obliqueBarShowGroundLine = DEFAULT_CONFIG.obliqueBar.showGroundLine;
 let obliqueBarMirrorEnabled = DEFAULT_CONFIG.obliqueBar.mirrorEnabled;
 let obliqueBarDisplayBarCount = DEFAULT_CONFIG.obliqueBar.displayBarCount;
+let depthLayersLayerCount = DEFAULT_CONFIG.depthLayers.layerCount;
+let depthLayersLayerSpacingPx = DEFAULT_CONFIG.depthLayers.layerSpacingPx;
+let depthLayersFarScalePercent = DEFAULT_CONFIG.depthLayers.farScalePercent;
+let depthLayersFarAlphaPercent = DEFAULT_CONFIG.depthLayers.farAlphaPercent;
+let depthLayersBassFrontEnabled = DEFAULT_CONFIG.depthLayers.bassFrontEnabled;
+let depthLayersLineWidthPx = DEFAULT_CONFIG.depthLayers.lineWidthPx;
+let depthLayersRenderStyle = DEFAULT_CONFIG.depthLayers.renderStyle;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -658,6 +684,54 @@ function applyObliqueBarDisplayBarCount(n) {
   obliqueBarDisplayBarCount = clampInt(n, 0, 128);
 }
 
+function applyDepthLayersColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.depthLayers.color;
+  const { r, g, b } = hexToRgb(safe);
+  depthLayersColorRgb.r = r / 255;
+  depthLayersColorRgb.g = g / 255;
+  depthLayersColorRgb.b = b / 255;
+}
+
+function applyDepthLayersColorFarHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.depthLayers.colorFar;
+  const { r, g, b } = hexToRgb(safe);
+  depthLayersColorFarRgb.r = r / 255;
+  depthLayersColorFarRgb.g = g / 255;
+  depthLayersColorFarRgb.b = b / 255;
+}
+
+function applyDepthLayersLayerCount(n) {
+  depthLayersLayerCount = clampInt(n, 2, 6);
+}
+
+function applyDepthLayersLayerSpacingPx(n) {
+  depthLayersLayerSpacingPx = clampInt(n, 0, 24);
+}
+
+function applyDepthLayersFarScalePercent(n) {
+  depthLayersFarScalePercent = clampInt(n, 50, 90);
+}
+
+function applyDepthLayersFarAlphaPercent(n) {
+  depthLayersFarAlphaPercent = clampInt(n, 0, 100);
+}
+
+function applyDepthLayersBassFrontEnabled(value) {
+  depthLayersBassFrontEnabled = parseBoolean(value, DEFAULT_CONFIG.depthLayers.bassFrontEnabled);
+}
+
+function applyDepthLayersLineWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  depthLayersLineWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyDepthLayersRenderStyle(value) {
+  depthLayersRenderStyle = normalizeDepthLayersRenderStyle(value, DEFAULT_CONFIG.depthLayers.renderStyle);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -746,6 +820,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.waterfall) return waterfallShapeConfig;
   if (mode === DISPLAY_MODES.dotRing) return dotRingShapeConfig;
   if (mode === DISPLAY_MODES.obliqueBar) return obliqueBarShapeConfig;
+  if (mode === DISPLAY_MODES.depthLayers) return depthLayersShapeConfig;
   return waveShapeConfig;
 }
 
@@ -868,6 +943,20 @@ function getStyleConfigForMode(mode) {
       showGroundLine: obliqueBarShowGroundLine,
       mirrorEnabled: obliqueBarMirrorEnabled,
       displayBarCount: obliqueBarDisplayBarCount,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.depthLayers) {
+    return {
+      layerCount: depthLayersLayerCount,
+      color: depthLayersColorRgb,
+      colorFar: depthLayersColorFarRgb,
+      layerSpacingPx: depthLayersLayerSpacingPx,
+      farScalePercent: depthLayersFarScalePercent,
+      farAlphaPercent: depthLayersFarAlphaPercent,
+      bassFrontEnabled: depthLayersBassFrontEnabled,
+      lineWidthPx: depthLayersLineWidthPx,
+      renderStyle: depthLayersRenderStyle,
       freqReversed,
     };
   }
@@ -1627,6 +1716,80 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-depth-layers-count",
+    (event) => {
+      applyDepthLayersLayerCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-spacing",
+    (event) => {
+      applyDepthLayersLayerSpacingPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-far-scale",
+    (event) => {
+      applyDepthLayersFarScalePercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-far-alpha",
+    (event) => {
+      applyDepthLayersFarAlphaPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-bass-front",
+    (event) => {
+      applyDepthLayersBassFrontEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyDepthLayersColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-color-far",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyDepthLayersColorFarHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-line-width",
+    (event) => {
+      applyDepthLayersLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-render-style",
+    (event) => {
+      applyDepthLayersRenderStyle(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-depth-layers-shape-config",
+    (event) => {
+      applyDepthLayersShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -1875,6 +2038,34 @@ async function init() {
     if (savedObliqueBarDisplayCount != null && savedObliqueBarDisplayCount !== "") {
       applyObliqueBarDisplayBarCount(savedObliqueBarDisplayCount);
     }
+    applyDepthLayersColorHex(readWindowStorageString(window.localStorage, windowLabel, "depthLayersColor"));
+    applyDepthLayersColorFarHex(readWindowStorageString(window.localStorage, windowLabel, "depthLayersColorFar"));
+    const savedDepthLayersCount = readWindowStorageString(window.localStorage, windowLabel, "depthLayersCount");
+    if (savedDepthLayersCount != null && savedDepthLayersCount !== "") {
+      applyDepthLayersLayerCount(savedDepthLayersCount);
+    }
+    const savedDepthLayersSpacing = readWindowStorageString(window.localStorage, windowLabel, "depthLayersSpacing");
+    if (savedDepthLayersSpacing != null && savedDepthLayersSpacing !== "") {
+      applyDepthLayersLayerSpacingPx(savedDepthLayersSpacing);
+    }
+    const savedDepthLayersFarScale = readWindowStorageString(window.localStorage, windowLabel, "depthLayersFarScale");
+    if (savedDepthLayersFarScale != null && savedDepthLayersFarScale !== "") {
+      applyDepthLayersFarScalePercent(savedDepthLayersFarScale);
+    }
+    const savedDepthLayersFarAlpha = readWindowStorageString(window.localStorage, windowLabel, "depthLayersFarAlpha");
+    if (savedDepthLayersFarAlpha != null && savedDepthLayersFarAlpha !== "") {
+      applyDepthLayersFarAlphaPercent(savedDepthLayersFarAlpha);
+    }
+    applyDepthLayersBassFrontEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "depthLayersBassFront"),
+    );
+    const savedDepthLayersLineWidth = readWindowStorageString(window.localStorage, windowLabel, "depthLayersLineWidth");
+    if (savedDepthLayersLineWidth != null && savedDepthLayersLineWidth !== "") {
+      applyDepthLayersLineWidthPx(savedDepthLayersLineWidth);
+    }
+    applyDepthLayersRenderStyle(
+      readWindowStorageString(window.localStorage, windowLabel, "depthLayersRenderStyle"),
+    );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

@@ -90,6 +90,7 @@
               <option value="dotRing">环形圆点</option>
               <option value="oscilloscope">示波器</option>
               <option value="obliqueBar">斜透视频谱柱</option>
+              <option value="depthLayers">多层景深</option>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -643,6 +644,68 @@
           <div class="settings-field">
             <label for="obliqueBarFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="obliqueBarFallEaseValue">52</span>%</label>
             <input id="obliqueBarFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="depthLayersConfigPanel" aria-labelledby="sec-depth-layers-display" hidden>
+        <h2 id="sec-depth-layers-display" class="settings-card__title">多层景深配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--depth-layers" data-no-drag>
+          <div class="settings-field">
+            <label for="depthLayersCountRange" class="settings-label">层数 <span class="settings-value" id="depthLayersCountValue">4</span></label>
+            <input id="depthLayersCountRange" type="range" min="2" max="6" step="1" value="4" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersSpacingRange" class="settings-label">层间距 <span class="settings-value" id="depthLayersSpacingValue">6</span> px</label>
+            <input id="depthLayersSpacingRange" type="range" min="0" max="24" step="1" value="6" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersFarScaleRange" class="settings-label">远层缩放 <span class="settings-value" id="depthLayersFarScaleValue">72</span>%</label>
+            <input id="depthLayersFarScaleRange" type="range" min="50" max="90" step="1" value="72" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersFarAlphaRange" class="settings-label">远层透明度 <span class="settings-value" id="depthLayersFarAlphaValue">25</span>%</label>
+            <input id="depthLayersFarAlphaRange" type="range" min="0" max="100" step="1" value="25" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="depthLayersBassFrontToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>低频层靠前</span>
+          </label>
+          <div class="settings-field settings-field--row">
+            <label for="depthLayersColor" class="settings-label">近层颜色</label>
+            <input id="depthLayersColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="depthLayersColorFar" class="settings-label">远层颜色</label>
+            <input id="depthLayersColorFar" type="color" value="#3d3866" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="depthLayersRenderStyleSelect" class="settings-label">绘制样式</label>
+            <select id="depthLayersRenderStyleSelect" class="settings-select">
+              <option value="line" selected>线条</option>
+              <option value="bar">细柱</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersLineWidthRange" class="settings-label">线条粗细 <span class="settings-value" id="depthLayersLineWidthValue">2</span> px</label>
+            <input id="depthLayersLineWidthRange" type="range" min="1" max="12" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersGainRange" class="settings-label">增益 <span class="settings-value" id="depthLayersGainValue">55</span>%</label>
+            <input id="depthLayersGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="depthLayersSmoothValue">24</span>%</label>
+            <input id="depthLayersSmoothRange" type="range" min="0" max="400" step="1" value="24" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="depthLayersSoftClipValue">14</span>%</label>
+            <input id="depthLayersSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="depthLayersFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="depthLayersFallEaseValue">58</span>%</label>
+            <input id="depthLayersFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
           </div>
         </div>
       </section>

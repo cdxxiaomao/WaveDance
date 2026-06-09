@@ -13,6 +13,7 @@ import {
   readBarPeakHoldMode,
   readGradientBarPeakHoldMode,
   parseBoolean,
+  normalizeDepthLayersRenderStyle,
   readWindowStorageString,
   writeWindowStorageString,
 } from "./visualizationSchema.js";
@@ -47,6 +48,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.dotRing]: "dotRingConfigPanel",
   [DISPLAY_MODES.oscilloscope]: "oscilloscopeConfigPanel",
   [DISPLAY_MODES.obliqueBar]: "obliqueBarConfigPanel",
+  [DISPLAY_MODES.depthLayers]: "depthLayersConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -238,6 +240,28 @@ const obliqueBarSoftClipRange = document.querySelector("#obliqueBarSoftClipRange
 const obliqueBarSoftClipValue = document.querySelector("#obliqueBarSoftClipValue");
 const obliqueBarFallEaseRange = document.querySelector("#obliqueBarFallEaseRange");
 const obliqueBarFallEaseValue = document.querySelector("#obliqueBarFallEaseValue");
+const depthLayersCountRange = document.querySelector("#depthLayersCountRange");
+const depthLayersCountValue = document.querySelector("#depthLayersCountValue");
+const depthLayersSpacingRange = document.querySelector("#depthLayersSpacingRange");
+const depthLayersSpacingValue = document.querySelector("#depthLayersSpacingValue");
+const depthLayersFarScaleRange = document.querySelector("#depthLayersFarScaleRange");
+const depthLayersFarScaleValue = document.querySelector("#depthLayersFarScaleValue");
+const depthLayersFarAlphaRange = document.querySelector("#depthLayersFarAlphaRange");
+const depthLayersFarAlphaValue = document.querySelector("#depthLayersFarAlphaValue");
+const depthLayersBassFrontToggle = document.querySelector("#depthLayersBassFrontToggle");
+const depthLayersColor = document.querySelector("#depthLayersColor");
+const depthLayersColorFar = document.querySelector("#depthLayersColorFar");
+const depthLayersRenderStyleSelect = document.querySelector("#depthLayersRenderStyleSelect");
+const depthLayersLineWidthRange = document.querySelector("#depthLayersLineWidthRange");
+const depthLayersLineWidthValue = document.querySelector("#depthLayersLineWidthValue");
+const depthLayersGainRange = document.querySelector("#depthLayersGainRange");
+const depthLayersGainValue = document.querySelector("#depthLayersGainValue");
+const depthLayersSmoothRange = document.querySelector("#depthLayersSmoothRange");
+const depthLayersSmoothValue = document.querySelector("#depthLayersSmoothValue");
+const depthLayersSoftClipRange = document.querySelector("#depthLayersSoftClipRange");
+const depthLayersSoftClipValue = document.querySelector("#depthLayersSoftClipValue");
+const depthLayersFallEaseRange = document.querySelector("#depthLayersFallEaseRange");
+const depthLayersFallEaseValue = document.querySelector("#depthLayersFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1090,6 +1114,141 @@ async function syncObliqueBarShapeConfig(visualTargetLabel, emitVisual) {
   }
 }
 
+function readDepthLayersShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "depthLayersShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncDepthLayersShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(depthLayersGainRange?.value, 10, 150),
+    smoothPercent: clampInt(depthLayersSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(depthLayersSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(depthLayersFallEaseRange?.value, 0, 100),
+  };
+  if (depthLayersGainValue) depthLayersGainValue.textContent = String(config.gainPercent);
+  if (depthLayersSmoothValue) depthLayersSmoothValue.textContent = String(config.smoothPercent);
+  if (depthLayersSoftClipValue) depthLayersSoftClipValue.textContent = String(config.softClipPercent);
+  if (depthLayersFallEaseValue) depthLayersFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "depthLayersShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-depth-layers-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步景深参数失败：${String(err)}`;
+  }
+}
+
+function applyDepthLayersFormFromStorage(v) {
+  const sg = readDepthLayersShapeConfig(v) ?? { ...DEFAULT_CONFIG.depthLayers.shape };
+  if (depthLayersGainRange) depthLayersGainRange.value = String(sg.gainPercent);
+  if (depthLayersSmoothRange) depthLayersSmoothRange.value = String(sg.smoothPercent);
+  if (depthLayersSoftClipRange) depthLayersSoftClipRange.value = String(sg.softClipPercent);
+  if (depthLayersFallEaseRange) depthLayersFallEaseRange.value = String(sg.fallEasePercent);
+  if (depthLayersGainValue) depthLayersGainValue.textContent = String(sg.gainPercent);
+  if (depthLayersSmoothValue) depthLayersSmoothValue.textContent = String(sg.smoothPercent);
+  if (depthLayersSoftClipValue) depthLayersSoftClipValue.textContent = String(sg.softClipPercent);
+  if (depthLayersFallEaseValue) depthLayersFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "depthLayersColor");
+  if (depthLayersColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    depthLayersColor.value = savedColor.toLowerCase();
+  } else if (depthLayersColor) {
+    depthLayersColor.value = DEFAULT_CONFIG.depthLayers.color;
+  }
+
+  const savedColorFar = readWindowStorageString(window.localStorage, v, "depthLayersColorFar");
+  if (depthLayersColorFar && savedColorFar && /^#[0-9A-Fa-f]{6}$/.test(savedColorFar)) {
+    depthLayersColorFar.value = savedColorFar.toLowerCase();
+  } else if (depthLayersColorFar) {
+    depthLayersColorFar.value = DEFAULT_CONFIG.depthLayers.colorFar;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "depthLayersCount");
+  if (depthLayersCountRange) {
+    const layerCount =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 6)
+        : DEFAULT_CONFIG.depthLayers.layerCount;
+    depthLayersCountRange.value = String(layerCount);
+    if (depthLayersCountValue) depthLayersCountValue.textContent = String(layerCount);
+  }
+
+  const savedSpacing = readWindowStorageString(window.localStorage, v, "depthLayersSpacing");
+  if (depthLayersSpacingRange) {
+    const layerSpacingPx =
+      savedSpacing != null && savedSpacing !== ""
+        ? clampInt(savedSpacing, 0, 24)
+        : DEFAULT_CONFIG.depthLayers.layerSpacingPx;
+    depthLayersSpacingRange.value = String(layerSpacingPx);
+    if (depthLayersSpacingValue) depthLayersSpacingValue.textContent = String(layerSpacingPx);
+  }
+
+  const savedFarScale = readWindowStorageString(window.localStorage, v, "depthLayersFarScale");
+  if (depthLayersFarScaleRange) {
+    const farScalePercent =
+      savedFarScale != null && savedFarScale !== ""
+        ? clampInt(savedFarScale, 50, 90)
+        : DEFAULT_CONFIG.depthLayers.farScalePercent;
+    depthLayersFarScaleRange.value = String(farScalePercent);
+    if (depthLayersFarScaleValue) depthLayersFarScaleValue.textContent = String(farScalePercent);
+  }
+
+  const savedFarAlpha = readWindowStorageString(window.localStorage, v, "depthLayersFarAlpha");
+  if (depthLayersFarAlphaRange) {
+    const farAlphaPercent =
+      savedFarAlpha != null && savedFarAlpha !== ""
+        ? clampInt(savedFarAlpha, 0, 100)
+        : DEFAULT_CONFIG.depthLayers.farAlphaPercent;
+    depthLayersFarAlphaRange.value = String(farAlphaPercent);
+    if (depthLayersFarAlphaValue) depthLayersFarAlphaValue.textContent = String(farAlphaPercent);
+  }
+
+  if (depthLayersBassFrontToggle) {
+    depthLayersBassFrontToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "depthLayersBassFront"),
+      DEFAULT_CONFIG.depthLayers.bassFrontEnabled,
+    );
+  }
+
+  const savedLineWidth = readWindowStorageString(window.localStorage, v, "depthLayersLineWidth");
+  if (depthLayersLineWidthRange) {
+    const lineWidthPx =
+      savedLineWidth != null && savedLineWidth !== ""
+        ? clampInt(savedLineWidth, 1, 12)
+        : DEFAULT_CONFIG.depthLayers.lineWidthPx;
+    depthLayersLineWidthRange.value = String(lineWidthPx);
+    if (depthLayersLineWidthValue) depthLayersLineWidthValue.textContent = String(lineWidthPx);
+  }
+
+  const savedRenderStyle = readWindowStorageString(window.localStorage, v, "depthLayersRenderStyle");
+  if (depthLayersRenderStyleSelect) {
+    depthLayersRenderStyleSelect.value = normalizeDepthLayersRenderStyle(
+      savedRenderStyle,
+      DEFAULT_CONFIG.depthLayers.renderStyle,
+    );
+  }
+}
+
 function applyObliqueBarFormFromStorage(v) {
   const sg = readObliqueBarShapeConfig(v) ?? { ...DEFAULT_CONFIG.obliqueBar.shape };
   if (obliqueBarGainRange) obliqueBarGainRange.value = String(sg.gainPercent);
@@ -1502,6 +1661,7 @@ async function init() {
     applyDotRingFormFromStorage(v);
     applyOscilloscopeFormFromStorage(v);
     applyObliqueBarFormFromStorage(v);
+    applyDepthLayersFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -2573,6 +2733,150 @@ async function init() {
   obliqueBarFallEaseRange?.addEventListener("input", () => {
     void syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
   });
+  depthLayersCountRange?.addEventListener("input", async (event) => {
+    const layerCount = clampInt(event.target.value, 2, 6);
+    if (depthLayersCountValue) depthLayersCountValue.textContent = String(layerCount);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersCount",
+        String(layerCount),
+      );
+      await emitVisual("waveform-depth-layers-count", layerCount);
+    } catch (err) {
+      statusEl.textContent = `更新层数失败：${String(err)}`;
+    }
+  });
+  depthLayersSpacingRange?.addEventListener("input", async (event) => {
+    const layerSpacingPx = clampInt(event.target.value, 0, 24);
+    if (depthLayersSpacingValue) depthLayersSpacingValue.textContent = String(layerSpacingPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersSpacing",
+        String(layerSpacingPx),
+      );
+      await emitVisual("waveform-depth-layers-spacing", layerSpacingPx);
+    } catch (err) {
+      statusEl.textContent = `更新层间距失败：${String(err)}`;
+    }
+  });
+  depthLayersFarScaleRange?.addEventListener("input", async (event) => {
+    const farScalePercent = clampInt(event.target.value, 50, 90);
+    if (depthLayersFarScaleValue) depthLayersFarScaleValue.textContent = String(farScalePercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersFarScale",
+        String(farScalePercent),
+      );
+      await emitVisual("waveform-depth-layers-far-scale", farScalePercent);
+    } catch (err) {
+      statusEl.textContent = `更新远层缩放失败：${String(err)}`;
+    }
+  });
+  depthLayersFarAlphaRange?.addEventListener("input", async (event) => {
+    const farAlphaPercent = clampInt(event.target.value, 0, 100);
+    if (depthLayersFarAlphaValue) depthLayersFarAlphaValue.textContent = String(farAlphaPercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersFarAlpha",
+        String(farAlphaPercent),
+      );
+      await emitVisual("waveform-depth-layers-far-alpha", farAlphaPercent);
+    } catch (err) {
+      statusEl.textContent = `更新远层透明度失败：${String(err)}`;
+    }
+  });
+  depthLayersBassFrontToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersBassFront",
+        String(enabled),
+      );
+      await emitVisual("waveform-depth-layers-bass-front", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新低频靠前失败：${String(err)}`;
+    }
+  });
+  depthLayersColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersColor",
+        depthLayersColor.value,
+      );
+      await emitVisual("waveform-depth-layers-color", depthLayersColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新近层颜色失败：${String(err)}`;
+    }
+  });
+  depthLayersColorFar?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersColorFar",
+        depthLayersColorFar.value,
+      );
+      await emitVisual("waveform-depth-layers-color-far", depthLayersColorFar.value);
+    } catch (err) {
+      statusEl.textContent = `更新远层颜色失败：${String(err)}`;
+    }
+  });
+  depthLayersRenderStyleSelect?.addEventListener("change", async (event) => {
+    const renderStyle = normalizeDepthLayersRenderStyle(
+      event.target.value,
+      DEFAULT_CONFIG.depthLayers.renderStyle,
+    );
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersRenderStyle",
+        renderStyle,
+      );
+      await emitVisual("waveform-depth-layers-render-style", renderStyle);
+    } catch (err) {
+      statusEl.textContent = `更新绘制样式失败：${String(err)}`;
+    }
+  });
+  depthLayersLineWidthRange?.addEventListener("input", async (event) => {
+    const lineWidthPx = clampInt(event.target.value, 1, 12);
+    if (depthLayersLineWidthValue) depthLayersLineWidthValue.textContent = String(lineWidthPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "depthLayersLineWidth",
+        String(lineWidthPx),
+      );
+      await emitVisual("waveform-depth-layers-line-width", lineWidthPx);
+    } catch (err) {
+      statusEl.textContent = `更新线条粗细失败：${String(err)}`;
+    }
+  });
+  depthLayersGainRange?.addEventListener("input", () => {
+    void syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
+  });
+  depthLayersSmoothRange?.addEventListener("input", () => {
+    void syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
+  });
+  depthLayersSoftClipRange?.addEventListener("input", () => {
+    void syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
+  });
+  depthLayersFallEaseRange?.addEventListener("input", () => {
+    void syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
+  });
   displayModeSelect?.addEventListener("change", async (event) => {
     const mode = String(event.target.value || "line");
     applyDisplayModePanels(mode);
@@ -2796,6 +3100,8 @@ async function init() {
   await syncDotRingShapeConfig(visualTargetLabel, emitVisual);
   applyObliqueBarFormFromStorage(visualTargetLabel);
   await syncObliqueBarShapeConfig(visualTargetLabel, emitVisual);
+  applyDepthLayersFormFromStorage(visualTargetLabel);
+  await syncDepthLayersShapeConfig(visualTargetLabel, emitVisual);
   try {
     const savedMode = readWindowStorageString(window.localStorage, visualTargetLabel, "displayMode");
     applyDisplayModePanels(normalizeDisplayMode(savedMode));
@@ -3076,6 +3382,36 @@ async function init() {
   }
   if (obliqueBarMirrorToggle) {
     await emitVisual("waveform-oblique-bar-mirror", Boolean(obliqueBarMirrorToggle.checked));
+  }
+  if (depthLayersCountRange) {
+    await emitVisual("waveform-depth-layers-count", clampInt(depthLayersCountRange.value, 2, 6));
+  }
+  if (depthLayersSpacingRange) {
+    await emitVisual("waveform-depth-layers-spacing", clampInt(depthLayersSpacingRange.value, 0, 24));
+  }
+  if (depthLayersFarScaleRange) {
+    await emitVisual("waveform-depth-layers-far-scale", clampInt(depthLayersFarScaleRange.value, 50, 90));
+  }
+  if (depthLayersFarAlphaRange) {
+    await emitVisual("waveform-depth-layers-far-alpha", clampInt(depthLayersFarAlphaRange.value, 0, 100));
+  }
+  if (depthLayersBassFrontToggle) {
+    await emitVisual("waveform-depth-layers-bass-front", Boolean(depthLayersBassFrontToggle.checked));
+  }
+  if (depthLayersColor) {
+    await emitVisual("waveform-depth-layers-color", depthLayersColor.value);
+  }
+  if (depthLayersColorFar) {
+    await emitVisual("waveform-depth-layers-color-far", depthLayersColorFar.value);
+  }
+  if (depthLayersRenderStyleSelect) {
+    await emitVisual(
+      "waveform-depth-layers-render-style",
+      normalizeDepthLayersRenderStyle(depthLayersRenderStyleSelect.value, DEFAULT_CONFIG.depthLayers.renderStyle),
+    );
+  }
+  if (depthLayersLineWidthRange) {
+    await emitVisual("waveform-depth-layers-line-width", clampInt(depthLayersLineWidthRange.value, 1, 12));
   }
 
   if (closeSettingsBtn) {
