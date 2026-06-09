@@ -6,6 +6,7 @@ import { createBarRenderer } from "./renderers/barRenderer.js";
 import { createAreaRenderer } from "./renderers/areaRenderer.js";
 import { createGradientBarRenderer } from "./renderers/gradientBarRenderer.js";
 import { createGlowLineRenderer } from "./renderers/glowLineRenderer.js";
+import { createGlowCircleRenderer } from "./renderers/glowCircleRenderer.js";
 import { createRadialRenderer } from "./renderers/radialRenderer.js";
 import { createWaterfallRenderer } from "./renderers/waterfallRenderer.js";
 import { createDotRingRenderer } from "./renderers/dotRingRenderer.js";
@@ -38,6 +39,7 @@ const barRenderer = createBarRenderer(gl);
 const areaRenderer = createAreaRenderer(gl);
 const gradientBarRenderer = createGradientBarRenderer(gl);
 const glowLineRenderer = createGlowLineRenderer(gl);
+const glowCircleRenderer = createGlowCircleRenderer(gl);
 const radialRenderer = createRadialRenderer(gl);
 const waterfallRenderer = createWaterfallRenderer(gl);
 const dotRingRenderer = createDotRingRenderer(gl);
@@ -48,6 +50,7 @@ const RENDERERS = {
   [DISPLAY_MODES.area]: areaRenderer,
   [DISPLAY_MODES.gradientBar]: gradientBarRenderer,
   [DISPLAY_MODES.glowLine]: glowLineRenderer,
+  [DISPLAY_MODES.glowCircle]: glowCircleRenderer,
   [DISPLAY_MODES.radial]: radialRenderer,
   [DISPLAY_MODES.waterfall]: waterfallRenderer,
   [DISPLAY_MODES.dotRing]: dotRingRenderer,
@@ -58,6 +61,7 @@ const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
 const areaShapeConfig = { ...DEFAULT_CONFIG.area.shape };
 const gradientBarShapeConfig = { ...DEFAULT_CONFIG.gradientBar.shape };
 const glowLineShapeConfig = { ...DEFAULT_CONFIG.glowLine.shape };
+const glowCircleShapeConfig = { ...DEFAULT_CONFIG.glowCircle.shape };
 const radialShapeConfig = { ...DEFAULT_CONFIG.radial.shape };
 const waterfallShapeConfig = { ...DEFAULT_CONFIG.waterfall.shape };
 const dotRingShapeConfig = { ...DEFAULT_CONFIG.dotRing.shape };
@@ -105,6 +109,14 @@ function applyGlowLineShapeConfig(payload) {
   glowLineShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyGlowCircleShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  glowCircleShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  glowCircleShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  glowCircleShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  glowCircleShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function applyRadialShapeConfig(payload) {
   if (!payload || typeof payload !== "object") return;
   radialShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
@@ -141,6 +153,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (gradientBarRaw) applyGradientBarShapeConfig(JSON.parse(gradientBarRaw));
     const glowLineRaw = readWindowStorageString(window.localStorage, windowLabel, "glowLineShape");
     if (glowLineRaw) applyGlowLineShapeConfig(JSON.parse(glowLineRaw));
+    const glowCircleRaw = readWindowStorageString(window.localStorage, windowLabel, "glowCircleShape");
+    if (glowCircleRaw) applyGlowCircleShapeConfig(JSON.parse(glowCircleRaw));
     const radialRaw = readWindowStorageString(window.localStorage, windowLabel, "radialShape");
     if (radialRaw) applyRadialShapeConfig(JSON.parse(radialRaw));
     const waterfallRaw = readWindowStorageString(window.localStorage, windowLabel, "waterfallShape");
@@ -174,6 +188,8 @@ const gradientBarColorHighRgb = { r: 0, g: 0, b: 0 };
 const gradientBarPeakRgb = { r: 1, g: 1, b: 1 };
 const glowLineCoreRgb = { r: 0, g: 0, b: 0 };
 const glowLineGlowRgb = { r: 0, g: 0, b: 0 };
+const glowCircleCoreRgb = { r: 0, g: 0, b: 0 };
+const glowCircleGlowRgb = { r: 0, g: 0, b: 0 };
 const radialBarRgb = { r: 0, g: 0, b: 0 };
 const waterfallColorLowRgb = { r: 0, g: 0, b: 0 };
 const waterfallColorHighRgb = { r: 0, g: 0, b: 0 };
@@ -198,6 +214,8 @@ applyGradientBarColorHighHex(DEFAULT_CONFIG.gradientBar.colorHigh);
 applyGradientBarPeakColorHex(DEFAULT_CONFIG.gradientBar.peakColor);
 applyGlowLineCoreColorHex(DEFAULT_CONFIG.glowLine.coreColor);
 applyGlowLineGlowColorHex(DEFAULT_CONFIG.glowLine.glowColor);
+applyGlowCircleCoreColorHex(DEFAULT_CONFIG.glowCircle.coreColor);
+applyGlowCircleGlowColorHex(DEFAULT_CONFIG.glowCircle.glowColor);
 applyRadialBarColorHex(DEFAULT_CONFIG.radial.barColor);
 applyWaterfallColorLowHex(DEFAULT_CONFIG.waterfall.colorLow);
 applyWaterfallColorHighHex(DEFAULT_CONFIG.waterfall.colorHigh);
@@ -230,6 +248,13 @@ let glowLineWidthPx = DEFAULT_CONFIG.glowLine.lineWidthPx;
 let glowLineGlowRadiusPx = DEFAULT_CONFIG.glowLine.glowRadiusPx;
 let glowLineGlowIntensityPercent = DEFAULT_CONFIG.glowLine.glowIntensityPercent;
 let glowLineGlowPasses = DEFAULT_CONFIG.glowLine.glowPasses;
+let glowCircleWidthPx = DEFAULT_CONFIG.glowCircle.lineWidthPx;
+let glowCircleGlowRadiusPx = DEFAULT_CONFIG.glowCircle.glowRadiusPx;
+let glowCircleGlowIntensityPercent = DEFAULT_CONFIG.glowCircle.glowIntensityPercent;
+let glowCircleGlowPasses = DEFAULT_CONFIG.glowCircle.glowPasses;
+let glowCircleRingRadiusPercent = DEFAULT_CONFIG.glowCircle.ringRadiusPercent;
+let glowCircleRotationOffsetDeg = DEFAULT_CONFIG.glowCircle.rotationOffsetDeg;
+let glowCircleClockwise = DEFAULT_CONFIG.glowCircle.clockwise;
 let radialInnerRadiusPercent = DEFAULT_CONFIG.radial.innerRadiusPercent;
 let radialOuterRadiusPercent = DEFAULT_CONFIG.radial.outerRadiusPercent;
 let radialBarThicknessPercent = DEFAULT_CONFIG.radial.barThicknessPercent;
@@ -394,6 +419,50 @@ function applyGlowLineGlowRadiusPx(n) {
 
 function applyGlowLineGlowIntensityPercent(n) {
   glowLineGlowIntensityPercent = clampInt(n, 0, 100);
+}
+
+function applyGlowCircleCoreColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.glowCircle.coreColor;
+  const { r, g, b } = hexToRgb(safe);
+  glowCircleCoreRgb.r = r / 255;
+  glowCircleCoreRgb.g = g / 255;
+  glowCircleCoreRgb.b = b / 255;
+}
+
+function applyGlowCircleGlowColorHex(hex) {
+  const raw = typeof hex === "string" ? hex.trim() : "";
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.glowCircle.glowColor;
+  const { r, g, b } = hexToRgb(safe);
+  glowCircleGlowRgb.r = r / 255;
+  glowCircleGlowRgb.g = g / 255;
+  glowCircleGlowRgb.b = b / 255;
+}
+
+function applyGlowCircleWidthPx(n) {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return;
+  glowCircleWidthPx = Math.min(WAVEFORM_WIDTH_MAX, Math.max(WAVEFORM_WIDTH_MIN, v));
+}
+
+function applyGlowCircleGlowRadiusPx(n) {
+  glowCircleGlowRadiusPx = clampInt(n, 2, 24);
+}
+
+function applyGlowCircleGlowIntensityPercent(n) {
+  glowCircleGlowIntensityPercent = clampInt(n, 0, 100);
+}
+
+function applyGlowCircleRingRadiusPercent(n) {
+  glowCircleRingRadiusPercent = clampInt(n, 10, 85);
+}
+
+function applyGlowCircleRotationOffsetDeg(n) {
+  glowCircleRotationOffsetDeg = clampInt(n, -180, 180);
+}
+
+function applyGlowCircleClockwise(value) {
+  glowCircleClockwise = parseBoolean(value, DEFAULT_CONFIG.glowCircle.clockwise);
 }
 
 function applyRadialBarColorHex(hex) {
@@ -567,6 +636,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.area) return areaShapeConfig;
   if (mode === DISPLAY_MODES.gradientBar) return gradientBarShapeConfig;
   if (mode === DISPLAY_MODES.glowLine) return glowLineShapeConfig;
+  if (mode === DISPLAY_MODES.glowCircle) return glowCircleShapeConfig;
   if (mode === DISPLAY_MODES.radial) return radialShapeConfig;
   if (mode === DISPLAY_MODES.waterfall) return waterfallShapeConfig;
   if (mode === DISPLAY_MODES.dotRing) return dotRingShapeConfig;
@@ -624,6 +694,20 @@ function getStyleConfigForMode(mode) {
       glowRadiusPx: glowLineGlowRadiusPx,
       glowIntensity: glowLineGlowIntensityPercent / 100,
       glowPasses: glowLineGlowPasses,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.glowCircle) {
+    return {
+      coreColor: glowCircleCoreRgb,
+      glowColor: glowCircleGlowRgb,
+      lineWidthPx: glowCircleWidthPx,
+      glowRadiusPx: glowCircleGlowRadiusPx,
+      glowIntensity: glowCircleGlowIntensityPercent / 100,
+      glowPasses: glowCircleGlowPasses,
+      ringRadiusPercent: glowCircleRingRadiusPercent,
+      rotationOffsetDeg: glowCircleRotationOffsetDeg,
+      clockwise: glowCircleClockwise,
       freqReversed,
     };
   }
@@ -1091,6 +1175,73 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-glow-circle-core-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyGlowCircleCoreColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-glow-color",
+    (event) => {
+      const raw = event.payload;
+      const color = typeof raw === "string" ? raw : "";
+      applyGlowCircleGlowColorHex(color);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-width",
+    (event) => {
+      applyGlowCircleWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-glow-radius",
+    (event) => {
+      applyGlowCircleGlowRadiusPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-glow-intensity",
+    (event) => {
+      applyGlowCircleGlowIntensityPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-ring-radius",
+    (event) => {
+      applyGlowCircleRingRadiusPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-rotation",
+    (event) => {
+      applyGlowCircleRotationOffsetDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-clockwise",
+    (event) => {
+      applyGlowCircleClockwise(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-glow-circle-shape-config",
+    (event) => {
+      applyGlowCircleShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "waveform-radial-color",
     (event) => {
       const raw = event.payload;
@@ -1361,6 +1512,29 @@ async function init() {
     if (savedGlowLineIntensity != null && savedGlowLineIntensity !== "") {
       applyGlowLineGlowIntensityPercent(savedGlowLineIntensity);
     }
+    applyGlowCircleCoreColorHex(readWindowStorageString(window.localStorage, windowLabel, "glowCircleCoreColor"));
+    applyGlowCircleGlowColorHex(readWindowStorageString(window.localStorage, windowLabel, "glowCircleGlowColor"));
+    const savedGlowCircleWidth = readWindowStorageString(window.localStorage, windowLabel, "glowCircleWidth");
+    if (savedGlowCircleWidth != null && savedGlowCircleWidth !== "") {
+      applyGlowCircleWidthPx(savedGlowCircleWidth);
+    }
+    const savedGlowCircleRadius = readWindowStorageString(window.localStorage, windowLabel, "glowCircleGlowRadius");
+    if (savedGlowCircleRadius != null && savedGlowCircleRadius !== "") {
+      applyGlowCircleGlowRadiusPx(savedGlowCircleRadius);
+    }
+    const savedGlowCircleIntensity = readWindowStorageString(window.localStorage, windowLabel, "glowCircleGlowIntensity");
+    if (savedGlowCircleIntensity != null && savedGlowCircleIntensity !== "") {
+      applyGlowCircleGlowIntensityPercent(savedGlowCircleIntensity);
+    }
+    const savedGlowCircleRingRadius = readWindowStorageString(window.localStorage, windowLabel, "glowCircleRingRadius");
+    if (savedGlowCircleRingRadius != null && savedGlowCircleRingRadius !== "") {
+      applyGlowCircleRingRadiusPercent(savedGlowCircleRingRadius);
+    }
+    const savedGlowCircleRotation = readWindowStorageString(window.localStorage, windowLabel, "glowCircleRotation");
+    if (savedGlowCircleRotation != null && savedGlowCircleRotation !== "") {
+      applyGlowCircleRotationOffsetDeg(savedGlowCircleRotation);
+    }
+    applyGlowCircleClockwise(readWindowStorageString(window.localStorage, windowLabel, "glowCircleClockwise"));
     applyRadialBarColorHex(readWindowStorageString(window.localStorage, windowLabel, "radialColor"));
     const savedRadialInner = readWindowStorageString(window.localStorage, windowLabel, "radialInnerRadius");
     if (savedRadialInner != null && savedRadialInner !== "") {

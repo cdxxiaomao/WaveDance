@@ -42,6 +42,15 @@ export const STORAGE_KEYS = {
   glowLineGlowRadius: "wavedance.glowLineGlowRadiusPx",
   glowLineGlowIntensity: "wavedance.glowLineGlowIntensityPercent",
   glowLineShape: "wavedance.glowLineShapeConfig",
+  glowCircleCoreColor: "wavedance.glowCircleCoreColor",
+  glowCircleGlowColor: "wavedance.glowCircleGlowColor",
+  glowCircleWidth: "wavedance.glowCircleWidthPx",
+  glowCircleGlowRadius: "wavedance.glowCircleGlowRadiusPx",
+  glowCircleGlowIntensity: "wavedance.glowCircleGlowIntensityPercent",
+  glowCircleShape: "wavedance.glowCircleShapeConfig",
+  glowCircleRingRadius: "wavedance.glowCircleRingRadiusPercent",
+  glowCircleRotation: "wavedance.glowCircleRotationOffsetDeg",
+  glowCircleClockwise: "wavedance.glowCircleClockwise",
   radialColor: "wavedance.radialBarColor",
   radialInnerRadius: "wavedance.radialInnerRadiusPercent",
   radialOuterRadius: "wavedance.radialOuterRadiusPercent",
@@ -73,6 +82,7 @@ export const DISPLAY_MODES = {
   area: "area",
   gradientBar: "gradientBar",
   glowLine: "glowLine",
+  glowCircle: "glowCircle",
   radial: "radial",
   waterfall: "waterfall",
   dotRing: "dotRing",
@@ -173,6 +183,23 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 68,
     },
   },
+  glowCircle: {
+    coreColor: "#c4a574",
+    glowColor: "#c4a574",
+    lineWidthPx: 2,
+    glowRadiusPx: 8,
+    glowIntensityPercent: 70,
+    glowPasses: 4,
+    ringRadiusPercent: 55,
+    rotationOffsetDeg: 0,
+    clockwise: true,
+    shape: {
+      gainPercent: 50,
+      smoothPercent: 28,
+      softClipPercent: 22,
+      fallEasePercent: 68,
+    },
+  },
   radial: {
     barColor: "#8f7cff",
     innerRadiusPercent: 25,
@@ -223,6 +250,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.area) return DISPLAY_MODES.area;
   if (s === DISPLAY_MODES.gradientBar) return DISPLAY_MODES.gradientBar;
   if (s === DISPLAY_MODES.glowLine) return DISPLAY_MODES.glowLine;
+  if (s === DISPLAY_MODES.glowCircle) return DISPLAY_MODES.glowCircle;
   if (s === DISPLAY_MODES.radial) return DISPLAY_MODES.radial;
   if (s === DISPLAY_MODES.waterfall) return DISPLAY_MODES.waterfall;
   if (s === DISPLAY_MODES.dotRing) return DISPLAY_MODES.dotRing;
@@ -351,6 +379,15 @@ export function windowStorageKeys(windowLabel) {
     glowLineGlowRadius: `${pre}.glowLineGlowRadiusPx`,
     glowLineGlowIntensity: `${pre}.glowLineGlowIntensityPercent`,
     glowLineShape: `${pre}.glowLineShapeConfig`,
+    glowCircleCoreColor: `${pre}.glowCircleCoreColor`,
+    glowCircleGlowColor: `${pre}.glowCircleGlowColor`,
+    glowCircleWidth: `${pre}.glowCircleWidthPx`,
+    glowCircleGlowRadius: `${pre}.glowCircleGlowRadiusPx`,
+    glowCircleGlowIntensity: `${pre}.glowCircleGlowIntensityPercent`,
+    glowCircleShape: `${pre}.glowCircleShapeConfig`,
+    glowCircleRingRadius: `${pre}.glowCircleRingRadiusPercent`,
+    glowCircleRotation: `${pre}.glowCircleRotationOffsetDeg`,
+    glowCircleClockwise: `${pre}.glowCircleClockwise`,
     radialColor: `${pre}.radialBarColor`,
     radialInnerRadius: `${pre}.radialInnerRadiusPercent`,
     radialOuterRadius: `${pre}.radialOuterRadiusPercent`,

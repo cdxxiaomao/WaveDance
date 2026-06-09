@@ -41,6 +41,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.area]: "areaConfigPanel",
   [DISPLAY_MODES.gradientBar]: "gradientBarConfigPanel",
   [DISPLAY_MODES.glowLine]: "glowLineConfigPanel",
+  [DISPLAY_MODES.glowCircle]: "glowCircleConfigPanel",
   [DISPLAY_MODES.radial]: "radialConfigPanel",
   [DISPLAY_MODES.waterfall]: "waterfallConfigPanel",
   [DISPLAY_MODES.dotRing]: "dotRingConfigPanel",
@@ -135,6 +136,27 @@ const glowLineSoftClipRange = document.querySelector("#glowLineSoftClipRange");
 const glowLineSoftClipValue = document.querySelector("#glowLineSoftClipValue");
 const glowLineFallEaseRange = document.querySelector("#glowLineFallEaseRange");
 const glowLineFallEaseValue = document.querySelector("#glowLineFallEaseValue");
+const glowCircleCoreColor = document.querySelector("#glowCircleCoreColor");
+const glowCircleGlowColor = document.querySelector("#glowCircleGlowColor");
+const glowCircleWidthRange = document.querySelector("#glowCircleWidthRange");
+const glowCircleWidthValue = document.querySelector("#glowCircleWidthValue");
+const glowCircleGlowRadiusRange = document.querySelector("#glowCircleGlowRadiusRange");
+const glowCircleGlowRadiusValue = document.querySelector("#glowCircleGlowRadiusValue");
+const glowCircleGlowIntensityRange = document.querySelector("#glowCircleGlowIntensityRange");
+const glowCircleGlowIntensityValue = document.querySelector("#glowCircleGlowIntensityValue");
+const glowCircleRingRadiusRange = document.querySelector("#glowCircleRingRadiusRange");
+const glowCircleRingRadiusValue = document.querySelector("#glowCircleRingRadiusValue");
+const glowCircleRotationRange = document.querySelector("#glowCircleRotationRange");
+const glowCircleRotationValue = document.querySelector("#glowCircleRotationValue");
+const glowCircleClockwiseToggle = document.querySelector("#glowCircleClockwiseToggle");
+const glowCircleGainRange = document.querySelector("#glowCircleGainRange");
+const glowCircleGainValue = document.querySelector("#glowCircleGainValue");
+const glowCircleSmoothRange = document.querySelector("#glowCircleSmoothRange");
+const glowCircleSmoothValue = document.querySelector("#glowCircleSmoothValue");
+const glowCircleSoftClipRange = document.querySelector("#glowCircleSoftClipRange");
+const glowCircleSoftClipValue = document.querySelector("#glowCircleSoftClipValue");
+const glowCircleFallEaseRange = document.querySelector("#glowCircleFallEaseRange");
+const glowCircleFallEaseValue = document.querySelector("#glowCircleFallEaseValue");
 const radialBarColor = document.querySelector("#radialBarColor");
 const radialInnerRadiusRange = document.querySelector("#radialInnerRadiusRange");
 const radialInnerRadiusValue = document.querySelector("#radialInnerRadiusValue");
@@ -568,6 +590,128 @@ function applyGlowLineFormFromStorage(v) {
         : DEFAULT_CONFIG.glowLine.glowIntensityPercent;
     glowLineGlowIntensityRange.value = String(glowIntensity);
     if (glowLineGlowIntensityValue) glowLineGlowIntensityValue.textContent = String(glowIntensity);
+  }
+}
+
+function readGlowCircleShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncGlowCircleShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(glowCircleGainRange?.value, 10, 150),
+    smoothPercent: clampInt(glowCircleSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(glowCircleSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(glowCircleFallEaseRange?.value, 0, 100),
+  };
+  if (glowCircleGainValue) glowCircleGainValue.textContent = String(config.gainPercent);
+  if (glowCircleSmoothValue) glowCircleSmoothValue.textContent = String(config.smoothPercent);
+  if (glowCircleSoftClipValue) glowCircleSoftClipValue.textContent = String(config.softClipPercent);
+  if (glowCircleFallEaseValue) glowCircleFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures in restricted contexts
+  }
+  try {
+    await emitVisual("waveform-glow-circle-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `同步霓虹圆形参数失败：${String(err)}`;
+  }
+}
+
+function applyGlowCircleFormFromStorage(v) {
+  const sg = readGlowCircleShapeConfig(v) ?? { ...DEFAULT_CONFIG.glowCircle.shape };
+  if (glowCircleGainRange) glowCircleGainRange.value = String(sg.gainPercent);
+  if (glowCircleSmoothRange) glowCircleSmoothRange.value = String(sg.smoothPercent);
+  if (glowCircleSoftClipRange) glowCircleSoftClipRange.value = String(sg.softClipPercent);
+  if (glowCircleFallEaseRange) glowCircleFallEaseRange.value = String(sg.fallEasePercent);
+  if (glowCircleGainValue) glowCircleGainValue.textContent = String(sg.gainPercent);
+  if (glowCircleSmoothValue) glowCircleSmoothValue.textContent = String(sg.smoothPercent);
+  if (glowCircleSoftClipValue) glowCircleSoftClipValue.textContent = String(sg.softClipPercent);
+  if (glowCircleFallEaseValue) glowCircleFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedCoreColor = readWindowStorageString(window.localStorage, v, "glowCircleCoreColor");
+  if (glowCircleCoreColor && savedCoreColor && /^#[0-9A-Fa-f]{6}$/.test(savedCoreColor)) {
+    glowCircleCoreColor.value = savedCoreColor.toLowerCase();
+  } else if (glowCircleCoreColor) {
+    glowCircleCoreColor.value = DEFAULT_CONFIG.glowCircle.coreColor;
+  }
+
+  const savedGlowColor = readWindowStorageString(window.localStorage, v, "glowCircleGlowColor");
+  if (glowCircleGlowColor && savedGlowColor && /^#[0-9A-Fa-f]{6}$/.test(savedGlowColor)) {
+    glowCircleGlowColor.value = savedGlowColor.toLowerCase();
+  } else if (glowCircleGlowColor) {
+    glowCircleGlowColor.value = DEFAULT_CONFIG.glowCircle.glowColor;
+  }
+
+  const savedLineWidth = readWindowStorageString(window.localStorage, v, "glowCircleWidth");
+  if (glowCircleWidthRange) {
+    const lineWidth =
+      savedLineWidth != null && savedLineWidth !== ""
+        ? clampInt(savedLineWidth, 1, 12)
+        : DEFAULT_CONFIG.glowCircle.lineWidthPx;
+    glowCircleWidthRange.value = String(lineWidth);
+    if (glowCircleWidthValue) glowCircleWidthValue.textContent = String(lineWidth);
+  }
+
+  const savedGlowRadius = readWindowStorageString(window.localStorage, v, "glowCircleGlowRadius");
+  if (glowCircleGlowRadiusRange) {
+    const glowRadius =
+      savedGlowRadius != null && savedGlowRadius !== ""
+        ? clampInt(savedGlowRadius, 2, 24)
+        : DEFAULT_CONFIG.glowCircle.glowRadiusPx;
+    glowCircleGlowRadiusRange.value = String(glowRadius);
+    if (glowCircleGlowRadiusValue) glowCircleGlowRadiusValue.textContent = String(glowRadius);
+  }
+
+  const savedGlowIntensity = readWindowStorageString(window.localStorage, v, "glowCircleGlowIntensity");
+  if (glowCircleGlowIntensityRange) {
+    const glowIntensity =
+      savedGlowIntensity != null && savedGlowIntensity !== ""
+        ? clampInt(savedGlowIntensity, 0, 100)
+        : DEFAULT_CONFIG.glowCircle.glowIntensityPercent;
+    glowCircleGlowIntensityRange.value = String(glowIntensity);
+    if (glowCircleGlowIntensityValue) glowCircleGlowIntensityValue.textContent = String(glowIntensity);
+  }
+
+  const savedRingRadius = readWindowStorageString(window.localStorage, v, "glowCircleRingRadius");
+  if (glowCircleRingRadiusRange) {
+    const ringRadius =
+      savedRingRadius != null && savedRingRadius !== ""
+        ? clampInt(savedRingRadius, 10, 85)
+        : DEFAULT_CONFIG.glowCircle.ringRadiusPercent;
+    glowCircleRingRadiusRange.value = String(ringRadius);
+    if (glowCircleRingRadiusValue) glowCircleRingRadiusValue.textContent = String(ringRadius);
+  }
+
+  const savedRotation = readWindowStorageString(window.localStorage, v, "glowCircleRotation");
+  if (glowCircleRotationRange) {
+    const rotation =
+      savedRotation != null && savedRotation !== ""
+        ? clampInt(savedRotation, -180, 180)
+        : DEFAULT_CONFIG.glowCircle.rotationOffsetDeg;
+    glowCircleRotationRange.value = String(rotation);
+    if (glowCircleRotationValue) glowCircleRotationValue.textContent = String(rotation);
+  }
+
+  if (glowCircleClockwiseToggle) {
+    glowCircleClockwiseToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "glowCircleClockwise"),
+      DEFAULT_CONFIG.glowCircle.clockwise,
+    );
   }
 }
 
@@ -1148,6 +1292,7 @@ async function init() {
     applyAreaFormFromStorage(v);
     applyGradientBarFormFromStorage(v);
     applyGlowLineFormFromStorage(v);
+    applyGlowCircleFormFromStorage(v);
     applyRadialFormFromStorage(v);
     applyWaterfallFormFromStorage(v);
     applyDotRingFormFromStorage(v);
@@ -1733,6 +1878,93 @@ async function init() {
   glowLineFallEaseRange?.addEventListener("input", () => {
     void syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
   });
+  glowCircleCoreColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleCoreColor", glowCircleCoreColor.value);
+      await emitVisual("waveform-glow-circle-core-color", glowCircleCoreColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心线颜色失败：${String(err)}`;
+    }
+  });
+  glowCircleGlowColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleGlowColor", glowCircleGlowColor.value);
+      await emitVisual("waveform-glow-circle-glow-color", glowCircleGlowColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新光晕颜色失败：${String(err)}`;
+    }
+  });
+  glowCircleWidthRange?.addEventListener("input", async (event) => {
+    const lineWidth = clampInt(event.target.value, 1, 12);
+    if (glowCircleWidthValue) glowCircleWidthValue.textContent = String(lineWidth);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleWidth", String(lineWidth));
+      await emitVisual("waveform-glow-circle-width", lineWidth);
+    } catch (err) {
+      statusEl.textContent = `更新线条粗细失败：${String(err)}`;
+    }
+  });
+  glowCircleGlowRadiusRange?.addEventListener("input", async (event) => {
+    const glowRadius = clampInt(event.target.value, 2, 24);
+    if (glowCircleGlowRadiusValue) glowCircleGlowRadiusValue.textContent = String(glowRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleGlowRadius", String(glowRadius));
+      await emitVisual("waveform-glow-circle-glow-radius", glowRadius);
+    } catch (err) {
+      statusEl.textContent = `更新光晕半径失败：${String(err)}`;
+    }
+  });
+  glowCircleGlowIntensityRange?.addEventListener("input", async (event) => {
+    const glowIntensity = clampInt(event.target.value, 0, 100);
+    if (glowCircleGlowIntensityValue) glowCircleGlowIntensityValue.textContent = String(glowIntensity);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleGlowIntensity", String(glowIntensity));
+      await emitVisual("waveform-glow-circle-glow-intensity", glowIntensity);
+    } catch (err) {
+      statusEl.textContent = `更新光晕强度失败：${String(err)}`;
+    }
+  });
+  glowCircleRingRadiusRange?.addEventListener("input", async (event) => {
+    const ringRadius = clampInt(event.target.value, 10, 85);
+    if (glowCircleRingRadiusValue) glowCircleRingRadiusValue.textContent = String(ringRadius);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleRingRadius", String(ringRadius));
+      await emitVisual("waveform-glow-circle-ring-radius", ringRadius);
+    } catch (err) {
+      statusEl.textContent = `更新圆环半径失败：${String(err)}`;
+    }
+  });
+  glowCircleRotationRange?.addEventListener("input", async (event) => {
+    const rotation = clampInt(event.target.value, -180, 180);
+    if (glowCircleRotationValue) glowCircleRotationValue.textContent = String(rotation);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleRotation", String(rotation));
+      await emitVisual("waveform-glow-circle-rotation", rotation);
+    } catch (err) {
+      statusEl.textContent = `更新起始旋转失败：${String(err)}`;
+    }
+  });
+  glowCircleClockwiseToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "glowCircleClockwise", String(enabled));
+      await emitVisual("waveform-glow-circle-clockwise", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新排列方向失败：${String(err)}`;
+    }
+  });
+  glowCircleGainRange?.addEventListener("input", () => {
+    void syncGlowCircleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowCircleSmoothRange?.addEventListener("input", () => {
+    void syncGlowCircleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowCircleSoftClipRange?.addEventListener("input", () => {
+    void syncGlowCircleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  glowCircleFallEaseRange?.addEventListener("input", () => {
+    void syncGlowCircleShapeConfig(visualTargetLabel, emitVisual);
+  });
   radialBarColor?.addEventListener("input", async () => {
     try {
       writeWindowStorageString(window.localStorage, visualTargetLabel, "radialColor", radialBarColor.value);
@@ -2146,6 +2378,8 @@ async function init() {
   await syncGradientBarShapeConfig(visualTargetLabel, emitVisual);
   applyGlowLineFormFromStorage(visualTargetLabel);
   await syncGlowLineShapeConfig(visualTargetLabel, emitVisual);
+  applyGlowCircleFormFromStorage(visualTargetLabel);
+  await syncGlowCircleShapeConfig(visualTargetLabel, emitVisual);
   applyRadialFormFromStorage(visualTargetLabel);
   await syncRadialShapeConfig(visualTargetLabel, emitVisual);
   applyWaterfallFormFromStorage(visualTargetLabel);
@@ -2309,6 +2543,30 @@ async function init() {
   }
   if (glowLineGlowIntensityRange) {
     await emitVisual("waveform-glow-line-glow-intensity", clampInt(glowLineGlowIntensityRange.value, 0, 100));
+  }
+  if (glowCircleCoreColor) {
+    await emitVisual("waveform-glow-circle-core-color", glowCircleCoreColor.value);
+  }
+  if (glowCircleGlowColor) {
+    await emitVisual("waveform-glow-circle-glow-color", glowCircleGlowColor.value);
+  }
+  if (glowCircleWidthRange) {
+    await emitVisual("waveform-glow-circle-width", clampInt(glowCircleWidthRange.value, 1, 12));
+  }
+  if (glowCircleGlowRadiusRange) {
+    await emitVisual("waveform-glow-circle-glow-radius", clampInt(glowCircleGlowRadiusRange.value, 2, 24));
+  }
+  if (glowCircleGlowIntensityRange) {
+    await emitVisual("waveform-glow-circle-glow-intensity", clampInt(glowCircleGlowIntensityRange.value, 0, 100));
+  }
+  if (glowCircleRingRadiusRange) {
+    await emitVisual("waveform-glow-circle-ring-radius", clampInt(glowCircleRingRadiusRange.value, 10, 85));
+  }
+  if (glowCircleRotationRange) {
+    await emitVisual("waveform-glow-circle-rotation", clampInt(glowCircleRotationRange.value, -180, 180));
+  }
+  if (glowCircleClockwiseToggle) {
+    await emitVisual("waveform-glow-circle-clockwise", Boolean(glowCircleClockwiseToggle.checked));
   }
   if (radialBarColor) {
     await emitVisual("waveform-radial-color", radialBarColor.value);
