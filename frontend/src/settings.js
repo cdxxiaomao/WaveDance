@@ -15,6 +15,7 @@ import {
   parseBoolean,
   normalizeDepthLayersRenderStyle,
   normalizeHelix3dExtrudeMode,
+  normalizeKaleidoscopeSegments,
   readWindowStorageString,
   writeWindowStorageString,
 } from "./visualizationSchema.js";
@@ -58,6 +59,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeParticleGalaxy]: "threeParticleGalaxyConfigPanel",
   [DISPLAY_MODES.threeBloomTunnel]: "threeBloomTunnelConfigPanel",
   [DISPLAY_MODES.threeEnergySphere]: "threeEnergySphereConfigPanel",
+  [DISPLAY_MODES.threeKaleidoscope]: "threeKaleidoscopeConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -460,6 +462,24 @@ const threeSphereSoftClipRange = document.querySelector("#threeSphereSoftClipRan
 const threeSphereSoftClipValue = document.querySelector("#threeSphereSoftClipValue");
 const threeSphereFallEaseRange = document.querySelector("#threeSphereFallEaseRange");
 const threeSphereFallEaseValue = document.querySelector("#threeSphereFallEaseValue");
+const threeKaleidoscopeSegmentsSelect = document.querySelector("#threeKaleidoscopeSegmentsSelect");
+const threeKaleidoscopeColorLow = document.querySelector("#threeKaleidoscopeColorLow");
+const threeKaleidoscopeColorHigh = document.querySelector("#threeKaleidoscopeColorHigh");
+const threeKaleidoscopeRotationSpeedRange = document.querySelector("#threeKaleidoscopeRotationSpeedRange");
+const threeKaleidoscopeRotationSpeedValue = document.querySelector("#threeKaleidoscopeRotationSpeedValue");
+const threeKaleidoscopeReactivenessRange = document.querySelector("#threeKaleidoscopeReactivenessRange");
+const threeKaleidoscopeReactivenessValue = document.querySelector("#threeKaleidoscopeReactivenessValue");
+const threeKaleidoscopeBloomToggle = document.querySelector("#threeKaleidoscopeBloomToggle");
+const threeKaleidoscopeBloomStrengthRange = document.querySelector("#threeKaleidoscopeBloomStrengthRange");
+const threeKaleidoscopeBloomStrengthValue = document.querySelector("#threeKaleidoscopeBloomStrengthValue");
+const threeKaleidoscopeGainRange = document.querySelector("#threeKaleidoscopeGainRange");
+const threeKaleidoscopeGainValue = document.querySelector("#threeKaleidoscopeGainValue");
+const threeKaleidoscopeSmoothRange = document.querySelector("#threeKaleidoscopeSmoothRange");
+const threeKaleidoscopeSmoothValue = document.querySelector("#threeKaleidoscopeSmoothValue");
+const threeKaleidoscopeSoftClipRange = document.querySelector("#threeKaleidoscopeSoftClipRange");
+const threeKaleidoscopeSoftClipValue = document.querySelector("#threeKaleidoscopeSoftClipValue");
+const threeKaleidoscopeFallEaseRange = document.querySelector("#threeKaleidoscopeFallEaseRange");
+const threeKaleidoscopeFallEaseValue = document.querySelector("#threeKaleidoscopeFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2345,6 +2365,119 @@ function applyThreeSphereFormFromStorage(v) {
   }
 }
 
+function readThreeKaleidoscopeShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeKaleidoscopeShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeKaleidoscopeGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeKaleidoscopeSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeKaleidoscopeSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeKaleidoscopeFallEaseRange?.value, 0, 100),
+  };
+  if (threeKaleidoscopeGainValue) threeKaleidoscopeGainValue.textContent = String(config.gainPercent);
+  if (threeKaleidoscopeSmoothValue) threeKaleidoscopeSmoothValue.textContent = String(config.smoothPercent);
+  if (threeKaleidoscopeSoftClipValue) threeKaleidoscopeSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeKaleidoscopeFallEaseValue) threeKaleidoscopeFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeKaleidoscopeShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-kaleidoscope-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新万花筒形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeKaleidoscopeFormFromStorage(v) {
+  const sg = readThreeKaleidoscopeShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeKaleidoscope.shape };
+  if (threeKaleidoscopeGainRange) threeKaleidoscopeGainRange.value = String(sg.gainPercent);
+  if (threeKaleidoscopeSmoothRange) threeKaleidoscopeSmoothRange.value = String(sg.smoothPercent);
+  if (threeKaleidoscopeSoftClipRange) threeKaleidoscopeSoftClipRange.value = String(sg.softClipPercent);
+  if (threeKaleidoscopeFallEaseRange) threeKaleidoscopeFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeKaleidoscopeGainValue) threeKaleidoscopeGainValue.textContent = String(sg.gainPercent);
+  if (threeKaleidoscopeSmoothValue) threeKaleidoscopeSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeKaleidoscopeSoftClipValue) threeKaleidoscopeSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeKaleidoscopeFallEaseValue) threeKaleidoscopeFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedSegments = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeSegments");
+  if (threeKaleidoscopeSegmentsSelect) {
+    const segments = normalizeKaleidoscopeSegments(
+      savedSegments ?? DEFAULT_CONFIG.threeKaleidoscope.segments,
+      DEFAULT_CONFIG.threeKaleidoscope.segments,
+    );
+    threeKaleidoscopeSegmentsSelect.value = String(segments);
+  }
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeColorLow");
+  if (threeKaleidoscopeColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    threeKaleidoscopeColorLow.value = savedColorLow.toLowerCase();
+  } else if (threeKaleidoscopeColorLow) {
+    threeKaleidoscopeColorLow.value = DEFAULT_CONFIG.threeKaleidoscope.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeColorHigh");
+  if (threeKaleidoscopeColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    threeKaleidoscopeColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (threeKaleidoscopeColorHigh) {
+    threeKaleidoscopeColorHigh.value = DEFAULT_CONFIG.threeKaleidoscope.colorHigh;
+  }
+
+  const savedRotation = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeRotationSpeed");
+  if (threeKaleidoscopeRotationSpeedRange) {
+    const rotationSpeed =
+      savedRotation != null && savedRotation !== ""
+        ? Math.min(30, Math.max(0, Number(savedRotation)))
+        : DEFAULT_CONFIG.threeKaleidoscope.rotationSpeedDeg;
+    threeKaleidoscopeRotationSpeedRange.value = String(Math.round(rotationSpeed));
+    if (threeKaleidoscopeRotationSpeedValue) {
+      threeKaleidoscopeRotationSpeedValue.textContent = String(Math.round(rotationSpeed));
+    }
+  }
+
+  const savedReactiveness = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeReactiveness");
+  if (threeKaleidoscopeReactivenessRange) {
+    const reactiveness =
+      savedReactiveness != null && savedReactiveness !== ""
+        ? clampInt(savedReactiveness, 0, 100)
+        : DEFAULT_CONFIG.threeKaleidoscope.reactiveness;
+    threeKaleidoscopeReactivenessRange.value = String(reactiveness);
+    if (threeKaleidoscopeReactivenessValue) {
+      threeKaleidoscopeReactivenessValue.textContent = String(reactiveness);
+    }
+  }
+
+  if (threeKaleidoscopeBloomToggle) {
+    threeKaleidoscopeBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeKaleidoscopeBloom"),
+      DEFAULT_CONFIG.threeKaleidoscope.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeKaleidoscopeBloomStrength");
+  if (threeKaleidoscopeBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeKaleidoscope.bloomStrength;
+    threeKaleidoscopeBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeKaleidoscopeBloomStrengthValue) {
+      threeKaleidoscopeBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -2970,6 +3103,7 @@ async function init() {
     applyThreeGalaxyFormFromStorage(v);
     applyThreeTunnelFormFromStorage(v);
     applyThreeSphereFormFromStorage(v);
+    applyThreeKaleidoscopeFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -5171,6 +5305,127 @@ async function init() {
   });
   threeSphereFallEaseRange?.addEventListener("input", () => {
     void syncThreeSphereShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeKaleidoscopeSegmentsSelect?.addEventListener("change", async (event) => {
+    const segments = normalizeKaleidoscopeSegments(
+      event.target.value,
+      DEFAULT_CONFIG.threeKaleidoscope.segments,
+    );
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeSegments",
+        String(segments),
+      );
+      await emitVisual("waveform-three-kaleidoscope-segments", segments);
+    } catch (err) {
+      statusEl.textContent = `更新对称瓣数失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeColorLow",
+        threeKaleidoscopeColorLow.value,
+      );
+      await emitVisual("waveform-three-kaleidoscope-color-low", threeKaleidoscopeColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeColorHigh",
+        threeKaleidoscopeColorHigh.value,
+      );
+      await emitVisual("waveform-three-kaleidoscope-color-high", threeKaleidoscopeColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeRotationSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(30, Math.max(0, Number(event.target.value)));
+    if (threeKaleidoscopeRotationSpeedValue) {
+      threeKaleidoscopeRotationSpeedValue.textContent = String(Math.round(speed));
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeRotationSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-kaleidoscope-rotation-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新旋转速度失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeReactivenessRange?.addEventListener("input", async (event) => {
+    const reactiveness = clampInt(event.target.value, 0, 100);
+    if (threeKaleidoscopeReactivenessValue) {
+      threeKaleidoscopeReactivenessValue.textContent = String(reactiveness);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeReactiveness",
+        String(reactiveness),
+      );
+      await emitVisual("waveform-three-kaleidoscope-reactiveness", reactiveness);
+    } catch (err) {
+      statusEl.textContent = `更新频谱驱动失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeBloom",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-kaleidoscope-bloom", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeKaleidoscopeBloomStrengthValue) {
+      threeKaleidoscopeBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeKaleidoscopeBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-kaleidoscope-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeKaleidoscopeGainRange?.addEventListener("input", () => {
+    void syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeKaleidoscopeSmoothRange?.addEventListener("input", () => {
+    void syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeKaleidoscopeSoftClipRange?.addEventListener("input", () => {
+    void syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeKaleidoscopeFallEaseRange?.addEventListener("input", () => {
+    void syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

@@ -27,6 +27,7 @@ import {
   normalizeDisplayMode,
   normalizeDepthLayersRenderStyle,
   normalizeHelix3dExtrudeMode,
+  normalizeKaleidoscopeSegments,
   parseBoolean,
   readWindowStorageString,
   readBarPeakHoldMode,
@@ -99,6 +100,7 @@ const threePlasmaShapeConfig = { ...DEFAULT_CONFIG.threePlasmaField.shape };
 const threeGalaxyShapeConfig = { ...DEFAULT_CONFIG.threeParticleGalaxy.shape };
 const threeTunnelShapeConfig = { ...DEFAULT_CONFIG.threeBloomTunnel.shape };
 const threeSphereShapeConfig = { ...DEFAULT_CONFIG.threeEnergySphere.shape };
+const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -258,6 +260,14 @@ function applyThreeSphereShapeConfig(payload) {
   threeSphereShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeKaleidoscopeShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeKaleidoscopeShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeKaleidoscopeShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeKaleidoscopeShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeKaleidoscopeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -298,6 +308,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeTunnelRaw) applyThreeTunnelShapeConfig(JSON.parse(threeTunnelRaw));
     const threeSphereRaw = readWindowStorageString(window.localStorage, windowLabel, "threeSphereShape");
     if (threeSphereRaw) applyThreeSphereShapeConfig(JSON.parse(threeSphereRaw));
+    const threeKaleidoscopeRaw = readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeShape");
+    if (threeKaleidoscopeRaw) applyThreeKaleidoscopeShapeConfig(JSON.parse(threeKaleidoscopeRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -520,6 +532,13 @@ let threeSphereWireframeOverlay = DEFAULT_CONFIG.threeEnergySphere.wireframeOver
 let threeSphereBloomEnabled = DEFAULT_CONFIG.threeEnergySphere.bloomEnabled;
 let threeSphereBloomStrength = DEFAULT_CONFIG.threeEnergySphere.bloomStrength;
 let threeSphereAutoRotateSpeedDeg = DEFAULT_CONFIG.threeEnergySphere.autoRotateSpeedDeg;
+let threeKaleidoscopeSegments = DEFAULT_CONFIG.threeKaleidoscope.segments;
+let threeKaleidoscopeColorLowHex = DEFAULT_CONFIG.threeKaleidoscope.colorLow;
+let threeKaleidoscopeColorHighHex = DEFAULT_CONFIG.threeKaleidoscope.colorHigh;
+let threeKaleidoscopeRotationSpeedDeg = DEFAULT_CONFIG.threeKaleidoscope.rotationSpeedDeg;
+let threeKaleidoscopeReactiveness = DEFAULT_CONFIG.threeKaleidoscope.reactiveness;
+let threeKaleidoscopeBloomEnabled = DEFAULT_CONFIG.threeKaleidoscope.bloomEnabled;
+let threeKaleidoscopeBloomStrength = DEFAULT_CONFIG.threeKaleidoscope.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1341,6 +1360,43 @@ function applyThreeSphereAutoRotateSpeedDeg(value) {
   threeSphereAutoRotateSpeedDeg = Math.min(20, Math.max(0, n));
 }
 
+function applyThreeKaleidoscopeSegments(value) {
+  threeKaleidoscopeSegments = normalizeKaleidoscopeSegments(
+    value,
+    DEFAULT_CONFIG.threeKaleidoscope.segments,
+  );
+}
+
+function applyThreeKaleidoscopeColorLowHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeKaleidoscope.colorLow;
+  threeKaleidoscopeColorLowHex = safe;
+}
+
+function applyThreeKaleidoscopeColorHighHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeKaleidoscope.colorHigh;
+  threeKaleidoscopeColorHighHex = safe;
+}
+
+function applyThreeKaleidoscopeRotationSpeedDeg(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeKaleidoscopeRotationSpeedDeg = Math.min(30, Math.max(0, n));
+}
+
+function applyThreeKaleidoscopeReactiveness(value) {
+  threeKaleidoscopeReactiveness = clampInt(value, 0, 100);
+}
+
+function applyThreeKaleidoscopeBloomEnabled(value) {
+  threeKaleidoscopeBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeKaleidoscope.bloomEnabled);
+}
+
+function applyThreeKaleidoscopeBloomStrength(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeKaleidoscopeBloomStrength = Math.min(2, Math.max(0, n));
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1559,6 +1615,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeParticleGalaxy) return threeGalaxyShapeConfig;
   if (mode === DISPLAY_MODES.threeBloomTunnel) return threeTunnelShapeConfig;
   if (mode === DISPLAY_MODES.threeEnergySphere) return threeSphereShapeConfig;
+  if (mode === DISPLAY_MODES.threeKaleidoscope) return threeKaleidoscopeShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1816,6 +1873,18 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeSphereBloomEnabled,
       bloomStrength: threeSphereBloomStrength,
       autoRotateSpeedDeg: threeSphereAutoRotateSpeedDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeKaleidoscope) {
+    return {
+      segments: threeKaleidoscopeSegments,
+      colorLow: threeKaleidoscopeColorLowHex,
+      colorHigh: threeKaleidoscopeColorHighHex,
+      rotationSpeedDeg: threeKaleidoscopeRotationSpeedDeg,
+      reactiveness: threeKaleidoscopeReactiveness,
+      bloomEnabled: threeKaleidoscopeBloomEnabled,
+      bloomStrength: threeKaleidoscopeBloomStrength,
       freqReversed,
     };
   }
@@ -3280,6 +3349,62 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-kaleidoscope-segments",
+    (event) => {
+      applyThreeKaleidoscopeSegments(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-color-low",
+    (event) => {
+      applyThreeKaleidoscopeColorLowHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-color-high",
+    (event) => {
+      applyThreeKaleidoscopeColorHighHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-rotation-speed",
+    (event) => {
+      applyThreeKaleidoscopeRotationSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-reactiveness",
+    (event) => {
+      applyThreeKaleidoscopeReactiveness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-bloom",
+    (event) => {
+      applyThreeKaleidoscopeBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-bloom-strength",
+    (event) => {
+      applyThreeKaleidoscopeBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-kaleidoscope-shape-config",
+    (event) => {
+      applyThreeKaleidoscopeShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -3919,6 +4044,45 @@ async function init() {
     );
     if (savedSphereAutoRotate != null && savedSphereAutoRotate !== "") {
       applyThreeSphereAutoRotateSpeedDeg(savedSphereAutoRotate);
+    }
+    applyThreeKaleidoscopeSegments(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeSegments") ??
+        DEFAULT_CONFIG.threeKaleidoscope.segments,
+    );
+    applyThreeKaleidoscopeColorLowHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeColorLow") ??
+        DEFAULT_CONFIG.threeKaleidoscope.colorLow,
+    );
+    applyThreeKaleidoscopeColorHighHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeColorHigh") ??
+        DEFAULT_CONFIG.threeKaleidoscope.colorHigh,
+    );
+    const savedKaleidoscopeRotation = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeKaleidoscopeRotationSpeed",
+    );
+    if (savedKaleidoscopeRotation != null && savedKaleidoscopeRotation !== "") {
+      applyThreeKaleidoscopeRotationSpeedDeg(savedKaleidoscopeRotation);
+    }
+    const savedKaleidoscopeReact = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeKaleidoscopeReactiveness",
+    );
+    if (savedKaleidoscopeReact != null && savedKaleidoscopeReact !== "") {
+      applyThreeKaleidoscopeReactiveness(savedKaleidoscopeReact);
+    }
+    applyThreeKaleidoscopeBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeBloom"),
+    );
+    const savedKaleidoscopeBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeKaleidoscopeBloomStrength",
+    );
+    if (savedKaleidoscopeBloomStrength != null && savedKaleidoscopeBloomStrength !== "") {
+      applyThreeKaleidoscopeBloomStrength(savedKaleidoscopeBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

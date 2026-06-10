@@ -182,6 +182,14 @@ export const STORAGE_KEYS = {
   threeSphereBloomStrength: "wavedance.threeSphereBloomStrength",
   threeSphereAutoRotateSpeed: "wavedance.threeSphereAutoRotateSpeedDeg",
   threeSphereShape: "wavedance.threeSphereShapeConfig",
+  threeKaleidoscopeSegments: "wavedance.threeKaleidoscopeSegments",
+  threeKaleidoscopeColorLow: "wavedance.threeKaleidoscopeColorLow",
+  threeKaleidoscopeColorHigh: "wavedance.threeKaleidoscopeColorHigh",
+  threeKaleidoscopeRotationSpeed: "wavedance.threeKaleidoscopeRotationSpeedDeg",
+  threeKaleidoscopeReactiveness: "wavedance.threeKaleidoscopeReactiveness",
+  threeKaleidoscopeBloom: "wavedance.threeKaleidoscopeBloomEnabled",
+  threeKaleidoscopeBloomStrength: "wavedance.threeKaleidoscopeBloomStrength",
+  threeKaleidoscopeShape: "wavedance.threeKaleidoscopeShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -575,6 +583,21 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  threeKaleidoscope: {
+    segments: 8,
+    colorLow: "#3b82f6",
+    colorHigh: "#ec4899",
+    rotationSpeedDeg: 8,
+    reactiveness: 75,
+    bloomEnabled: true,
+    bloomStrength: 0.6,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 20,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -608,6 +631,14 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeBreathingRings) return DISPLAY_MODES.threeBreathingRings;
   if (s === DISPLAY_MODES.threeNoiseLandscape) return DISPLAY_MODES.threeNoiseLandscape;
   return DISPLAY_MODES.line;
+}
+
+/** @param {string | number} value @param {number} [fallback=8] */
+export function normalizeKaleidoscopeSegments(value, fallback = 8) {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  const clamped = Math.min(12, Math.max(4, n));
+  return clamped % 2 === 0 ? clamped : clamped - 1;
 }
 
 /** @param {string} value */
@@ -888,6 +919,14 @@ export function windowStorageKeys(windowLabel) {
     threeSphereBloomStrength: `${pre}.threeSphereBloomStrength`,
     threeSphereAutoRotateSpeed: `${pre}.threeSphereAutoRotateSpeedDeg`,
     threeSphereShape: `${pre}.threeSphereShapeConfig`,
+    threeKaleidoscopeSegments: `${pre}.threeKaleidoscopeSegments`,
+    threeKaleidoscopeColorLow: `${pre}.threeKaleidoscopeColorLow`,
+    threeKaleidoscopeColorHigh: `${pre}.threeKaleidoscopeColorHigh`,
+    threeKaleidoscopeRotationSpeed: `${pre}.threeKaleidoscopeRotationSpeedDeg`,
+    threeKaleidoscopeReactiveness: `${pre}.threeKaleidoscopeReactiveness`,
+    threeKaleidoscopeBloom: `${pre}.threeKaleidoscopeBloomEnabled`,
+    threeKaleidoscopeBloomStrength: `${pre}.threeKaleidoscopeBloomStrength`,
+    threeKaleidoscopeShape: `${pre}.threeKaleidoscopeShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

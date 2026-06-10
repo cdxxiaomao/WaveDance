@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~19 已全部完成；Phase 20~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~20 已全部完成；Phase 21~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1140,13 +1140,13 @@ threeKaleidoscope: {
 
 #### 20.2 新建 `renderers/three/kaleidoscopeRenderer.js`
 
-- [ ] fullscreen quad fragment：极坐标 + `mod(angle, 2π/segments)` 镜像
-- [ ] 频谱 → 半径方向亮度或 hue
+- [x] fullscreen quad fragment：极坐标 + `mod(angle, 2π/segments)` 镜像
+- [x] 频谱 → 半径方向亮度或 hue
 
 #### 20.3 验收标准
 
-- [ ] segments 4/6/8/12 切换对称瓣数正确
-- [ ] freqReversed 影响染色方向（若适用）
+- [x] segments 4/6/8/12 切换对称瓣数正确
+- [x] freqReversed 影响染色方向（若适用）
 
 ---
 
@@ -1576,7 +1576,7 @@ threeNoiseLandscape: {
 | 17 | 粒子银河 Three Particle Galaxy（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 19 | 能量球 Three Energy Sphere（A） | `[x]` 已完成 | 2026-06-10 |
-| 20 | 万花筒 Three Kaleidoscope（B） | `[ ]` 未开始 | |
+| 20 | 万花筒 Three Kaleidoscope（B） | `[x]` 已完成 | 2026-06-10 |
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[ ]` 未开始 | |
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[ ]` 未开始 | |
 | 23 | 扫描网格 Three Scan Grid（B） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 20（万花筒 Three Kaleidoscope，方案 B）
+**当前建议下一步**：Phase 21（故障频谱 Three Glitch Spectrum，方案 B）
 
 ---
 

@@ -8,6 +8,13 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 20：万花筒 Three Kaleidoscope（B）
+
+- 新建 `frontend/src/renderers/three/kaleidoscopeRenderer.js`：全屏 shader 极坐标万花筒镜像（`foldAngle` + 频谱 DataTexture 驱动径向条与 hue 染色）、旋转速度与 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeKaleidoscope`、`normalizeKaleidoscopeSegments` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-kaleidoscope-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 万花筒」、`#threeKaleidoscopeConfigPanel`（对称瓣数/低高能量色/旋转/频谱驱动/Bloom/形状四件套）。
+
 ### 可视化模式扩展 — Phase 19：能量球 Three Energy Sphere（A）
 
 - 新建 `frontend/src/renderers/three/energySphereRenderer.js`：高分段二十面体 CPU 顶点形变（频谱 band 采样 + 噪声调制）、外层粒子光晕、peak 呼吸缩放、可选线框叠加与 Bloom；`registerModes.js` 注册。

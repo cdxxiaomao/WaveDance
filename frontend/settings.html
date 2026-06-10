@@ -100,6 +100,7 @@
                 <option value="threeParticleGalaxy">粒子银河</option>
                 <option value="threeBloomTunnel">能量隧道</option>
                 <option value="threeEnergySphere">能量球</option>
+                <option value="threeKaleidoscope">万花筒</option>
               </optgroup>
             </select>
           </div>
@@ -1168,6 +1169,63 @@
           <div class="settings-field">
             <label for="threeSphereFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeSphereFallEaseValue">52</span>%</label>
             <input id="threeSphereFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeKaleidoscopeConfigPanel" aria-labelledby="sec-three-kaleidoscope-display" hidden>
+        <h2 id="sec-three-kaleidoscope-display" class="settings-card__title">万花筒配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-kaleidoscope" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeKaleidoscopeSegmentsSelect" class="settings-label">对称瓣数</label>
+            <select id="threeKaleidoscopeSegmentsSelect" class="settings-select">
+              <option value="4">4 瓣</option>
+              <option value="6">6 瓣</option>
+              <option value="8" selected>8 瓣</option>
+              <option value="10">10 瓣</option>
+              <option value="12">12 瓣</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeKaleidoscopeColorLow" class="settings-label">低能量色</label>
+            <input id="threeKaleidoscopeColorLow" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeKaleidoscopeColorHigh" class="settings-label">高能量色</label>
+            <input id="threeKaleidoscopeColorHigh" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeRotationSpeedRange" class="settings-label">旋转速度 <span class="settings-value" id="threeKaleidoscopeRotationSpeedValue">8</span>°/s</label>
+            <input id="threeKaleidoscopeRotationSpeedRange" type="range" min="0" max="30" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeReactivenessRange" class="settings-label">频谱驱动 <span class="settings-value" id="threeKaleidoscopeReactivenessValue">75</span>%</label>
+            <input id="threeKaleidoscopeReactivenessRange" type="range" min="0" max="100" step="1" value="75" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeKaleidoscopeBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeKaleidoscopeBloomStrengthValue">0.6</span></label>
+            <input id="threeKaleidoscopeBloomStrengthRange" type="range" min="0" max="20" step="1" value="6" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeGainRange" class="settings-label">增益 <span class="settings-value" id="threeKaleidoscopeGainValue">55</span>%</label>
+            <input id="threeKaleidoscopeGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeKaleidoscopeSmoothValue">20</span>%</label>
+            <input id="threeKaleidoscopeSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeKaleidoscopeSoftClipValue">12</span>%</label>
+            <input id="threeKaleidoscopeSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKaleidoscopeFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeKaleidoscopeFallEaseValue">55</span>%</label>
+            <input id="threeKaleidoscopeFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>
