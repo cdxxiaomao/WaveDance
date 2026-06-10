@@ -19,6 +19,7 @@ import { createCrystalGemRenderer } from "./crystalGemRenderer.js";
 import { createGlassOrbsRenderer } from "./glassOrbsRenderer.js";
 import { createHoloPrismRenderer } from "./holoPrismRenderer.js";
 import { createNebulaVolumeRenderer } from "./nebulaVolumeRenderer.js";
+import { createKnotOrganicRenderer } from "./knotOrganicRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
@@ -39,3 +40,4 @@ registerThreeMode(DISPLAY_MODES.threeCrystalGem, createCrystalGemRenderer);
 registerThreeMode(DISPLAY_MODES.threeGlassOrbs, createGlassOrbsRenderer);
 registerThreeMode(DISPLAY_MODES.threeHoloPrism, createHoloPrismRenderer);
 registerThreeMode(DISPLAY_MODES.threeNebulaVolume, createNebulaVolumeRenderer);
+registerThreeMode(DISPLAY_MODES.threeKnotOrganic, createKnotOrganicRenderer);

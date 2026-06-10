@@ -335,6 +335,17 @@ export const STORAGE_KEYS = {
   threeNebulaVolumeBloom: "wavedance.threeNebulaVolumeBloomEnabled",
   threeNebulaVolumeBloomStrength: "wavedance.threeNebulaVolumeBloomStrength",
   threeNebulaVolumeShape: "wavedance.threeNebulaVolumeShapeConfig",
+  threeKnotOrganicColor1: "wavedance.threeKnotOrganicColor1",
+  threeKnotOrganicColor2: "wavedance.threeKnotOrganicColor2",
+  threeKnotOrganicColor3: "wavedance.threeKnotOrganicColor3",
+  threeKnotOrganicKnotP: "wavedance.threeKnotOrganicKnotP",
+  threeKnotOrganicKnotQ: "wavedance.threeKnotOrganicKnotQ",
+  threeKnotOrganicTubeRadius: "wavedance.threeKnotOrganicTubeRadius",
+  threeKnotOrganicSurfaceNoise: "wavedance.threeKnotOrganicSurfaceNoise",
+  threeKnotOrganicRotationSpeedDeg: "wavedance.threeKnotOrganicRotationSpeedDeg",
+  threeKnotOrganicBloom: "wavedance.threeKnotOrganicBloomEnabled",
+  threeKnotOrganicBloomStrength: "wavedance.threeKnotOrganicBloomStrength",
+  threeKnotOrganicShape: "wavedance.threeKnotOrganicShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -376,6 +387,7 @@ export const DISPLAY_MODES = {
   threeGlassOrbs: "threeGlassOrbs",
   threeHoloPrism: "threeHoloPrism",
   threeNebulaVolume: "threeNebulaVolume",
+  threeKnotOrganic: "threeKnotOrganic",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -399,6 +411,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeGlassOrbs,
   DISPLAY_MODES.threeHoloPrism,
   DISPLAY_MODES.threeNebulaVolume,
+  DISPLAY_MODES.threeKnotOrganic,
 ];
 
 /** @param {string} mode */
@@ -1001,6 +1014,24 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 32,
     },
   },
+  threeKnotOrganic: {
+    color1: "#8f7cff",
+    color2: "#ec4899",
+    color3: "#14b8a6",
+    knotP: 2,
+    knotQ: 3,
+    tubeRadius: 0.14,
+    surfaceNoise: 55,
+    rotationSpeedDeg: 6,
+    bloomEnabled: true,
+    bloomStrength: 0.85,
+    shape: {
+      gainPercent: 60,
+      smoothPercent: 20,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -1040,6 +1071,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeGlassOrbs) return DISPLAY_MODES.threeGlassOrbs;
   if (s === DISPLAY_MODES.threeHoloPrism) return DISPLAY_MODES.threeHoloPrism;
   if (s === DISPLAY_MODES.threeNebulaVolume) return DISPLAY_MODES.threeNebulaVolume;
+  if (s === DISPLAY_MODES.threeKnotOrganic) return DISPLAY_MODES.threeKnotOrganic;
   return DISPLAY_MODES.line;
 }
 
@@ -1482,6 +1514,17 @@ export function windowStorageKeys(windowLabel) {
     threeNebulaVolumeBloom: `${pre}.threeNebulaVolumeBloomEnabled`,
     threeNebulaVolumeBloomStrength: `${pre}.threeNebulaVolumeBloomStrength`,
     threeNebulaVolumeShape: `${pre}.threeNebulaVolumeShapeConfig`,
+    threeKnotOrganicColor1: `${pre}.threeKnotOrganicColor1`,
+    threeKnotOrganicColor2: `${pre}.threeKnotOrganicColor2`,
+    threeKnotOrganicColor3: `${pre}.threeKnotOrganicColor3`,
+    threeKnotOrganicKnotP: `${pre}.threeKnotOrganicKnotP`,
+    threeKnotOrganicKnotQ: `${pre}.threeKnotOrganicKnotQ`,
+    threeKnotOrganicTubeRadius: `${pre}.threeKnotOrganicTubeRadius`,
+    threeKnotOrganicSurfaceNoise: `${pre}.threeKnotOrganicSurfaceNoise`,
+    threeKnotOrganicRotationSpeedDeg: `${pre}.threeKnotOrganicRotationSpeedDeg`,
+    threeKnotOrganicBloom: `${pre}.threeKnotOrganicBloomEnabled`,
+    threeKnotOrganicBloomStrength: `${pre}.threeKnotOrganicBloomStrength`,
+    threeKnotOrganicShape: `${pre}.threeKnotOrganicShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

@@ -114,6 +114,7 @@
                 <option value="threeOilMarble">油彩大理石</option>
                 <option value="threePearlChain">珍珠链</option>
                 <option value="threeNebulaVolume">星云团</option>
+                <option value="threeKnotOrganic">扭结有机体</option>
               </optgroup>
               <optgroup label="晶体光学 3D">
                 <option value="threeCrystalGem">宝石晶体</option>
@@ -2032,6 +2033,68 @@
           <div class="settings-field">
             <label for="threeNebulaVolumeFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeNebulaVolumeFallEaseValue">52</span>%</label>
             <input id="threeNebulaVolumeFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeKnotOrganicConfigPanel" aria-labelledby="sec-three-knot-organic-display" hidden>
+        <h2 id="sec-three-knot-organic-display" class="settings-card__title">扭结有机体配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-knot-organic" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeKnotOrganicColor1" class="settings-label">颜色 1</label>
+            <input id="threeKnotOrganicColor1" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeKnotOrganicColor2" class="settings-label">颜色 2</label>
+            <input id="threeKnotOrganicColor2" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeKnotOrganicColor3" class="settings-label">颜色 3</label>
+            <input id="threeKnotOrganicColor3" type="color" value="#14b8a6" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicKnotPRange" class="settings-label">扭结 P <span class="settings-value" id="threeKnotOrganicKnotPValue">2</span></label>
+            <input id="threeKnotOrganicKnotPRange" type="range" min="2" max="4" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicKnotQRange" class="settings-label">扭结 Q <span class="settings-value" id="threeKnotOrganicKnotQValue">3</span></label>
+            <input id="threeKnotOrganicKnotQRange" type="range" min="3" max="7" step="1" value="3" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicTubeRadiusRange" class="settings-label">管径 <span class="settings-value" id="threeKnotOrganicTubeRadiusValue">0.14</span></label>
+            <input id="threeKnotOrganicTubeRadiusRange" type="range" min="6" max="28" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicSurfaceNoiseRange" class="settings-label">表面涟漪 <span class="settings-value" id="threeKnotOrganicSurfaceNoiseValue">55</span>%</label>
+            <input id="threeKnotOrganicSurfaceNoiseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicRotationSpeedRange" class="settings-label">旋转速度 <span class="settings-value" id="threeKnotOrganicRotationSpeedValue">6</span>°/s</label>
+            <input id="threeKnotOrganicRotationSpeedRange" type="range" min="0" max="30" step="1" value="6" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <input id="threeKnotOrganicBloomToggle" type="checkbox" checked />
+            <label for="threeKnotOrganicBloomToggle" class="settings-label">启用 Bloom</label>
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeKnotOrganicBloomStrengthValue">0.9</span></label>
+            <input id="threeKnotOrganicBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicGainRange" class="settings-label">增益 <span class="settings-value" id="threeKnotOrganicGainValue">60</span>%</label>
+            <input id="threeKnotOrganicGainRange" type="range" min="10" max="150" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeKnotOrganicSmoothValue">20</span>%</label>
+            <input id="threeKnotOrganicSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeKnotOrganicSoftClipValue">12</span>%</label>
+            <input id="threeKnotOrganicSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeKnotOrganicFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeKnotOrganicFallEaseValue">55</span>%</label>
+            <input id="threeKnotOrganicFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>

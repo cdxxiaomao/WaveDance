@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~36 已全部完成；Phase 37~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~37 已全部完成；Phase 38 为有机渐变系列文档（可选，待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1802,14 +1802,14 @@ threeKnotOrganic: {
 
 #### 37.2 新建 `three/knotOrganicRenderer.js`
 
-- [ ] SDF torus knot（解析式或采样）；表面 noise 扰动
-- [ ] 色带：`t = atan2(p.y,p.x)` 或 knot 参数 → 3 色 cyclic mix
-- [ ] treble → surfaceNoise 强度
+- [x] SDF torus knot（解析式或采样）；表面 noise 扰动
+- [x] 色带：`t = atan2(p.y,p.x)` 或 knot 参数 → 3 色 cyclic mix
+- [x] treble → surfaceNoise 强度
 
 #### 37.3 验收标准
 
-- [ ] knot 形清晰；p/q 变化改变拓扑
-- [ ] **方案 G（宇宙柔和）两模式全部可切换**
+- [x] knot 形清晰；p/q 变化改变拓扑
+- [x] **方案 G（宇宙柔和）两模式全部可切换**
 
 ---
 
@@ -2046,10 +2046,10 @@ threeKnotOrganic: {
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[x]` 已完成 | 2026-06-10 |
 | 35 | 全息棱镜 Three Holo Prism（F） | `[x]` 已完成 | 2026-06-10 |
 | 36 | 星云团 Three Nebula Volume（G） | `[x]` 已完成 | 2026-06-10 |
-| 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
+| 37 | 扭结有机体 Three Knot Organic（G） | `[x]` 已完成 | 2026-06-10 |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 37（扭结有机体）
+**当前建议下一步**：Phase 38（有机渐变系列文档，可选）
 
 ---
 

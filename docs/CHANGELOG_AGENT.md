@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 37：扭结有机体 Three Knot Organic（G）
+
+- 新建 `frontend/src/renderers/three/knotOrganicRenderer.js`：torus knot 管状 SDF raymarch，64 段曲线采样 + fbm 表面 ripple（treble 调制），沿 knot 相位 3 色 cyclic 渐变，bass 脉动管径，慢速双轴自转，可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeKnotOrganic`、`DEFAULT_CONFIG.threeKnotOrganic` 及 storage keys。
+- `main.js`：监听 `waveform-three-knot-organic-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「有机渐变 3D → 扭结有机体」配置面板（3 色、扭结 P/Q、管径、表面涟漪、旋转速度、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 36：星云团 Three Nebula Volume（G）
 
 - 新建 `frontend/src/renderers/three/nebulaVolumeRenderer.js`：体积 raymarch 沿视线累积密度，3D fbm 噪声 + Y 轴旋涡，核心暖→中间→边缘冷三色渐变，bass 膨胀核心，transmittance early exit，marchSteps 32~48 可调，频谱缓落实现停播后云雾衰减；`registerModes.js` 注册。

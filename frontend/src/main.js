@@ -115,6 +115,7 @@ const threeCrystalGemShapeConfig = { ...DEFAULT_CONFIG.threeCrystalGem.shape };
 const threeGlassOrbsShapeConfig = { ...DEFAULT_CONFIG.threeGlassOrbs.shape };
 const threeHoloPrismShapeConfig = { ...DEFAULT_CONFIG.threeHoloPrism.shape };
 const threeNebulaVolumeShapeConfig = { ...DEFAULT_CONFIG.threeNebulaVolume.shape };
+const threeKnotOrganicShapeConfig = { ...DEFAULT_CONFIG.threeKnotOrganic.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -394,6 +395,14 @@ function applyThreeNebulaVolumeShapeConfig(payload) {
   threeNebulaVolumeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeKnotOrganicShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeKnotOrganicShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeKnotOrganicShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeKnotOrganicShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeKnotOrganicShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -472,6 +481,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeHoloPrismRaw) applyThreeHoloPrismShapeConfig(JSON.parse(threeHoloPrismRaw));
     const threeNebulaVolumeRaw = readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeShape");
     if (threeNebulaVolumeRaw) applyThreeNebulaVolumeShapeConfig(JSON.parse(threeNebulaVolumeRaw));
+    const threeKnotOrganicRaw = readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicShape");
+    if (threeKnotOrganicRaw) applyThreeKnotOrganicShapeConfig(JSON.parse(threeKnotOrganicRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -832,6 +843,16 @@ let threeNebulaVolumeSwirlSpeed = DEFAULT_CONFIG.threeNebulaVolume.swirlSpeed;
 let threeNebulaVolumeMarchSteps = DEFAULT_CONFIG.threeNebulaVolume.marchSteps;
 let threeNebulaVolumeBloomEnabled = DEFAULT_CONFIG.threeNebulaVolume.bloomEnabled;
 let threeNebulaVolumeBloomStrength = DEFAULT_CONFIG.threeNebulaVolume.bloomStrength;
+let threeKnotOrganicColor1Hex = DEFAULT_CONFIG.threeKnotOrganic.color1;
+let threeKnotOrganicColor2Hex = DEFAULT_CONFIG.threeKnotOrganic.color2;
+let threeKnotOrganicColor3Hex = DEFAULT_CONFIG.threeKnotOrganic.color3;
+let threeKnotOrganicKnotP = DEFAULT_CONFIG.threeKnotOrganic.knotP;
+let threeKnotOrganicKnotQ = DEFAULT_CONFIG.threeKnotOrganic.knotQ;
+let threeKnotOrganicTubeRadius = DEFAULT_CONFIG.threeKnotOrganic.tubeRadius;
+let threeKnotOrganicSurfaceNoise = DEFAULT_CONFIG.threeKnotOrganic.surfaceNoise;
+let threeKnotOrganicRotationSpeedDeg = DEFAULT_CONFIG.threeKnotOrganic.rotationSpeedDeg;
+let threeKnotOrganicBloomEnabled = DEFAULT_CONFIG.threeKnotOrganic.bloomEnabled;
+let threeKnotOrganicBloomStrength = DEFAULT_CONFIG.threeKnotOrganic.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -2200,6 +2221,55 @@ function applyThreeNebulaVolumeBloomStrength(value) {
     : DEFAULT_CONFIG.threeNebulaVolume.bloomStrength;
 }
 
+function applyThreeKnotOrganicColor1Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeKnotOrganic.color1;
+  threeKnotOrganicColor1Hex = safe;
+}
+
+function applyThreeKnotOrganicColor2Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeKnotOrganic.color2;
+  threeKnotOrganicColor2Hex = safe;
+}
+
+function applyThreeKnotOrganicColor3Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeKnotOrganic.color3;
+  threeKnotOrganicColor3Hex = safe;
+}
+
+function applyThreeKnotOrganicKnotP(value) {
+  threeKnotOrganicKnotP = clampInt(value, 2, 4);
+}
+
+function applyThreeKnotOrganicKnotQ(value) {
+  threeKnotOrganicKnotQ = clampInt(value, 3, 7);
+}
+
+function applyThreeKnotOrganicTubeRadius(value) {
+  const n = Number(value);
+  threeKnotOrganicTubeRadius = Number.isFinite(n)
+    ? Math.min(0.28, Math.max(0.06, n))
+    : DEFAULT_CONFIG.threeKnotOrganic.tubeRadius;
+}
+
+function applyThreeKnotOrganicSurfaceNoise(value) {
+  threeKnotOrganicSurfaceNoise = clampInt(value, 0, 100);
+}
+
+function applyThreeKnotOrganicRotationSpeedDeg(value) {
+  threeKnotOrganicRotationSpeedDeg = clampInt(value, 0, 30);
+}
+
+function applyThreeKnotOrganicBloomEnabled(value) {
+  threeKnotOrganicBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeKnotOrganic.bloomEnabled);
+}
+
+function applyThreeKnotOrganicBloomStrength(value) {
+  const n = Number(value);
+  threeKnotOrganicBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeKnotOrganic.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2602,6 +2672,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeGlassOrbs) return threeGlassOrbsShapeConfig;
   if (mode === DISPLAY_MODES.threeHoloPrism) return threeHoloPrismShapeConfig;
   if (mode === DISPLAY_MODES.threeNebulaVolume) return threeNebulaVolumeShapeConfig;
+  if (mode === DISPLAY_MODES.threeKnotOrganic) return threeKnotOrganicShapeConfig;
   return waveShapeConfig;
 }
 
@@ -3073,6 +3144,21 @@ function getStyleConfigForMode(mode) {
       marchSteps: threeNebulaVolumeMarchSteps,
       bloomEnabled: threeNebulaVolumeBloomEnabled,
       bloomStrength: threeNebulaVolumeBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeKnotOrganic) {
+    return {
+      color1: threeKnotOrganicColor1Hex,
+      color2: threeKnotOrganicColor2Hex,
+      color3: threeKnotOrganicColor3Hex,
+      knotP: threeKnotOrganicKnotP,
+      knotQ: threeKnotOrganicKnotQ,
+      tubeRadius: threeKnotOrganicTubeRadius,
+      surfaceNoise: threeKnotOrganicSurfaceNoise,
+      rotationSpeedDeg: threeKnotOrganicRotationSpeedDeg,
+      bloomEnabled: threeKnotOrganicBloomEnabled,
+      bloomStrength: threeKnotOrganicBloomStrength,
       freqReversed,
     };
   }
@@ -5608,6 +5694,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-knot-organic-color1",
+    (event) => {
+      applyThreeKnotOrganicColor1Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-color2",
+    (event) => {
+      applyThreeKnotOrganicColor2Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-color3",
+    (event) => {
+      applyThreeKnotOrganicColor3Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-knot-p",
+    (event) => {
+      applyThreeKnotOrganicKnotP(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-knot-q",
+    (event) => {
+      applyThreeKnotOrganicKnotQ(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-tube-radius",
+    (event) => {
+      applyThreeKnotOrganicTubeRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-surface-noise",
+    (event) => {
+      applyThreeKnotOrganicSurfaceNoise(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-rotation-speed",
+    (event) => {
+      applyThreeKnotOrganicRotationSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-bloom-enabled",
+    (event) => {
+      applyThreeKnotOrganicBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-bloom-strength",
+    (event) => {
+      applyThreeKnotOrganicBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-knot-organic-shape-config",
+    (event) => {
+      applyThreeKnotOrganicShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -6863,6 +7026,49 @@ async function init() {
     );
     if (savedNebulaBloomStrength != null && savedNebulaBloomStrength !== "") {
       applyThreeNebulaVolumeBloomStrength(savedNebulaBloomStrength);
+    }
+    applyThreeKnotOrganicColor1Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicColor1") ??
+        DEFAULT_CONFIG.threeKnotOrganic.color1,
+    );
+    applyThreeKnotOrganicColor2Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicColor2") ??
+        DEFAULT_CONFIG.threeKnotOrganic.color2,
+    );
+    applyThreeKnotOrganicColor3Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicColor3") ??
+        DEFAULT_CONFIG.threeKnotOrganic.color3,
+    );
+    applyThreeKnotOrganicKnotP(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicKnotP") ??
+        DEFAULT_CONFIG.threeKnotOrganic.knotP,
+    );
+    applyThreeKnotOrganicKnotQ(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicKnotQ") ??
+        DEFAULT_CONFIG.threeKnotOrganic.knotQ,
+    );
+    applyThreeKnotOrganicTubeRadius(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicTubeRadius") ??
+        DEFAULT_CONFIG.threeKnotOrganic.tubeRadius,
+    );
+    applyThreeKnotOrganicSurfaceNoise(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicSurfaceNoise") ??
+        DEFAULT_CONFIG.threeKnotOrganic.surfaceNoise,
+    );
+    applyThreeKnotOrganicRotationSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicRotationSpeedDeg") ??
+        DEFAULT_CONFIG.threeKnotOrganic.rotationSpeedDeg,
+    );
+    applyThreeKnotOrganicBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeKnotOrganicBloom"),
+    );
+    const savedKnotBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeKnotOrganicBloomStrength",
+    );
+    if (savedKnotBloomStrength != null && savedKnotBloomStrength !== "") {
+      applyThreeKnotOrganicBloomStrength(savedKnotBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
