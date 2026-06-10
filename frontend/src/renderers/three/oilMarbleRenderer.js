@@ -21,6 +21,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform vec3 u_color1;
 uniform vec3 u_color2;
@@ -43,8 +44,8 @@ float mapScene(vec3 p) {
 }
 
 vec3 domainWarp(vec3 p) {
-  float ws = u_warpStrength * 0.012 * (1.0 + u_mid * 0.55);
-  float flow = u_flowSpeed * (1.0 + u_bass * u_reactiveness * 0.008);
+  float ws = u_warpStrength * 0.012 * (1.0 + u_mid * 0.75 + u_peak * 0.35);
+  float flow = u_flowSpeed * (1.0 + u_bass * u_reactiveness * 0.018 + u_peak * 0.012);
   float t = u_time * flow;
   vec3 q = p * u_noiseScale;
   vec3 w;
@@ -56,12 +57,12 @@ vec3 domainWarp(vec3 p) {
 
 float marbleField(vec3 p) {
   vec3 wp = p + domainWarp(p);
-  float flow = u_flowSpeed * (1.0 + u_bass * u_reactiveness * 0.008);
+  float flow = u_flowSpeed * (1.0 + u_bass * u_reactiveness * 0.018 + u_peak * 0.012);
   float t = u_time * flow;
   float n = fbmSnoise3(wp * u_noiseScale + vec3(t * 0.12, t * 0.08, -t * 0.05));
   n += 0.38 * fbmSnoise3(wp * u_noiseScale * 1.85 + vec3(-t * 0.07, t * 0.11, t * 0.04));
   n += 0.18 * fbmSnoise3(wp * u_noiseScale * 3.2 + vec3(t * 0.05, -t * 0.09, 0.0));
-  return clamp(n * 0.42 + 0.5 + u_treble * 0.06, 0.0, 1.0);
+  return clamp(n * 0.42 + 0.5 + u_treble * 0.1 + u_peak * 0.08, 0.0, 1.0);
 }
 
 ${GLSL_CALC_NORMAL}
@@ -107,11 +108,11 @@ void main() {
 
   float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.6);
   float shade = 0.52 + 0.48 * dot(n, normalize(vec3(0.25, 0.85, 0.45)));
-  col *= shade + u_bass * 0.38 + u_treble * 0.12;
-  col += fresnel * (mix(u_color2, u_color3, hueT) * 0.45 + vec3(0.1));
+  col *= shade + u_bass * 0.52 + u_treble * 0.18 + u_peak * 0.28;
+  col += fresnel * (mix(u_color2, u_color3, hueT) * (0.45 + u_peak * 0.22) + vec3(0.1));
 
   float edgeSoft = smoothstep(0.014, 0.0, mapScene(p));
-  float alpha = clamp(0.74 + fresnel * 0.22 + u_bass * 0.1, 0.0, 1.0) * edgeSoft;
+  float alpha = clamp(0.74 + fresnel * 0.22 + u_bass * 0.16 + u_peak * 0.12, 0.0, 1.0) * edgeSoft;
 
   gl_FragColor = vec4(col, alpha);
 }
@@ -154,6 +155,7 @@ export function createOilMarbleRenderer(ctx) {
     u_noiseScale: { value: cfg.noiseScale },
     u_warpStrength: { value: cfg.warpStrength },
     u_reactiveness: { value: cfg.reactiveness },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -168,6 +170,7 @@ export function createOilMarbleRenderer(ctx) {
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
+  let peakSmoothed = 0;
   const spectrumState = { bass: 0, mid: 0, treble: 0 };
 
   function rebuildComposer() {
@@ -193,7 +196,7 @@ export function createOilMarbleRenderer(ctx) {
 
   rebuildComposer();
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
 
     const flowSpeed = clampFloat(Number(style.flowSpeed), 0.2, 2.5, cfg.flowSpeed);
@@ -218,7 +221,15 @@ export function createOilMarbleRenderer(ctx) {
     const dt = clock.getDelta();
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
-    updateSpectrumUniforms(uniforms, spectrum, spectrumState);
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
+
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
 
     uniforms.u_color1.value.copy(hexToVec3Color(style.color1, cfg.color1));
     uniforms.u_color2.value.copy(hexToVec3Color(style.color2, cfg.color2));

@@ -24,6 +24,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform int u_pearlCount;
 uniform vec3 u_pearlCenters[${MAX_PEARLS}];
@@ -97,16 +98,16 @@ void main() {
   vec3 n = calcNormal(p);
 
   float hueT = nearestPearlT(p);
-  hueT = clamp(hueT + u_mid * 0.08, 0.0, 1.0);
+  hueT = clamp(hueT + u_mid * 0.14 + u_peak * 0.1, 0.0, 1.0);
   vec3 col = mixColor3(u_color1, u_color2, u_color3, hueT);
 
   float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.8);
   float shade = 0.54 + 0.46 * dot(n, normalize(vec3(0.28, 0.82, 0.48)));
-  col *= shade + u_bass * 0.42 + u_treble * 0.14;
-  col += fresnel * (mix(u_color2, u_color3, hueT) * 0.5 + vec3(0.14, 0.12, 0.1));
+  col *= shade + u_bass * 0.55 + u_treble * 0.22 + u_peak * 0.3;
+  col += fresnel * (mix(u_color2, u_color3, hueT) * (0.5 + u_peak * 0.28) + vec3(0.14, 0.12, 0.1));
 
   float edgeSoft = smoothstep(0.013, 0.0, mapScene(p));
-  float alpha = clamp(0.76 + fresnel * 0.24 + u_bass * 0.1, 0.0, 1.0) * edgeSoft;
+  float alpha = clamp(0.76 + fresnel * 0.24 + u_bass * 0.16 + u_peak * 0.14, 0.0, 1.0) * edgeSoft;
 
   gl_FragColor = vec4(col, alpha);
 }
@@ -133,13 +134,14 @@ function clampInt(value, min, max, fallback) {
  * @param {number} chainRadius
  * @param {number} pearlSize
  * @param {number} bass
+ * @param {number} peak
  * @param {Float32Array} centers
  * @param {Float32Array} radii
  * @param {Float32Array} pearlT
  */
-function updatePearlChainField(count, elapsed, swaySpeed, chainRadius, pearlSize, bass, centers, radii, pearlT) {
+function updatePearlChainField(count, elapsed, swaySpeed, chainRadius, pearlSize, bass, peak, centers, radii, pearlT) {
   const sway = elapsed * swaySpeed;
-  const baseRadius = pearlSize * (1.0 + bass * 0.38);
+  const baseRadius = pearlSize * (1.0 + bass * 0.55 + peak * 0.22);
 
   for (let i = 0; i < count; i++) {
     const u = count <= 1 ? 0.5 : i / (count - 1);
@@ -186,6 +188,7 @@ export function createPearlChainRenderer(ctx) {
     u_color2: { value: hexToVec3Color(cfg.color2, cfg.color2) },
     u_color3: { value: hexToVec3Color(cfg.color3, cfg.color3) },
     u_mergeK: { value: mergeStrengthToK(cfg.mergeStrength) },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -200,6 +203,7 @@ export function createPearlChainRenderer(ctx) {
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
+  let peakSmoothed = 0;
   const spectrumState = { bass: 0, mid: 0, treble: 0 };
 
   function rebuildComposer() {
@@ -232,6 +236,7 @@ export function createPearlChainRenderer(ctx) {
     cfg.chainRadius,
     cfg.pearlSize,
     0,
+    0,
     cpuCenters,
     pearlRadii,
     pearlT,
@@ -242,7 +247,7 @@ export function createPearlChainRenderer(ctx) {
     }
   }
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
 
     const pearlCount = clampInt(Number(style.pearlCount), 5, 10, cfg.pearlCount);
@@ -266,7 +271,15 @@ export function createPearlChainRenderer(ctx) {
     const dt = clock.getDelta();
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
-    updateSpectrumUniforms(uniforms, spectrum, spectrumState);
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
+
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
 
     updatePearlChainField(
       pearlCount,
@@ -275,6 +288,7 @@ export function createPearlChainRenderer(ctx) {
       chainRadius,
       pearlSize,
       spectrumState.bass ?? 0,
+      peakSmoothed,
       cpuCenters,
       pearlRadii,
       pearlT,

@@ -26,6 +26,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform int u_gemCount;
 uniform vec3 u_gemCenters[${MAX_GEMS}];
@@ -62,7 +63,7 @@ float sdRoundBox(vec3 p, vec3 b, float r) {
 }
 
 float sdGem(vec3 p, float facet) {
-  float oct = sdOctahedron(p, 0.74 + u_bass * 0.06);
+  float oct = sdOctahedron(p, 0.74 + u_bass * 0.1 + u_peak * 0.08);
   float box = sdRoundBox(p, vec3(0.4, 0.5, 0.36), 0.05);
   return mix(box, oct, facet);
 }
@@ -139,11 +140,11 @@ void main() {
 
   vec3 col = mix(u_colorCore, u_colorEdge, fresnel * 0.72 + depthT * 0.28);
   col = mix(col, u_colorCore, coreMix * 0.82);
-  col += u_colorHighlight * spec * (0.85 + u_treble * 0.45);
-  col += u_colorEdge * fresnel * 0.38;
+  col += u_colorHighlight * spec * (0.85 + u_treble * 0.55 + u_peak * 0.42);
+  col += u_colorEdge * fresnel * (0.38 + u_peak * 0.18);
 
   float shade = 0.5 + 0.5 * dot(n, lightDir);
-  col *= shade + u_bass * 0.38 + u_mid * 0.12;
+  col *= shade + u_bass * 0.52 + u_mid * 0.22 + u_peak * 0.32;
 
   float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
   float alpha = clamp(0.78 + fresnel * 0.22 + spec * 0.15, 0.0, 1.0) * edgeSoft;
@@ -172,8 +173,8 @@ function clampInt(value, min, max, fallback) {
  * @param {Float32Array} centers
  * @param {Float32Array} scales
  */
-function updateGemLayout(count, bass, centers, scales) {
-  const pulse = 1.0 + bass * 0.14;
+function updateGemLayout(count, bass, peak, centers, scales) {
+  const pulse = 1.0 + bass * 0.22 + peak * 0.2;
   const positions = [
     [0, 0.02, 0],
     [-0.58, 0.06, 0.12],
@@ -223,6 +224,7 @@ export function createCrystalGemRenderer(ctx) {
     u_colorCore: { value: hexToVec3Color(cfg.colorCore, cfg.colorCore) },
     u_colorEdge: { value: hexToVec3Color(cfg.colorEdge, cfg.colorEdge) },
     u_colorHighlight: { value: hexToVec3Color(cfg.colorHighlight, cfg.colorHighlight) },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -232,6 +234,8 @@ export function createCrystalGemRenderer(ctx) {
   });
 
   let composer = null;
+  /** @type {import('postprocessing').BloomEffect | null} */
+  let bloomEffect = null;
   let chromaticEnabled = cfg.chromaticEnabled;
   let chromaticOffset = cfg.chromaticOffset;
   let bloomEnabled = cfg.bloomEnabled;
@@ -239,6 +243,7 @@ export function createCrystalGemRenderer(ctx) {
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
+  let peakSmoothed = 0;
   const spectrumState = { bass: 0, mid: 0, treble: 0 };
 
   function rebuildComposer() {
@@ -246,6 +251,7 @@ export function createCrystalGemRenderer(ctx) {
     if (key === lastComposerKey && composer) return;
     disposeComposer(composer);
     composer = null;
+    bloomEffect = null;
     lastComposerKey = key;
 
     if (chromaticEnabled) {
@@ -256,6 +262,7 @@ export function createCrystalGemRenderer(ctx) {
         bloomThreshold: 0.08,
       });
       composer = result.composer;
+      bloomEffect = result.bloomEffect;
     } else if (bloomEnabled) {
       composer = createBloomComposer(renderer, scene, camera, {
         intensity: bloomStrength,
@@ -272,12 +279,12 @@ export function createCrystalGemRenderer(ctx) {
 
   rebuildComposer();
 
-  updateGemLayout(cfg.gemCount, 0, cpuCenters, gemScales);
+  updateGemLayout(cfg.gemCount, 0, 0, cpuCenters, gemScales);
   for (let i = 0; i < MAX_GEMS; i++) {
     gemCenters[i].set(cpuCenters[i * 3], cpuCenters[i * 3 + 1], cpuCenters[i * 3 + 2]);
   }
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
 
     const gemCount = clampInt(Number(style.gemCount), 1, 3, cfg.gemCount);
@@ -309,13 +316,26 @@ export function createCrystalGemRenderer(ctx) {
     const dt = clock.getDelta();
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
-    updateSpectrumUniforms(uniforms, spectrum, spectrumState);
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
 
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
+
+    const bass = spectrumState.bass ?? 0;
     const rotSpeed = (rotationSpeedDeg * Math.PI) / 180;
     uniforms.u_rotY.value = elapsed * rotSpeed;
     uniforms.u_rotX.value = elapsed * rotSpeed * 0.42;
 
-    updateGemLayout(gemCount, spectrumState.bass ?? 0, cpuCenters, gemScales);
+    updateGemLayout(gemCount, bass, peakSmoothed, cpuCenters, gemScales);
+
+    if (bloomEffect) {
+      bloomEffect.intensity = bloomStrength * (1 + peakSmoothed * 0.55 + bass * 0.15);
+    }
     for (let i = 0; i < MAX_GEMS; i++) {
       gemCenters[i].set(cpuCenters[i * 3], cpuCenters[i * 3 + 1], cpuCenters[i * 3 + 2]);
     }

@@ -884,10 +884,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 0.85,
     shape: {
-      gainPercent: 58,
-      smoothPercent: 24,
+      gainPercent: 70,
+      smoothPercent: 12,
       softClipPercent: 14,
-      fallEasePercent: 58,
+      fallEasePercent: 34,
     },
   },
   threeOilMarble: {
@@ -903,10 +903,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 0.75,
     shape: {
-      gainPercent: 55,
-      smoothPercent: 20,
+      gainPercent: 70,
+      smoothPercent: 12,
       softClipPercent: 12,
-      fallEasePercent: 55,
+      fallEasePercent: 32,
     },
   },
   threePearlChain: {
@@ -921,10 +921,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 0.9,
     shape: {
-      gainPercent: 60,
-      smoothPercent: 22,
+      gainPercent: 72,
+      smoothPercent: 14,
       softClipPercent: 12,
-      fallEasePercent: 55,
+      fallEasePercent: 34,
     },
   },
   threeCrystalGem: {
@@ -939,10 +939,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 1.0,
     shape: {
-      gainPercent: 62,
-      smoothPercent: 18,
+      gainPercent: 72,
+      smoothPercent: 12,
       softClipPercent: 12,
-      fallEasePercent: 52,
+      fallEasePercent: 36,
     },
   },
   threeGlassOrbs: {
@@ -961,10 +961,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 0.95,
     shape: {
-      gainPercent: 55,
-      smoothPercent: 20,
+      gainPercent: 68,
+      smoothPercent: 14,
       softClipPercent: 10,
-      fallEasePercent: 50,
+      fallEasePercent: 34,
     },
   },
   threeHoloPrism: {
@@ -978,10 +978,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 0.8,
     shape: {
-      gainPercent: 58,
-      smoothPercent: 16,
+      gainPercent: 70,
+      smoothPercent: 12,
       softClipPercent: 10,
-      fallEasePercent: 48,
+      fallEasePercent: 32,
     },
   },
   threeNebulaVolume: {
@@ -995,10 +995,10 @@ export const DEFAULT_CONFIG = {
     bloomEnabled: true,
     bloomStrength: 1.1,
     shape: {
-      gainPercent: 55,
-      smoothPercent: 18,
+      gainPercent: 70,
+      smoothPercent: 12,
       softClipPercent: 12,
-      fallEasePercent: 52,
+      fallEasePercent: 32,
     },
   },
 };

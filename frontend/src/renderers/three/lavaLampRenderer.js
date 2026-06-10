@@ -20,6 +20,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform int u_blobCount;
 uniform vec3 u_blobCenters[${MAX_BLOBS}];
@@ -88,16 +89,16 @@ void main() {
 
   float gradH = 0.55 * max(u_lampAspect, 0.35);
   float hueT = smoothstep(-gradH, gradH, p.y);
-  hueT = clamp(hueT + u_mid * 0.22 - 0.08, 0.0, 1.0);
+  hueT = clamp(hueT + u_mid * 0.32 - 0.08 + u_peak * 0.12, 0.0, 1.0);
   vec3 col = mix(u_colorWarm, u_colorCool, hueT);
 
   float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);
   float shade = 0.55 + 0.45 * dot(n, normalize(vec3(0.3, 0.8, 0.5)));
-  col *= shade + u_bass * 0.45 + u_treble * 0.15;
-  col += fresnel * (mix(u_colorWarm, u_colorCool, 0.65) * 0.55 + vec3(0.12));
+  col *= shade + u_bass * 0.58 + u_treble * 0.22 + u_peak * 0.32;
+  col += fresnel * (mix(u_colorWarm, u_colorCool, 0.65) * (0.55 + u_peak * 0.25) + vec3(0.12));
 
   float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
-  float alpha = clamp(0.72 + fresnel * 0.28 + u_bass * 0.12, 0.0, 1.0) * edgeSoft;
+  float alpha = clamp(0.72 + fresnel * 0.28 + u_bass * 0.18 + u_peak * 0.15, 0.0, 1.0) * edgeSoft;
 
   gl_FragColor = vec4(col, alpha);
 }
@@ -114,15 +115,16 @@ function hexToColor(hex, fallback) {
  * @param {number} elapsed
  * @param {number} buoyancySpeed
  * @param {number} bass
+ * @param {number} peak
  * @param {number} bassDrive
  * @param {number} lampAspect
  * @param {Float32Array} centers
  * @param {Float32Array} radii
  */
-function updateLavaBlobField(count, elapsed, buoyancySpeed, bass, bassDrive, lampAspect, centers, radii) {
+function updateLavaBlobField(count, elapsed, buoyancySpeed, bass, peak, bassDrive, lampAspect, centers, radii) {
   const drive = bassDrive / 100;
   const verticalSpan = 0.62 * lampAspect;
-  const baseRadius = 0.34 + bass * drive * 0.28;
+  const baseRadius = 0.34 + bass * drive * 0.38 + peak * 0.12;
 
   for (let i = 0; i < count; i++) {
     const phase = (i / Math.max(count, 1)) * Math.PI * 2 + i * 0.85;
@@ -141,7 +143,7 @@ function updateLavaBlobField(count, elapsed, buoyancySpeed, bass, bassDrive, lam
     centers[i * 3 + 2] = z;
 
     const pulse = 0.9 + 0.14 * Math.sin(buoyancyT * 0.55 + i * 1.1);
-    radii[i] = baseRadius * pulse * (1 + bass * drive * 0.55);
+    radii[i] = baseRadius * pulse * (1 + bass * drive * 0.72 + peak * 0.28);
   }
 }
 
@@ -190,6 +192,7 @@ export function createLavaLampRenderer(ctx) {
     u_colorCool: { value: hexToColor(cfg.colorCool, cfg.colorCool) },
     u_mergeK: { value: 0.22 },
     u_lampAspect: { value: cfg.lampAspect },
+    u_peak: { value: 0 },
   };
 
   const material = new THREE.ShaderMaterial({
@@ -213,6 +216,7 @@ export function createLavaLampRenderer(ctx) {
   let bassSmoothed = 0;
   let midSmoothed = 0;
   let trebleSmoothed = 0;
+  let peakSmoothed = 0;
 
   function rebuildComposer() {
     const key = `${bloomEnabled}:${bloomStrength.toFixed(2)}`;
@@ -243,6 +247,7 @@ export function createLavaLampRenderer(ctx) {
     0,
     cfg.buoyancySpeed,
     0,
+    0,
     cfg.bassDrive,
     cfg.lampAspect,
     cpuCenters,
@@ -261,7 +266,7 @@ export function createLavaLampRenderer(ctx) {
     uniforms.u_resolution.value.set(size.x, size.y);
   }
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
 
     const blobCount = clampInt(Number(style.blobCount), 2, 4, cfg.blobCount);
@@ -290,15 +295,19 @@ export function createLavaLampRenderer(ctx) {
     const mid = spectrum?.mid ?? 0;
     const treble = spectrum?.treble ?? 0;
 
-    bassSmoothed += (bass - bassSmoothed) * 0.22;
-    midSmoothed += (mid - midSmoothed) * 0.18;
-    trebleSmoothed += (treble - trebleSmoothed) * 0.16;
+    bassSmoothed += (bass - bassSmoothed) * 0.32;
+    midSmoothed += (mid - midSmoothed) * 0.28;
+    trebleSmoothed += (treble - trebleSmoothed) * 0.24;
+
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
 
     updateLavaBlobField(
       blobCount,
       elapsed,
       buoyancySpeed,
       bassSmoothed,
+      peakSmoothed,
       bassDrive,
       lampAspect,
       cpuCenters,
@@ -318,6 +327,7 @@ export function createLavaLampRenderer(ctx) {
     uniforms.u_bass.value = bassSmoothed;
     uniforms.u_mid.value = midSmoothed;
     uniforms.u_treble.value = trebleSmoothed;
+    uniforms.u_peak.value = peakSmoothed;
     uniforms.u_blobCount.value = blobCount;
     uniforms.u_mergeK.value = 0.06 + (mergeStrength / 100) * 0.42;
     uniforms.u_lampAspect.value = lampAspect;

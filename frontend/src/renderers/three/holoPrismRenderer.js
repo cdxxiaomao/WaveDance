@@ -19,6 +19,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform float u_rotY;
 uniform float u_rotX;
@@ -56,7 +57,7 @@ float sdPrism(vec3 p, float r, float h, float n) {
 
 float mapScene(vec3 p) {
   vec3 rp = rotY(u_rotY) * rotX(u_rotX * 0.35) * p;
-  float scale = 1.0 + u_bass * 0.1 + u_mid * 0.04;
+  float scale = 1.0 + u_bass * 0.16 + u_mid * 0.08 + u_peak * 0.14;
   rp /= scale;
   return sdPrism(rp, u_prismRadius, u_prismHeight, float(u_prismSides)) * scale;
 }
@@ -107,13 +108,13 @@ void main() {
   float spec = pow(max(dot(refl, lightDir), 0.0), 44.0);
 
   float edgeFactor = smoothstep(0.18, 0.92, fresnel);
-  float spectralMix = u_spectralStrength * edgeFactor * (0.65 + u_treble * 0.35);
+  float spectralMix = u_spectralStrength * edgeFactor * (0.65 + u_treble * 0.45 + u_peak * 0.3);
   vec3 spectral = spectralRainbow(angleT + fresnel * 0.42 + dot(n, rd) * 0.18);
   vec3 col = mix(tintCol, spectral, spectralMix);
 
-  col += vec3(1.0) * spec * (0.7 + u_treble * 0.4);
-  col += tintCol * fresnel * 0.32;
-  col *= 0.52 + 0.48 * dot(n, lightDir) + u_bass * 0.32;
+  col += vec3(1.0) * spec * (0.7 + u_treble * 0.5 + u_peak * 0.45);
+  col += tintCol * fresnel * (0.32 + u_peak * 0.2);
+  col *= 0.52 + 0.48 * dot(n, lightDir) + u_bass * 0.45 + u_peak * 0.3;
 
   float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
   float alpha = clamp(0.76 + fresnel * 0.24 + spec * 0.12, 0.0, 1.0) * edgeSoft;
@@ -158,6 +159,7 @@ export function createHoloPrismRenderer(ctx) {
     u_tintLow: { value: hexToVec3Color(cfg.tintLow, cfg.tintLow) },
     u_tintHigh: { value: hexToVec3Color(cfg.tintHigh, cfg.tintHigh) },
     u_spectralStrength: { value: cfg.spectralStrength / 100 },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -169,10 +171,13 @@ export function createHoloPrismRenderer(ctx) {
   let composer = null;
   /** @type {import('postprocessing').ChromaticAberrationEffect | null} */
   let chromaticEffect = null;
+  /** @type {import('postprocessing').BloomEffect | null} */
+  let bloomEffect = null;
   let bloomEnabled = cfg.bloomEnabled;
   let bloomStrength = cfg.bloomStrength;
   let baseChromaticOffset = cfg.chromaticOffset;
   let chromaticPulse = 0;
+  let peakSmoothed = 0;
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
@@ -184,6 +189,7 @@ export function createHoloPrismRenderer(ctx) {
     disposeComposer(composer);
     composer = null;
     chromaticEffect = null;
+    bloomEffect = null;
     lastComposerKey = key;
 
     const result = createChromaticComposer(renderer, scene, camera, {
@@ -195,6 +201,7 @@ export function createHoloPrismRenderer(ctx) {
     });
     composer = result.composer;
     chromaticEffect = result.chromaticEffect;
+    bloomEffect = result.bloomEffect;
 
     syncRaymarchResolution(renderer, uniforms, composer);
   }
@@ -203,7 +210,7 @@ export function createHoloPrismRenderer(ctx) {
 
   function applyChromaticOffset(offset) {
     if (!chromaticEffect) return;
-    const boosted = offset * (1.0 + chromaticPulse * 2.8);
+    const boosted = offset * (1.0 + chromaticPulse * 4.2);
     chromaticEffect.offset.set(boosted, boosted * 0.5);
   }
 
@@ -237,23 +244,35 @@ export function createHoloPrismRenderer(ctx) {
     const dt = clock.getDelta();
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
-    updateSpectrumUniforms(uniforms, spectrum, spectrumState);
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
 
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
+
+    const bass = spectrumState.bass ?? 0;
     const rotSpeed = (rotationSpeedDeg * Math.PI) / 180;
     uniforms.u_rotY.value = elapsed * rotSpeed;
-    uniforms.u_rotX.value = elapsed * rotSpeed * 0.28 + (spectrumState.mid ?? 0) * 0.12;
+    uniforms.u_rotX.value = elapsed * rotSpeed * 0.28;
 
     uniforms.u_prismSides.value = prismSides;
     uniforms.u_spectralStrength.value = spectralStrength / 100;
     uniforms.u_tintLow.value.copy(hexToVec3Color(style.tintLow, cfg.tintLow));
     uniforms.u_tintHigh.value.copy(hexToVec3Color(style.tintHigh, cfg.tintHigh));
 
-    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
-    if (pulseOnPeak && peak > 0.35) {
-      chromaticPulse = Math.max(chromaticPulse, peak * 0.85);
+    if (pulseOnPeak && peak > 0.18) {
+      chromaticPulse = Math.max(chromaticPulse, peak * 1.15);
     }
-    chromaticPulse *= 0.9;
+    chromaticPulse *= 0.88;
     applyChromaticOffset(baseChromaticOffset);
+
+    if (bloomEffect) {
+      bloomEffect.intensity = bloomStrength * (1 + peakSmoothed * 0.65 + bass * 0.18);
+    }
 
     renderer.setClearColor(0x000000, 0);
     try {

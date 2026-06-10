@@ -28,6 +28,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform int u_orbCount;
 uniform vec3 u_orbCenters[${MAX_ORBS}];
@@ -127,8 +128,8 @@ void main() {
     col = mix(col, rimCol, (fresnel - 0.72) * 0.28);
   }
 
-  col += vec3(1.0) * spec * (0.55 + u_treble * 0.35);
-  col *= 0.56 + 0.44 * dot(n, lightDir) + u_bass * 0.28;
+  col += vec3(1.0) * spec * (0.55 + u_treble * 0.5 + u_peak * 0.38);
+  col *= 0.56 + 0.44 * dot(n, lightDir) + u_bass * 0.42 + u_peak * 0.28;
 
   float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
   float alpha = mix(0.94, 0.34, u_transmission);
@@ -213,6 +214,7 @@ export function createGlassOrbsRenderer(ctx) {
     u_transmission: { value: cfg.transmission / 100 },
     u_refraction: { value: cfg.refractionStrength / 100 * 0.08 },
     u_stackScale: { value: 1 },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -222,6 +224,8 @@ export function createGlassOrbsRenderer(ctx) {
   });
 
   let composer = null;
+  /** @type {import('postprocessing').BloomEffect | null} */
+  let bloomEffect = null;
   let chromaticEnabled = cfg.chromaticEnabled;
   let chromaticOffset = cfg.chromaticOffset;
   let bloomEnabled = cfg.bloomEnabled;
@@ -237,6 +241,7 @@ export function createGlassOrbsRenderer(ctx) {
     if (key === lastComposerKey && composer) return;
     disposeComposer(composer);
     composer = null;
+    bloomEffect = null;
     lastComposerKey = key;
 
     if (chromaticEnabled) {
@@ -247,6 +252,7 @@ export function createGlassOrbsRenderer(ctx) {
         bloomThreshold: 0.08,
       });
       composer = result.composer;
+      bloomEffect = result.bloomEffect;
     } else if (bloomEnabled) {
       composer = createBloomComposer(renderer, scene, camera, {
         intensity: bloomStrength,
@@ -303,11 +309,22 @@ export function createGlassOrbsRenderer(ctx) {
     const dt = clock.getDelta();
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
-    updateSpectrumUniforms(uniforms, spectrum, spectrumState);
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
 
     const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
-    peakSmoothed += (peak - peakSmoothed) * 0.18;
-    const breathe = breatheWithPeak ? 1 + peakSmoothed * 0.2 + (spectrumState.bass ?? 0) * 0.08 : 1;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
+
+    const bass = spectrumState.bass ?? 0;
+    const breathe = breatheWithPeak ? 1 + peakSmoothed * 0.38 + bass * 0.14 : 1 + bass * 0.06;
+
+    if (bloomEffect) {
+      bloomEffect.intensity = bloomStrength * (1 + peakSmoothed * 0.5 + bass * 0.12);
+    }
 
     updateOrbStackLayout(orbCount, stackSpacing, breathe, cpuCenters, orbRadii);
     for (let i = 0; i < MAX_ORBS; i++) {

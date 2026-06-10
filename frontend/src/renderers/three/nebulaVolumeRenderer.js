@@ -20,6 +20,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform vec3 u_colorCore;
 uniform vec3 u_colorMid;
@@ -42,10 +43,10 @@ mat3 rotYMat(float a) {
 }
 
 float nebulaDensity(vec3 p) {
-  float swirl = u_time * u_swirlSpeed * (1.0 + u_mid * 0.35);
+  float swirl = u_time * u_swirlSpeed * (1.0 + u_mid * 0.45 + u_peak * 0.25);
   vec3 q = rotYMat(swirl) * p;
 
-  float coreRadius = 0.42 + u_bass * 0.28;
+  float coreRadius = 0.42 + u_bass * 0.38 + u_peak * 0.15;
   float dist = length(q);
   float envelope = smoothstep(coreRadius * 1.55, coreRadius * 0.08, dist);
 
@@ -57,18 +58,18 @@ float nebulaDensity(vec3 p) {
   n = n * 0.5 + 0.5;
 
   float density = envelope * (0.22 + 0.78 * n);
-  density *= u_densityScale * (0.75 + u_bass * 0.55 + u_treble * 0.12);
+  density *= u_densityScale * (0.75 + u_bass * 0.72 + u_treble * 0.18 + u_peak * 0.35);
   return max(density, 0.0);
 }
 
 vec3 nebulaColor(vec3 p, float density) {
   float dist = length(p);
-  float coreRadius = 0.42 + u_bass * 0.28;
+  float coreRadius = 0.42 + u_bass * 0.38 + u_peak * 0.15;
   float t = clamp(dist / max(coreRadius * 1.35, 0.01), 0.0, 1.0);
-  t = clamp(t + u_mid * 0.08 - density * 0.15, 0.0, 1.0);
+  t = clamp(t + u_mid * 0.12 + u_peak * 0.08 - density * 0.15, 0.0, 1.0);
   vec3 col = mixColor3(u_colorCore, u_colorMid, u_colorEdge, t);
   col *= 0.55 + density * 0.95;
-  col += u_colorCore * density * u_bass * 0.35;
+  col += u_colorCore * density * (u_bass * 0.48 + u_peak * 0.28);
   return col;
 }
 
@@ -111,7 +112,7 @@ void main() {
   }
 
   vec3 col = accumulated / max(outAlpha, 0.001);
-  col *= 0.88 + u_bass * 0.18;
+  col *= 0.88 + u_bass * 0.32 + u_peak * 0.22;
   gl_FragColor = vec4(col, outAlpha);
 }
 `);
@@ -151,6 +152,7 @@ export function createNebulaVolumeRenderer(ctx) {
     u_noiseScale: { value: cfg.noiseScale },
     u_swirlSpeed: { value: cfg.swirlSpeed },
     u_marchSteps: { value: cfg.marchSteps },
+    u_peak: { value: 0 },
   });
 
   const { dispose: disposeQuad } = createFullscreenQuadScene(scene, {
@@ -165,6 +167,7 @@ export function createNebulaVolumeRenderer(ctx) {
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
+  let peakSmoothed = 0;
   const spectrumState = { bass: 0, mid: 0, treble: 0 };
 
   function rebuildComposer() {
@@ -190,7 +193,7 @@ export function createNebulaVolumeRenderer(ctx) {
 
   rebuildComposer();
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
 
     const densityScale = clampFloat(Number(style.densityScale), 0.4, 2.5, cfg.densityScale);
@@ -217,10 +220,14 @@ export function createNebulaVolumeRenderer(ctx) {
     elapsed += dt > 0 ? dt : 1 / 60;
     uniforms.u_time.value = elapsed;
     updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
-      bass: 0.1,
-      mid: 0.085,
-      treble: 0.075,
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
     });
+
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
 
     uniforms.u_densityScale.value = densityScale;
     uniforms.u_noiseScale.value = noiseScale;
