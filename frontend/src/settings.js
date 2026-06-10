@@ -10591,7 +10591,7 @@ async function init() {
   if (closeSettingsBtn) {
     closeSettingsBtn.addEventListener("click", async () => {
       try {
-        await invoke("close_settings_window");
+        await invoke("close_settings_window", { visualTargetLabel });
       } catch (err) {
         statusEl.textContent = `关闭图形窗与设置失败：${String(err)}`;
       }

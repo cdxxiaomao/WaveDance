@@ -27,7 +27,7 @@ use serde::Serialize;
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
-    Position, Size, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+    Position, RunEvent, Size, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
 #[cfg(target_os = "macos")]
 use tauri::{menu::MenuBuilder, tray::TrayIconBuilder};
@@ -1059,31 +1059,16 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
-/// 关闭「当前设置所针对」的频谱图形窗（`main` 或 `spectrum-*`），并隐藏设置窗。
-/// 先隐藏设置：在 macOS 上设置窗挂为主窗子窗，若先关主窗会导致子窗一并销毁。
+/// 关闭「当前设置所针对」的频谱图形窗（`main` 或 `spectrum-*`）。
+/// 设置窗挂为该图形窗子窗，父窗关闭后设置面板一并消失；与窗口管理器共用 `close_managed_window`。
 #[tauri::command]
-fn close_settings_window(app: tauri::AppHandle, state: State<'_, StreamState>) -> Result<(), String> {
-    let target = state
-        .visual_settings_target
-        .lock()
-        .map(|g| g.clone())
-        .unwrap_or_else(|_| "main".to_string());
-
-    if let Some(settings) = app.get_webview_window("settings") {
-        let _ = settings.hide();
-    }
-
-    if target == "main" {
-        if let Some(w) = app.get_webview_window("main") {
-            w.close().map_err(|e| e.to_string())?;
-        }
-    } else if target.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
-        if let Some(w) = app.get_webview_window(&target) {
-            w.close().map_err(|e| e.to_string())?;
-        }
-    }
-
-    Ok(())
+fn close_settings_window(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    visual_target_label: Option<String>,
+) -> Result<(), String> {
+    let target = resolve_visual_settings_target_label(&state, visual_target_label.as_deref());
+    close_managed_window(app, target)
 }
 
 #[tauri::command]
@@ -1853,16 +1838,58 @@ fn attach_settings_window_to_parent_space(
     })
 }
 
+fn is_spectrum_graphic_window_label(label: &str) -> bool {
+    label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+}
+
+fn resolve_visual_settings_target_label(
+    state: &StreamState,
+    override_label: Option<&str>,
+) -> String {
+    if let Some(label) = override_label
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .filter(|s| is_spectrum_graphic_window_label(s))
+    {
+        if let Ok(mut g) = state.visual_settings_target.lock() {
+            *g = label.to_string();
+        }
+        return label.to_string();
+    }
+    state
+        .visual_settings_target
+        .lock()
+        .map(|g| g.clone())
+        .unwrap_or_else(|_| "main".to_string())
+}
+
+fn cleanup_after_spectrum_graphic_close(state: &StreamState, label: &str) {
+    if !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        return;
+    }
+    if let Ok(mut modes) = state.spectrum_overlay_by_label.lock() {
+        modes.remove(label);
+    }
+    if let Ok(mut wired) = state.spectrum_toolbar_follow_wired.lock() {
+        wired.remove(label);
+    }
+}
+
 /// 解析设置窗应挂接的父图形窗：优先 `main`，否则任一 `spectrum-*`；`preferred` 存在且仍打开时优先用它。
 fn resolve_settings_parent_window(
     app: &tauri::AppHandle,
     preferred: Option<&str>,
 ) -> Result<(String, tauri::WebviewWindow), String> {
     if let Some(label) = preferred.map(str::trim).filter(|s| !s.is_empty()) {
-        if label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        if is_spectrum_graphic_window_label(label) {
             if let Some(w) = app.get_webview_window(label) {
                 return Ok((label.to_string(), w));
             }
+        }
+    }
+    for (label, w) in app.webview_windows() {
+        if is_spectrum_graphic_window_label(&label) && w.is_focused().unwrap_or(false) {
+            return Ok((label, w));
         }
     }
     if let Some(main) = app.get_webview_window("main") {
@@ -1875,13 +1902,6 @@ fn resolve_settings_parent_window(
         .collect();
     if spectrum.is_empty() {
         return Err("没有可用的频谱窗口，请先新建窗口".to_string());
-    }
-    if let Some((_, w)) = spectrum
-        .iter()
-        .find(|(_, w)| w.is_focused().unwrap_or(false))
-    {
-        let label = w.label().to_string();
-        return Ok((label, w.clone()));
     }
     spectrum
         .into_iter()
@@ -2950,7 +2970,7 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
         }
     }
 
-    // 先激活父图形窗，确保当前 Space 一致，再挂接/显示设置窗。
+    // 先激活父图形窗，确保当前 Space 一致，再挂接/显示设置窗（与歌词/封面设置同一套动态子窗逻辑）。
     parent.set_focus().map_err(|e| e.to_string())?;
 
     if let Some(settings) = app.get_webview_window("settings") {
@@ -2968,6 +2988,7 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     )
     .title("WaveDance 设置")
     .inner_size(620.0, 760.0)
+    .decorations(true)
     .parent(&parent)
     .map_err(|e| e.to_string())?
     .always_on_top(pinned)
@@ -3122,10 +3143,20 @@ fn close_managed_window(app: tauri::AppHandle, label: String) -> Result<(), Stri
     if is_internal_auxiliary_window_label(&label) {
         return Err("无法关闭该窗口".to_string());
     }
+    if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
+        let tb_label = toolbar_webview_label_for_spectrum(&label);
+        if let Some(tb) = app.get_webview_window(&tb_label) {
+            let _ = tb.close();
+        }
+    }
     let Some(win) = app.get_webview_window(&label) else {
         return Ok(());
     };
-    win.close().map_err(|e| e.to_string())
+    win.close().map_err(|e| e.to_string())?;
+    let state = app.state::<StreamState>();
+    cleanup_after_spectrum_graphic_close(&state, &label);
+    sync_app_activation_policy(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -3475,6 +3506,14 @@ fn main() {
             #[cfg(target_os = "macos")]
             sync_lyrics_for_now_playing
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            // 托盘常驻：仅菜单「退出」会带显式 exit code；误关窗口触发的退出请求一律拦截。
+            if let RunEvent::ExitRequested { api, code, .. } = event {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+        });
 }
