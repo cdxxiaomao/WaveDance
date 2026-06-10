@@ -98,6 +98,7 @@
               <optgroup label="Three 高阶">
                 <option value="threePlasmaField">等离子场</option>
                 <option value="threeParticleGalaxy">粒子银河</option>
+                <option value="threeBloomTunnel">能量隧道</option>
               </optgroup>
             </select>
           </div>
@@ -1106,6 +1107,65 @@
           <div class="settings-field">
             <label for="threeGalaxyFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGalaxyFallEaseValue">55</span>%</label>
             <input id="threeGalaxyFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeBloomTunnelConfigPanel" aria-labelledby="sec-three-tunnel-display" hidden>
+        <h2 id="sec-three-tunnel-display" class="settings-card__title">能量隧道配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-tunnel" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeTunnelWallColorLow" class="settings-label">墙低能量色</label>
+            <input id="threeTunnelWallColorLow" type="color" value="#1a1a2e" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeTunnelWallColorHigh" class="settings-label">墙高能量色</label>
+            <input id="threeTunnelWallColorHigh" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeTunnelCoreColor" class="settings-label">核心颜色</label>
+            <input id="threeTunnelCoreColor" type="color" value="#ffffff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelSpeedRange" class="settings-label">隧道速度 <span class="settings-value" id="threeTunnelSpeedValue">1.0</span></label>
+            <input id="threeTunnelSpeedRange" type="range" min="2" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelWallSegmentsRange" class="settings-label">墙频段数 <span class="settings-value" id="threeTunnelWallSegmentsValue">48</span></label>
+            <input id="threeTunnelWallSegmentsRange" type="range" min="16" max="64" step="4" value="48" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelCorePulseRange" class="settings-label">核心脉冲 <span class="settings-value" id="threeTunnelCorePulseValue">70</span>%</label>
+            <input id="threeTunnelCorePulseRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelFovRange" class="settings-label">视野 FOV <span class="settings-value" id="threeTunnelFovValue">60</span>°</label>
+            <input id="threeTunnelFovRange" type="range" min="45" max="85" step="1" value="60" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeTunnelBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeTunnelBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeTunnelBloomStrengthValue">1.0</span></label>
+            <input id="threeTunnelBloomStrengthRange" type="range" min="0" max="20" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelGainRange" class="settings-label">增益 <span class="settings-value" id="threeTunnelGainValue">58</span>%</label>
+            <input id="threeTunnelGainRange" type="range" min="10" max="150" step="1" value="58" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeTunnelSmoothValue">14</span>%</label>
+            <input id="threeTunnelSmoothRange" type="range" min="0" max="400" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeTunnelSoftClipValue">10</span>%</label>
+            <input id="threeTunnelSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeTunnelFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeTunnelFallEaseValue">45</span>%</label>
+            <input id="threeTunnelFallEaseRange" type="range" min="0" max="100" step="1" value="45" />
           </div>
         </div>
       </section>

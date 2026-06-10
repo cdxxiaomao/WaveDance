@@ -8,6 +8,13 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 18：能量隧道 Three Bloom Tunnel（A/D）
+
+- 新建 `frontend/src/renderers/three/bloomTunnelRenderer.js`：第一人称隧道（两侧频谱能量墙 Shader + DataTexture 历史滚动、中心脉冲核心球体、能量驱动减速/加速），可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeBloomTunnel` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-tunnel-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 能量隧道」、`#threeBloomTunnelConfigPanel`（墙双色/核心色/速度/频段数/核心脉冲/FOV/Bloom/形状四件套）。
+
 ### 可视化模式扩展 — Phase 17：粒子银河 Three Particle Galaxy（A/D）
 
 - 新建 `frontend/src/renderers/three/particleGalaxyRenderer.js`：盘状螺旋银河点云（bass 向心收拢、treble 噪声扩散），可选 Bloom；超 15000 粒子时降 DPR 并限 30fps 位置更新。

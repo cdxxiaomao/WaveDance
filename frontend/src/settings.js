@@ -56,6 +56,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.helix3d]: "helix3dConfigPanel",
   [DISPLAY_MODES.threePlasmaField]: "threePlasmaFieldConfigPanel",
   [DISPLAY_MODES.threeParticleGalaxy]: "threeParticleGalaxyConfigPanel",
+  [DISPLAY_MODES.threeBloomTunnel]: "threeBloomTunnelConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -414,6 +415,28 @@ const threeGalaxySoftClipRange = document.querySelector("#threeGalaxySoftClipRan
 const threeGalaxySoftClipValue = document.querySelector("#threeGalaxySoftClipValue");
 const threeGalaxyFallEaseRange = document.querySelector("#threeGalaxyFallEaseRange");
 const threeGalaxyFallEaseValue = document.querySelector("#threeGalaxyFallEaseValue");
+const threeTunnelWallColorLow = document.querySelector("#threeTunnelWallColorLow");
+const threeTunnelWallColorHigh = document.querySelector("#threeTunnelWallColorHigh");
+const threeTunnelCoreColor = document.querySelector("#threeTunnelCoreColor");
+const threeTunnelSpeedRange = document.querySelector("#threeTunnelSpeedRange");
+const threeTunnelSpeedValue = document.querySelector("#threeTunnelSpeedValue");
+const threeTunnelWallSegmentsRange = document.querySelector("#threeTunnelWallSegmentsRange");
+const threeTunnelWallSegmentsValue = document.querySelector("#threeTunnelWallSegmentsValue");
+const threeTunnelCorePulseRange = document.querySelector("#threeTunnelCorePulseRange");
+const threeTunnelCorePulseValue = document.querySelector("#threeTunnelCorePulseValue");
+const threeTunnelFovRange = document.querySelector("#threeTunnelFovRange");
+const threeTunnelFovValue = document.querySelector("#threeTunnelFovValue");
+const threeTunnelBloomToggle = document.querySelector("#threeTunnelBloomToggle");
+const threeTunnelBloomStrengthRange = document.querySelector("#threeTunnelBloomStrengthRange");
+const threeTunnelBloomStrengthValue = document.querySelector("#threeTunnelBloomStrengthValue");
+const threeTunnelGainRange = document.querySelector("#threeTunnelGainRange");
+const threeTunnelGainValue = document.querySelector("#threeTunnelGainValue");
+const threeTunnelSmoothRange = document.querySelector("#threeTunnelSmoothRange");
+const threeTunnelSmoothValue = document.querySelector("#threeTunnelSmoothValue");
+const threeTunnelSoftClipRange = document.querySelector("#threeTunnelSoftClipRange");
+const threeTunnelSoftClipValue = document.querySelector("#threeTunnelSoftClipValue");
+const threeTunnelFallEaseRange = document.querySelector("#threeTunnelFallEaseRange");
+const threeTunnelFallEaseValue = document.querySelector("#threeTunnelFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2041,6 +2064,135 @@ function applyThreeGalaxyFormFromStorage(v) {
   }
 }
 
+function readThreeTunnelShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeTunnelShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeTunnelGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeTunnelSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeTunnelSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeTunnelFallEaseRange?.value, 0, 100),
+  };
+  if (threeTunnelGainValue) threeTunnelGainValue.textContent = String(config.gainPercent);
+  if (threeTunnelSmoothValue) threeTunnelSmoothValue.textContent = String(config.smoothPercent);
+  if (threeTunnelSoftClipValue) threeTunnelSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeTunnelFallEaseValue) threeTunnelFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeTunnelShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-tunnel-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyThreeTunnelFormFromStorage(v) {
+  const sg = readThreeTunnelShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeBloomTunnel.shape };
+  if (threeTunnelGainRange) threeTunnelGainRange.value = String(sg.gainPercent);
+  if (threeTunnelSmoothRange) threeTunnelSmoothRange.value = String(sg.smoothPercent);
+  if (threeTunnelSoftClipRange) threeTunnelSoftClipRange.value = String(sg.softClipPercent);
+  if (threeTunnelFallEaseRange) threeTunnelFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeTunnelGainValue) threeTunnelGainValue.textContent = String(sg.gainPercent);
+  if (threeTunnelSmoothValue) threeTunnelSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeTunnelSoftClipValue) threeTunnelSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeTunnelFallEaseValue) threeTunnelFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedWallLow = readWindowStorageString(window.localStorage, v, "threeTunnelWallColorLow");
+  if (threeTunnelWallColorLow && savedWallLow && /^#[0-9A-Fa-f]{6}$/.test(savedWallLow)) {
+    threeTunnelWallColorLow.value = savedWallLow.toLowerCase();
+  } else if (threeTunnelWallColorLow) {
+    threeTunnelWallColorLow.value = DEFAULT_CONFIG.threeBloomTunnel.wallColorLow;
+  }
+
+  const savedWallHigh = readWindowStorageString(window.localStorage, v, "threeTunnelWallColorHigh");
+  if (threeTunnelWallColorHigh && savedWallHigh && /^#[0-9A-Fa-f]{6}$/.test(savedWallHigh)) {
+    threeTunnelWallColorHigh.value = savedWallHigh.toLowerCase();
+  } else if (threeTunnelWallColorHigh) {
+    threeTunnelWallColorHigh.value = DEFAULT_CONFIG.threeBloomTunnel.wallColorHigh;
+  }
+
+  const savedCoreColor = readWindowStorageString(window.localStorage, v, "threeTunnelCoreColor");
+  if (threeTunnelCoreColor && savedCoreColor && /^#[0-9A-Fa-f]{6}$/.test(savedCoreColor)) {
+    threeTunnelCoreColor.value = savedCoreColor.toLowerCase();
+  } else if (threeTunnelCoreColor) {
+    threeTunnelCoreColor.value = DEFAULT_CONFIG.threeBloomTunnel.coreColor;
+  }
+
+  const savedSpeed = readWindowStorageString(window.localStorage, v, "threeTunnelSpeed");
+  if (threeTunnelSpeedRange) {
+    const speed =
+      savedSpeed != null && savedSpeed !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedSpeed)))
+        : DEFAULT_CONFIG.threeBloomTunnel.tunnelSpeed;
+    threeTunnelSpeedRange.value = String(Math.round(speed * 10));
+    if (threeTunnelSpeedValue) threeTunnelSpeedValue.textContent = speed.toFixed(1);
+  }
+
+  const savedSegments = readWindowStorageString(window.localStorage, v, "threeTunnelWallSegments");
+  if (threeTunnelWallSegmentsRange) {
+    const segments =
+      savedSegments != null && savedSegments !== ""
+        ? clampInt(savedSegments, 16, 64)
+        : DEFAULT_CONFIG.threeBloomTunnel.wallSegments;
+    threeTunnelWallSegmentsRange.value = String(segments);
+    if (threeTunnelWallSegmentsValue) threeTunnelWallSegmentsValue.textContent = String(segments);
+  }
+
+  const savedCorePulse = readWindowStorageString(window.localStorage, v, "threeTunnelCorePulseStrength");
+  if (threeTunnelCorePulseRange) {
+    const corePulse =
+      savedCorePulse != null && savedCorePulse !== ""
+        ? clampInt(savedCorePulse, 0, 100)
+        : DEFAULT_CONFIG.threeBloomTunnel.corePulseStrength;
+    threeTunnelCorePulseRange.value = String(corePulse);
+    if (threeTunnelCorePulseValue) threeTunnelCorePulseValue.textContent = String(corePulse);
+  }
+
+  const savedFov = readWindowStorageString(window.localStorage, v, "threeTunnelFov");
+  if (threeTunnelFovRange) {
+    const fov =
+      savedFov != null && savedFov !== ""
+        ? clampInt(savedFov, 45, 85)
+        : DEFAULT_CONFIG.threeBloomTunnel.fovDeg;
+    threeTunnelFovRange.value = String(fov);
+    if (threeTunnelFovValue) threeTunnelFovValue.textContent = String(fov);
+  }
+
+  if (threeTunnelBloomToggle) {
+    threeTunnelBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeTunnelBloom"),
+      DEFAULT_CONFIG.threeBloomTunnel.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeTunnelBloomStrength");
+  if (threeTunnelBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeBloomTunnel.bloomStrength;
+    threeTunnelBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeTunnelBloomStrengthValue) threeTunnelBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -2664,6 +2816,7 @@ async function init() {
     applyHelix3dFormFromStorage(v);
     applyThreePlasmaFormFromStorage(v);
     applyThreeGalaxyFormFromStorage(v);
+    applyThreeTunnelFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -4602,6 +4755,132 @@ async function init() {
   });
   threeGalaxyFallEaseRange?.addEventListener("input", () => {
     void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeTunnelWallColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelWallColorLow",
+        threeTunnelWallColorLow.value,
+      );
+      await emitVisual("waveform-three-tunnel-wall-color-low", threeTunnelWallColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新墙低能量色失败：${String(err)}`;
+    }
+  });
+  threeTunnelWallColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelWallColorHigh",
+        threeTunnelWallColorHigh.value,
+      );
+      await emitVisual("waveform-three-tunnel-wall-color-high", threeTunnelWallColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新墙高能量色失败：${String(err)}`;
+    }
+  });
+  threeTunnelCoreColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelCoreColor",
+        threeTunnelCoreColor.value,
+      );
+      await emitVisual("waveform-three-tunnel-core-color", threeTunnelCoreColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心颜色失败：${String(err)}`;
+    }
+  });
+  threeTunnelSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(3, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeTunnelSpeedValue) threeTunnelSpeedValue.textContent = speed.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeTunnelSpeed", String(speed));
+      await emitVisual("waveform-three-tunnel-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新隧道速度失败：${String(err)}`;
+    }
+  });
+  threeTunnelWallSegmentsRange?.addEventListener("input", async (event) => {
+    const segments = clampInt(event.target.value, 16, 64);
+    if (threeTunnelWallSegmentsValue) threeTunnelWallSegmentsValue.textContent = String(segments);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelWallSegments",
+        String(segments),
+      );
+      await emitVisual("waveform-three-tunnel-wall-segments", segments);
+    } catch (err) {
+      statusEl.textContent = `更新墙频段数失败：${String(err)}`;
+    }
+  });
+  threeTunnelCorePulseRange?.addEventListener("input", async (event) => {
+    const corePulse = clampInt(event.target.value, 0, 100);
+    if (threeTunnelCorePulseValue) threeTunnelCorePulseValue.textContent = String(corePulse);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelCorePulseStrength",
+        String(corePulse),
+      );
+      await emitVisual("waveform-three-tunnel-core-pulse-strength", corePulse);
+    } catch (err) {
+      statusEl.textContent = `更新核心脉冲失败：${String(err)}`;
+    }
+  });
+  threeTunnelFovRange?.addEventListener("input", async (event) => {
+    const fov = clampInt(event.target.value, 45, 85);
+    if (threeTunnelFovValue) threeTunnelFovValue.textContent = String(fov);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeTunnelFov", String(fov));
+      await emitVisual("waveform-three-tunnel-fov", fov);
+    } catch (err) {
+      statusEl.textContent = `更新视野 FOV 失败：${String(err)}`;
+    }
+  });
+  threeTunnelBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeTunnelBloom", String(enabled));
+      await emitVisual("waveform-three-tunnel-bloom", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeTunnelBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeTunnelBloomStrengthValue) threeTunnelBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeTunnelBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-tunnel-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeTunnelGainRange?.addEventListener("input", () => {
+    void syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeTunnelSmoothRange?.addEventListener("input", () => {
+    void syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeTunnelSoftClipRange?.addEventListener("input", () => {
+    void syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeTunnelFallEaseRange?.addEventListener("input", () => {
+    void syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

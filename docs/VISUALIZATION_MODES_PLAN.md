@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~17 已全部完成；Phase 18~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~18 已全部完成；Phase 19~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1065,16 +1065,16 @@ threeBloomTunnel: {
 
 #### 18.2 新建 `renderers/three/bloomTunnelRenderer.js`
 
-- [ ] 两侧 `PlaneGeometry` 或 `CylinderGeometry`（半开）UV 滚动
-- [ ] 频谱采样 → 墙顶高度/ emissive 贴图（动态 `DataTexture`）
-- [ ] 中心 core：`MeshBasicMaterial` 球体，scale ∝ peak
-- [ ] 相机 `position.z` 每帧递增 mod 隧道长度（无限循环）
+- [x] 两侧 `PlaneGeometry` 或 `CylinderGeometry`（半开）UV 滚动
+- [x] 频谱采样 → 墙顶高度/ emissive 贴图（动态 `DataTexture`）
+- [x] 中心 core：`MeshBasicMaterial` 球体，scale ∝ peak
+- [x] 相机 `position.z` 每帧递增 mod 隧道长度（无限循环）
 
 #### 18.3 验收标准
 
-- [ ] 前进感连续，无明显跳帧接缝
-- [ ] 窄条浮窗下仍可见两侧能量墙
-- [ ] 停止音乐后墙高缓落、隧道减速
+- [x] 前进感连续，无明显跳帧接缝
+- [x] 窄条浮窗下仍可见两侧能量墙
+- [x] 停止音乐后墙高缓落、隧道减速
 
 ---
 
@@ -1574,7 +1574,7 @@ threeNoiseLandscape: {
 | 15 | Three.js 公共基础设施 | `[x]` 已完成 | 2026-06-10 |
 | 16 | 等离子场 Three Plasma Field（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 17 | 粒子银河 Three Particle Galaxy（A/D） | `[x]` 已完成 | 2026-06-10 |
-| 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[ ]` 未开始 | |
+| 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 19 | 能量球 Three Energy Sphere（A） | `[ ]` 未开始 | |
 | 20 | 万花筒 Three Kaleidoscope（B） | `[ ]` 未开始 | |
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 18（能量隧道 Three Bloom Tunnel，方案 D）
+**当前建议下一步**：Phase 19（能量球 Three Energy Sphere，方案 A）
 
 ---
 
