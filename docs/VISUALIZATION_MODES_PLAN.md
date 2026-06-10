@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~34 已全部完成；Phase 35~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~35 已全部完成；Phase 36~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1727,14 +1727,14 @@ threeHoloPrism: {
 
 #### 35.2 新建 `three/holoPrismRenderer.js`
 
-- [ ] SDF 棱柱；fragment 加 `spectralStrength` 基于角度的 RGB 偏移
-- [ ] `mix(tintLow, tintHigh, angle)` 再叠光谱
-- [ ] peak 触发 chromatic 脉冲
+- [x] SDF 棱柱；fragment 加 `spectralStrength` 基于角度的 RGB 偏移
+- [x] `mix(tintLow, tintHigh, angle)` 再叠光谱
+- [x] peak 触发 chromatic 脉冲
 
 #### 35.3 验收标准
 
-- [ ] 棱柱边彩虹可见；spectralStrength=0 时仅双色 tint
-- [ ] **方案 F（晶体光学）三模式全部可切换**
+- [x] 棱柱边彩虹可见；spectralStrength=0 时仅双色 tint
+- [x] **方案 F（晶体光学）三模式全部可切换**
 
 ---
 
@@ -2044,12 +2044,12 @@ threeKnotOrganic: {
 | 32 | 珍珠链 Three Pearl Chain（E） | `[x]` 已完成 | 2026-06-10 |
 | 33 | 宝石晶体 Three Crystal Gem（F） | `[x]` 已完成 | 2026-06-10 |
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[x]` 已完成 | 2026-06-10 |
-| 35 | 全息棱镜 Three Holo Prism（F） | `[ ]` 未开始 | |
+| 35 | 全息棱镜 Three Holo Prism（F） | `[x]` 已完成 | 2026-06-10 |
 | 36 | 星云团 Three Nebula Volume（G） | `[ ]` 未开始 | |
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 35（全息棱镜）
+**当前建议下一步**：Phase 36（星云团）
 
 ---
 

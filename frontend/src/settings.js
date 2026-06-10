@@ -72,6 +72,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threePearlChain]: "threePearlChainConfigPanel",
   [DISPLAY_MODES.threeCrystalGem]: "threeCrystalGemConfigPanel",
   [DISPLAY_MODES.threeGlassOrbs]: "threeGlassOrbsConfigPanel",
+  [DISPLAY_MODES.threeHoloPrism]: "threeHoloPrismConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -769,6 +770,28 @@ const threeGlassOrbsSoftClipRange = document.querySelector("#threeGlassOrbsSoftC
 const threeGlassOrbsSoftClipValue = document.querySelector("#threeGlassOrbsSoftClipValue");
 const threeGlassOrbsFallEaseRange = document.querySelector("#threeGlassOrbsFallEaseRange");
 const threeGlassOrbsFallEaseValue = document.querySelector("#threeGlassOrbsFallEaseValue");
+const threeHoloPrismTintLow = document.querySelector("#threeHoloPrismTintLow");
+const threeHoloPrismTintHigh = document.querySelector("#threeHoloPrismTintHigh");
+const threeHoloPrismSidesRange = document.querySelector("#threeHoloPrismSidesRange");
+const threeHoloPrismSidesValue = document.querySelector("#threeHoloPrismSidesValue");
+const threeHoloPrismRotationSpeedRange = document.querySelector("#threeHoloPrismRotationSpeedRange");
+const threeHoloPrismRotationSpeedValue = document.querySelector("#threeHoloPrismRotationSpeedValue");
+const threeHoloPrismSpectralStrengthRange = document.querySelector("#threeHoloPrismSpectralStrengthRange");
+const threeHoloPrismSpectralStrengthValue = document.querySelector("#threeHoloPrismSpectralStrengthValue");
+const threeHoloPrismPulseOnPeakToggle = document.querySelector("#threeHoloPrismPulseOnPeakToggle");
+const threeHoloPrismChromaticOffsetRange = document.querySelector("#threeHoloPrismChromaticOffsetRange");
+const threeHoloPrismChromaticOffsetValue = document.querySelector("#threeHoloPrismChromaticOffsetValue");
+const threeHoloPrismBloomToggle = document.querySelector("#threeHoloPrismBloomToggle");
+const threeHoloPrismBloomStrengthRange = document.querySelector("#threeHoloPrismBloomStrengthRange");
+const threeHoloPrismBloomStrengthValue = document.querySelector("#threeHoloPrismBloomStrengthValue");
+const threeHoloPrismGainRange = document.querySelector("#threeHoloPrismGainRange");
+const threeHoloPrismGainValue = document.querySelector("#threeHoloPrismGainValue");
+const threeHoloPrismSmoothRange = document.querySelector("#threeHoloPrismSmoothRange");
+const threeHoloPrismSmoothValue = document.querySelector("#threeHoloPrismSmoothValue");
+const threeHoloPrismSoftClipRange = document.querySelector("#threeHoloPrismSoftClipRange");
+const threeHoloPrismSoftClipValue = document.querySelector("#threeHoloPrismSoftClipValue");
+const threeHoloPrismFallEaseRange = document.querySelector("#threeHoloPrismFallEaseRange");
+const threeHoloPrismFallEaseValue = document.querySelector("#threeHoloPrismFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3943,6 +3966,140 @@ function applyThreeGlassOrbsFormFromStorage(v) {
   }
 }
 
+function readThreeHoloPrismShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeHoloPrismShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeHoloPrismGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeHoloPrismSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeHoloPrismSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeHoloPrismFallEaseRange?.value, 0, 100),
+  };
+  if (threeHoloPrismGainValue) threeHoloPrismGainValue.textContent = String(config.gainPercent);
+  if (threeHoloPrismSmoothValue) threeHoloPrismSmoothValue.textContent = String(config.smoothPercent);
+  if (threeHoloPrismSoftClipValue) threeHoloPrismSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeHoloPrismFallEaseValue) threeHoloPrismFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeHoloPrismShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-holo-prism-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新全息棱镜形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeHoloPrismFormFromStorage(v) {
+  const sg = readThreeHoloPrismShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeHoloPrism.shape };
+  if (threeHoloPrismGainRange) threeHoloPrismGainRange.value = String(sg.gainPercent);
+  if (threeHoloPrismSmoothRange) threeHoloPrismSmoothRange.value = String(sg.smoothPercent);
+  if (threeHoloPrismSoftClipRange) threeHoloPrismSoftClipRange.value = String(sg.softClipPercent);
+  if (threeHoloPrismFallEaseRange) threeHoloPrismFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeHoloPrismGainValue) threeHoloPrismGainValue.textContent = String(sg.gainPercent);
+  if (threeHoloPrismSmoothValue) threeHoloPrismSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeHoloPrismSoftClipValue) threeHoloPrismSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeHoloPrismFallEaseValue) threeHoloPrismFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  for (const [storageKey, el, defaultKey] of [
+    ["threeHoloPrismTintLow", threeHoloPrismTintLow, "tintLow"],
+    ["threeHoloPrismTintHigh", threeHoloPrismTintHigh, "tintHigh"],
+  ]) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (el && saved && /^#[0-9A-Fa-f]{6}$/.test(saved)) {
+      el.value = saved.toLowerCase();
+    } else if (el) {
+      el.value = DEFAULT_CONFIG.threeHoloPrism[defaultKey];
+    }
+  }
+
+  const savedSides = readWindowStorageString(window.localStorage, v, "threeHoloPrismSides");
+  if (threeHoloPrismSidesRange) {
+    const sides =
+      savedSides != null && savedSides !== ""
+        ? clampInt(savedSides, 4, 8)
+        : DEFAULT_CONFIG.threeHoloPrism.prismSides;
+    threeHoloPrismSidesRange.value = String(sides);
+    if (threeHoloPrismSidesValue) threeHoloPrismSidesValue.textContent = String(sides);
+  }
+
+  const savedRot = readWindowStorageString(window.localStorage, v, "threeHoloPrismRotationSpeedDeg");
+  if (threeHoloPrismRotationSpeedRange) {
+    const rot =
+      savedRot != null && savedRot !== ""
+        ? clampInt(savedRot, 0, 30)
+        : DEFAULT_CONFIG.threeHoloPrism.rotationSpeedDeg;
+    threeHoloPrismRotationSpeedRange.value = String(rot);
+    if (threeHoloPrismRotationSpeedValue) threeHoloPrismRotationSpeedValue.textContent = String(rot);
+  }
+
+  const savedSpectral = readWindowStorageString(window.localStorage, v, "threeHoloPrismSpectralStrength");
+  if (threeHoloPrismSpectralStrengthRange) {
+    const spectral =
+      savedSpectral != null && savedSpectral !== ""
+        ? clampInt(savedSpectral, 0, 100)
+        : DEFAULT_CONFIG.threeHoloPrism.spectralStrength;
+    threeHoloPrismSpectralStrengthRange.value = String(spectral);
+    if (threeHoloPrismSpectralStrengthValue) {
+      threeHoloPrismSpectralStrengthValue.textContent = String(spectral);
+    }
+  }
+
+  if (threeHoloPrismPulseOnPeakToggle) {
+    threeHoloPrismPulseOnPeakToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeHoloPrismPulseOnPeak"),
+      DEFAULT_CONFIG.threeHoloPrism.pulseOnPeak,
+    );
+  }
+
+  const savedChromaticOffset = readWindowStorageString(window.localStorage, v, "threeHoloPrismChromaticOffset");
+  if (threeHoloPrismChromaticOffsetRange) {
+    const offset =
+      savedChromaticOffset != null && savedChromaticOffset !== ""
+        ? Math.min(0.01, Math.max(0, Number(savedChromaticOffset)))
+        : DEFAULT_CONFIG.threeHoloPrism.chromaticOffset;
+    threeHoloPrismChromaticOffsetRange.value = String(Math.round(offset * 1000));
+    if (threeHoloPrismChromaticOffsetValue) {
+      threeHoloPrismChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+  }
+
+  if (threeHoloPrismBloomToggle) {
+    threeHoloPrismBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeHoloPrismBloom"),
+      DEFAULT_CONFIG.threeHoloPrism.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeHoloPrismBloomStrength");
+  if (threeHoloPrismBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeHoloPrism.bloomStrength;
+    threeHoloPrismBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeHoloPrismBloomStrengthValue) {
+      threeHoloPrismBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -5018,6 +5175,7 @@ async function init() {
     applyThreePearlChainFormFromStorage(v);
     applyThreeCrystalGemFormFromStorage(v);
     applyThreeGlassOrbsFormFromStorage(v);
+    applyThreeHoloPrismFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -8640,6 +8798,154 @@ async function init() {
   });
   threeGlassOrbsFallEaseRange?.addEventListener("input", () => {
     void syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeHoloPrismTintLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismTintLow",
+        threeHoloPrismTintLow.value,
+      );
+      await emitVisual("waveform-three-holo-prism-tint-low", threeHoloPrismTintLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低色染色失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismTintHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismTintHigh",
+        threeHoloPrismTintHigh.value,
+      );
+      await emitVisual("waveform-three-holo-prism-tint-high", threeHoloPrismTintHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高色染色失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismSidesRange?.addEventListener("input", async (event) => {
+    const sides = clampInt(event.target.value, 4, 8);
+    if (threeHoloPrismSidesValue) threeHoloPrismSidesValue.textContent = String(sides);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismSides",
+        String(sides),
+      );
+      await emitVisual("waveform-three-holo-prism-sides", sides);
+    } catch (err) {
+      statusEl.textContent = `更新棱柱边数失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismRotationSpeedRange?.addEventListener("input", async (event) => {
+    const rot = clampInt(event.target.value, 0, 30);
+    if (threeHoloPrismRotationSpeedValue) threeHoloPrismRotationSpeedValue.textContent = String(rot);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismRotationSpeedDeg",
+        String(rot),
+      );
+      await emitVisual("waveform-three-holo-prism-rotation-speed", rot);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismSpectralStrengthRange?.addEventListener("input", async (event) => {
+    const spectral = clampInt(event.target.value, 0, 100);
+    if (threeHoloPrismSpectralStrengthValue) {
+      threeHoloPrismSpectralStrengthValue.textContent = String(spectral);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismSpectralStrength",
+        String(spectral),
+      );
+      await emitVisual("waveform-three-holo-prism-spectral-strength", spectral);
+    } catch (err) {
+      statusEl.textContent = `更新光谱色散失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismPulseOnPeakToggle?.addEventListener("change", async () => {
+    const enabled = threeHoloPrismPulseOnPeakToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismPulseOnPeak",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-holo-prism-pulse-on-peak", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新峰值色散脉冲失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismChromaticOffsetRange?.addEventListener("input", async (event) => {
+    const offset = Math.min(0.01, Math.max(0, Number(event.target.value) / 1000));
+    if (threeHoloPrismChromaticOffsetValue) {
+      threeHoloPrismChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismChromaticOffset",
+        String(offset),
+      );
+      await emitVisual("waveform-three-holo-prism-chromatic-offset", offset);
+    } catch (err) {
+      statusEl.textContent = `更新色散偏移失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismBloomToggle?.addEventListener("change", async () => {
+    const enabled = threeHoloPrismBloomToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-holo-prism-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeHoloPrismBloomStrengthValue) {
+      threeHoloPrismBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeHoloPrismBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-holo-prism-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeHoloPrismGainRange?.addEventListener("input", () => {
+    void syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeHoloPrismSmoothRange?.addEventListener("input", () => {
+    void syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeHoloPrismSoftClipRange?.addEventListener("input", () => {
+    void syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeHoloPrismFallEaseRange?.addEventListener("input", () => {
+    void syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {

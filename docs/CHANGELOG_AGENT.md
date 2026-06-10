@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 35：全息棱镜 Three Holo Prism（F）
+
+- 新建 `frontend/src/renderers/three/holoPrismRenderer.js`：N 棱柱 SDF raymarch 慢自转，`tintLow/tintHigh` 按角度染色，棱边 `spectralStrength` 彩虹色散，峰值触发 ChromaticAberration 脉冲衰减，始终启用 radial 色散 + 可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeHoloPrism`、`DEFAULT_CONFIG.threeHoloPrism` 及 storage keys。
+- `main.js`：监听 `waveform-three-holo-prism-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「晶体光学 3D → 全息棱镜」配置面板（双色染色、棱柱边数、自转、光谱色散、峰值脉冲、色散偏移、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 34：玻璃球栈 Three Glass Orbs（F）
 
 - 新建 `frontend/src/renderers/three/glassOrbsRenderer.js`：2~5 颗透明玻璃球竖向叠放 raymarch，每球独立五色，hit 后 snoise 假折射 + fresnel 球间混色，transmission 控制透明感，peak 驱动整体呼吸缩放，可选 Chromatic + Bloom；`registerModes.js` 注册。

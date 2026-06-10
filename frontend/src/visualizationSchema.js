@@ -315,6 +315,16 @@ export const STORAGE_KEYS = {
   threeGlassOrbsBloom: "wavedance.threeGlassOrbsBloomEnabled",
   threeGlassOrbsBloomStrength: "wavedance.threeGlassOrbsBloomStrength",
   threeGlassOrbsShape: "wavedance.threeGlassOrbsShapeConfig",
+  threeHoloPrismTintLow: "wavedance.threeHoloPrismTintLow",
+  threeHoloPrismTintHigh: "wavedance.threeHoloPrismTintHigh",
+  threeHoloPrismSides: "wavedance.threeHoloPrismSides",
+  threeHoloPrismRotationSpeedDeg: "wavedance.threeHoloPrismRotationSpeedDeg",
+  threeHoloPrismSpectralStrength: "wavedance.threeHoloPrismSpectralStrength",
+  threeHoloPrismPulseOnPeak: "wavedance.threeHoloPrismPulseOnPeak",
+  threeHoloPrismChromaticOffset: "wavedance.threeHoloPrismChromaticOffset",
+  threeHoloPrismBloom: "wavedance.threeHoloPrismBloomEnabled",
+  threeHoloPrismBloomStrength: "wavedance.threeHoloPrismBloomStrength",
+  threeHoloPrismShape: "wavedance.threeHoloPrismShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -354,6 +364,7 @@ export const DISPLAY_MODES = {
   threePearlChain: "threePearlChain",
   threeCrystalGem: "threeCrystalGem",
   threeGlassOrbs: "threeGlassOrbs",
+  threeHoloPrism: "threeHoloPrism",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -375,6 +386,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threePearlChain,
   DISPLAY_MODES.threeCrystalGem,
   DISPLAY_MODES.threeGlassOrbs,
+  DISPLAY_MODES.threeHoloPrism,
 ];
 
 /** @param {string} mode */
@@ -943,6 +955,23 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 50,
     },
   },
+  threeHoloPrism: {
+    tintLow: "#3b82f6",
+    tintHigh: "#ec4899",
+    prismSides: 6,
+    rotationSpeedDeg: 10,
+    spectralStrength: 75,
+    pulseOnPeak: true,
+    chromaticOffset: 0.006,
+    bloomEnabled: true,
+    bloomStrength: 0.8,
+    shape: {
+      gainPercent: 58,
+      smoothPercent: 16,
+      softClipPercent: 10,
+      fallEasePercent: 48,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -980,6 +1009,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threePearlChain) return DISPLAY_MODES.threePearlChain;
   if (s === DISPLAY_MODES.threeCrystalGem) return DISPLAY_MODES.threeCrystalGem;
   if (s === DISPLAY_MODES.threeGlassOrbs) return DISPLAY_MODES.threeGlassOrbs;
+  if (s === DISPLAY_MODES.threeHoloPrism) return DISPLAY_MODES.threeHoloPrism;
   return DISPLAY_MODES.line;
 }
 
@@ -1402,6 +1432,16 @@ export function windowStorageKeys(windowLabel) {
     threeGlassOrbsBloom: `${pre}.threeGlassOrbsBloomEnabled`,
     threeGlassOrbsBloomStrength: `${pre}.threeGlassOrbsBloomStrength`,
     threeGlassOrbsShape: `${pre}.threeGlassOrbsShapeConfig`,
+    threeHoloPrismTintLow: `${pre}.threeHoloPrismTintLow`,
+    threeHoloPrismTintHigh: `${pre}.threeHoloPrismTintHigh`,
+    threeHoloPrismSides: `${pre}.threeHoloPrismSides`,
+    threeHoloPrismRotationSpeedDeg: `${pre}.threeHoloPrismRotationSpeedDeg`,
+    threeHoloPrismSpectralStrength: `${pre}.threeHoloPrismSpectralStrength`,
+    threeHoloPrismPulseOnPeak: `${pre}.threeHoloPrismPulseOnPeak`,
+    threeHoloPrismChromaticOffset: `${pre}.threeHoloPrismChromaticOffset`,
+    threeHoloPrismBloom: `${pre}.threeHoloPrismBloomEnabled`,
+    threeHoloPrismBloomStrength: `${pre}.threeHoloPrismBloomStrength`,
+    threeHoloPrismShape: `${pre}.threeHoloPrismShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

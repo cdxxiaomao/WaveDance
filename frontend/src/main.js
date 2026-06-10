@@ -113,6 +113,7 @@ const threeOilMarbleShapeConfig = { ...DEFAULT_CONFIG.threeOilMarble.shape };
 const threePearlChainShapeConfig = { ...DEFAULT_CONFIG.threePearlChain.shape };
 const threeCrystalGemShapeConfig = { ...DEFAULT_CONFIG.threeCrystalGem.shape };
 const threeGlassOrbsShapeConfig = { ...DEFAULT_CONFIG.threeGlassOrbs.shape };
+const threeHoloPrismShapeConfig = { ...DEFAULT_CONFIG.threeHoloPrism.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -376,6 +377,14 @@ function applyThreeGlassOrbsShapeConfig(payload) {
   threeGlassOrbsShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeHoloPrismShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeHoloPrismShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeHoloPrismShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeHoloPrismShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeHoloPrismShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -450,6 +459,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeCrystalGemRaw) applyThreeCrystalGemShapeConfig(JSON.parse(threeCrystalGemRaw));
     const threeGlassOrbsRaw = readWindowStorageString(window.localStorage, windowLabel, "threeGlassOrbsShape");
     if (threeGlassOrbsRaw) applyThreeGlassOrbsShapeConfig(JSON.parse(threeGlassOrbsRaw));
+    const threeHoloPrismRaw = readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismShape");
+    if (threeHoloPrismRaw) applyThreeHoloPrismShapeConfig(JSON.parse(threeHoloPrismRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -792,6 +803,15 @@ let threeGlassOrbsChromaticEnabled = DEFAULT_CONFIG.threeGlassOrbs.chromaticEnab
 let threeGlassOrbsChromaticOffset = DEFAULT_CONFIG.threeGlassOrbs.chromaticOffset;
 let threeGlassOrbsBloomEnabled = DEFAULT_CONFIG.threeGlassOrbs.bloomEnabled;
 let threeGlassOrbsBloomStrength = DEFAULT_CONFIG.threeGlassOrbs.bloomStrength;
+let threeHoloPrismTintLowHex = DEFAULT_CONFIG.threeHoloPrism.tintLow;
+let threeHoloPrismTintHighHex = DEFAULT_CONFIG.threeHoloPrism.tintHigh;
+let threeHoloPrismSides = DEFAULT_CONFIG.threeHoloPrism.prismSides;
+let threeHoloPrismRotationSpeedDeg = DEFAULT_CONFIG.threeHoloPrism.rotationSpeedDeg;
+let threeHoloPrismSpectralStrength = DEFAULT_CONFIG.threeHoloPrism.spectralStrength;
+let threeHoloPrismPulseOnPeak = DEFAULT_CONFIG.threeHoloPrism.pulseOnPeak;
+let threeHoloPrismChromaticOffset = DEFAULT_CONFIG.threeHoloPrism.chromaticOffset;
+let threeHoloPrismBloomEnabled = DEFAULT_CONFIG.threeHoloPrism.bloomEnabled;
+let threeHoloPrismBloomStrength = DEFAULT_CONFIG.threeHoloPrism.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -2065,6 +2085,50 @@ function applyThreeGlassOrbsBloomStrength(value) {
     : DEFAULT_CONFIG.threeGlassOrbs.bloomStrength;
 }
 
+function applyThreeHoloPrismTintLowHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeHoloPrism.tintLow;
+  threeHoloPrismTintLowHex = safe;
+}
+
+function applyThreeHoloPrismTintHighHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeHoloPrism.tintHigh;
+  threeHoloPrismTintHighHex = safe;
+}
+
+function applyThreeHoloPrismSides(value) {
+  threeHoloPrismSides = clampInt(value, 4, 8);
+}
+
+function applyThreeHoloPrismRotationSpeedDeg(value) {
+  threeHoloPrismRotationSpeedDeg = clampInt(value, 0, 30);
+}
+
+function applyThreeHoloPrismSpectralStrength(value) {
+  threeHoloPrismSpectralStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeHoloPrismPulseOnPeak(value) {
+  threeHoloPrismPulseOnPeak = parseBoolean(value, DEFAULT_CONFIG.threeHoloPrism.pulseOnPeak);
+}
+
+function applyThreeHoloPrismChromaticOffset(value) {
+  const n = Number(value);
+  threeHoloPrismChromaticOffset = Number.isFinite(n)
+    ? Math.min(0.01, Math.max(0, n))
+    : DEFAULT_CONFIG.threeHoloPrism.chromaticOffset;
+}
+
+function applyThreeHoloPrismBloomEnabled(value) {
+  threeHoloPrismBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeHoloPrism.bloomEnabled);
+}
+
+function applyThreeHoloPrismBloomStrength(value) {
+  const n = Number(value);
+  threeHoloPrismBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeHoloPrism.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2465,6 +2529,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threePearlChain) return threePearlChainShapeConfig;
   if (mode === DISPLAY_MODES.threeCrystalGem) return threeCrystalGemShapeConfig;
   if (mode === DISPLAY_MODES.threeGlassOrbs) return threeGlassOrbsShapeConfig;
+  if (mode === DISPLAY_MODES.threeHoloPrism) return threeHoloPrismShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2908,6 +2973,20 @@ function getStyleConfigForMode(mode) {
       chromaticOffset: threeGlassOrbsChromaticOffset,
       bloomEnabled: threeGlassOrbsBloomEnabled,
       bloomStrength: threeGlassOrbsBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeHoloPrism) {
+    return {
+      tintLow: threeHoloPrismTintLowHex,
+      tintHigh: threeHoloPrismTintHighHex,
+      prismSides: threeHoloPrismSides,
+      rotationSpeedDeg: threeHoloPrismRotationSpeedDeg,
+      spectralStrength: threeHoloPrismSpectralStrength,
+      pulseOnPeak: threeHoloPrismPulseOnPeak,
+      chromaticOffset: threeHoloPrismChromaticOffset,
+      bloomEnabled: threeHoloPrismBloomEnabled,
+      bloomStrength: threeHoloPrismBloomStrength,
       freqReversed,
     };
   }
@@ -5303,6 +5382,76 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-holo-prism-tint-low",
+    (event) => {
+      applyThreeHoloPrismTintLowHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-tint-high",
+    (event) => {
+      applyThreeHoloPrismTintHighHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-sides",
+    (event) => {
+      applyThreeHoloPrismSides(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-rotation-speed",
+    (event) => {
+      applyThreeHoloPrismRotationSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-spectral-strength",
+    (event) => {
+      applyThreeHoloPrismSpectralStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-pulse-on-peak",
+    (event) => {
+      applyThreeHoloPrismPulseOnPeak(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-chromatic-offset",
+    (event) => {
+      applyThreeHoloPrismChromaticOffset(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-bloom-enabled",
+    (event) => {
+      applyThreeHoloPrismBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-bloom-strength",
+    (event) => {
+      applyThreeHoloPrismBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-holo-prism-shape-config",
+    (event) => {
+      applyThreeHoloPrismShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -6477,6 +6626,48 @@ async function init() {
     );
     if (savedGlassOrbsBloomStrength != null && savedGlassOrbsBloomStrength !== "") {
       applyThreeGlassOrbsBloomStrength(savedGlassOrbsBloomStrength);
+    }
+    applyThreeHoloPrismTintLowHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismTintLow") ??
+        DEFAULT_CONFIG.threeHoloPrism.tintLow,
+    );
+    applyThreeHoloPrismTintHighHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismTintHigh") ??
+        DEFAULT_CONFIG.threeHoloPrism.tintHigh,
+    );
+    applyThreeHoloPrismSides(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismSides") ??
+        DEFAULT_CONFIG.threeHoloPrism.prismSides,
+    );
+    applyThreeHoloPrismRotationSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismRotationSpeedDeg") ??
+        DEFAULT_CONFIG.threeHoloPrism.rotationSpeedDeg,
+    );
+    applyThreeHoloPrismSpectralStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismSpectralStrength") ??
+        DEFAULT_CONFIG.threeHoloPrism.spectralStrength,
+    );
+    applyThreeHoloPrismPulseOnPeak(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismPulseOnPeak"),
+    );
+    const savedHoloPrismChromaticOffset = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeHoloPrismChromaticOffset",
+    );
+    if (savedHoloPrismChromaticOffset != null && savedHoloPrismChromaticOffset !== "") {
+      applyThreeHoloPrismChromaticOffset(savedHoloPrismChromaticOffset);
+    }
+    applyThreeHoloPrismBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismBloom"),
+    );
+    const savedHoloPrismBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeHoloPrismBloomStrength",
+    );
+    if (savedHoloPrismBloomStrength != null && savedHoloPrismBloomStrength !== "") {
+      applyThreeHoloPrismBloomStrength(savedHoloPrismBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

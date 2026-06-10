@@ -117,6 +117,7 @@
               <optgroup label="晶体光学 3D">
                 <option value="threeCrystalGem">宝石晶体</option>
                 <option value="threeGlassOrbs">玻璃球栈</option>
+                <option value="threeHoloPrism">全息棱镜</option>
               </optgroup>
             </select>
           </div>
@@ -1911,6 +1912,66 @@
           <div class="settings-field">
             <label for="threeGlassOrbsFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGlassOrbsFallEaseValue">50</span>%</label>
             <input id="threeGlassOrbsFallEaseRange" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeHoloPrismConfigPanel" aria-labelledby="sec-three-holo-prism-display" hidden>
+        <h2 id="sec-three-holo-prism-display" class="settings-card__title">全息棱镜配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-holo-prism" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeHoloPrismTintLow" class="settings-label">低色染色</label>
+            <input id="threeHoloPrismTintLow" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeHoloPrismTintHigh" class="settings-label">高色染色</label>
+            <input id="threeHoloPrismTintHigh" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismSidesRange" class="settings-label">棱柱边数 <span class="settings-value" id="threeHoloPrismSidesValue">6</span></label>
+            <input id="threeHoloPrismSidesRange" type="range" min="4" max="8" step="1" value="6" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismRotationSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeHoloPrismRotationSpeedValue">10</span>°/s</label>
+            <input id="threeHoloPrismRotationSpeedRange" type="range" min="0" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismSpectralStrengthRange" class="settings-label">光谱色散 <span class="settings-value" id="threeHoloPrismSpectralStrengthValue">75</span>%</label>
+            <input id="threeHoloPrismSpectralStrengthRange" type="range" min="0" max="100" step="1" value="75" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeHoloPrismPulseOnPeakToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>峰值色散脉冲</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeHoloPrismChromaticOffsetRange" class="settings-label">色散偏移 <span class="settings-value" id="threeHoloPrismChromaticOffsetValue">0.006</span></label>
+            <input id="threeHoloPrismChromaticOffsetRange" type="range" min="0" max="10" step="1" value="6" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeHoloPrismBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>启用 Bloom</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeHoloPrismBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeHoloPrismBloomStrengthValue">0.8</span></label>
+            <input id="threeHoloPrismBloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismGainRange" class="settings-label">增益 <span class="settings-value" id="threeHoloPrismGainValue">58</span>%</label>
+            <input id="threeHoloPrismGainRange" type="range" min="10" max="150" step="1" value="58" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeHoloPrismSmoothValue">16</span>%</label>
+            <input id="threeHoloPrismSmoothRange" type="range" min="0" max="400" step="1" value="16" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeHoloPrismSoftClipValue">10</span>%</label>
+            <input id="threeHoloPrismSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeHoloPrismFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeHoloPrismFallEaseValue">48</span>%</label>
+            <input id="threeHoloPrismFallEaseRange" type="range" min="0" max="100" step="1" value="48" />
           </div>
         </div>
       </section>
