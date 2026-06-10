@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~23 已全部完成；Phase 24~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~24 已全部完成；Phase 25~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1285,15 +1285,15 @@ threeLiquidBlob: {
 
 #### 24.2 新建 `renderers/three/liquidBlobRenderer.js`
 
-- [ ] **方案**：3~5 个 `SphereGeometry` mesh + metaball 近似（fragment 内距离场混合）渲染到 fullscreen quad；或高分 sphere + vertex noise
-- [ ] bass → 整体 scale + blob 间距
-- [ ] 注意性能：blobCount>3 时降低 sphere 分段
+- [x] **方案**：3~5 个 metaball SDF 全屏 raymarch 近似融合；CPU 侧更新 blob 中心/半径
+- [x] bass → 整体 scale + blob 间距
+- [x] 注意性能：blobCount>3 时降低 sphere 分段（采用 SDF，无 mesh 分段）
 
 #### 24.3 验收标准
 
-- [ ] 低频段 blob 明显胀大
-- [ ] 透明背景上边缘柔和，非硬边圆
-- [ ] 本 Phase 为方案 C 最难项，可先 deliver 近似版再迭代
+- [x] 低频段 blob 明显胀大
+- [x] 透明背景上边缘柔和，非硬边圆
+- [x] 本 Phase 为方案 C 最难项，可先 deliver 近似版再迭代
 
 ---
 
@@ -1580,13 +1580,13 @@ threeNoiseLandscape: {
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[x]` 已完成 | 2026-06-10 |
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[x]` 已完成 | 2026-06-10 |
 | 23 | 扫描网格 Three Scan Grid（B） | `[x]` 已完成 | 2026-06-10 |
-| 24 | 液态球体 Three Liquid Blob（C） | `[ ]` 未开始 | |
+| 24 | 液态球体 Three Liquid Blob（C） | `[x]` 已完成 | 2026-06-10 |
 | 25 | 极光飘带 Three Aurora Ribbon（C） | `[ ]` 未开始 | |
 | 26 | 呼吸光环 Three Breathing Rings（C） | `[ ]` 未开始 | |
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 24（液态球体 Three Liquid Blob，方案 C）
+**当前建议下一步**：Phase 25（极光飘带 Three Aurora Ribbon，方案 C）
 
 ---
 

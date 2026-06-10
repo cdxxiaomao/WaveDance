@@ -12,6 +12,15 @@
 
 ## 2026-06-10（续）
 
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 24：液态球体 Three Liquid Blob（C）
+
+- 新建 `frontend/src/renderers/three/liquidBlobRenderer.js`：metaball SDF 全屏 raymarch 近似多 blob 融合，低频驱动体积脉动 + 可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeLiquidBlob` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-liquid-blob-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 液态球体」、`#threeLiquidBlobConfigPanel`（主/副色、球体数量、融合强度、摆动速度、低频驱动、Bloom、形状四件套）。
+
 ### 可视化模式扩展 — Phase 23：扫描网格 Three Scan Grid（B）
 
 - 新建 `frontend/src/renderers/three/scanGridRenderer.js`：3D 线框网格 + 频谱驱动竖条高度 + `u_scanZ` 扫描光束高亮 + 可选 Bloom；`registerModes.js` 注册。

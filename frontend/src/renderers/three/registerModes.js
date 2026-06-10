@@ -8,6 +8,7 @@ import { createKaleidoscopeRenderer } from "./kaleidoscopeRenderer.js";
 import { createGlitchSpectrumRenderer } from "./glitchSpectrumRenderer.js";
 import { createPhosphorTrailRenderer } from "./phosphorTrailRenderer.js";
 import { createScanGridRenderer } from "./scanGridRenderer.js";
+import { createLiquidBlobRenderer } from "./liquidBlobRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
@@ -17,3 +18,4 @@ registerThreeMode(DISPLAY_MODES.threeKaleidoscope, createKaleidoscopeRenderer);
 registerThreeMode(DISPLAY_MODES.threeGlitchSpectrum, createGlitchSpectrumRenderer);
 registerThreeMode(DISPLAY_MODES.threePhosphorTrail, createPhosphorTrailRenderer);
 registerThreeMode(DISPLAY_MODES.threeScanGrid, createScanGridRenderer);
+registerThreeMode(DISPLAY_MODES.threeLiquidBlob, createLiquidBlobRenderer);

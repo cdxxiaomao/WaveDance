@@ -63,6 +63,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeGlitchSpectrum]: "threeGlitchSpectrumConfigPanel",
   [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
   [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
+  [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -544,6 +545,27 @@ const threeScanGridSoftClipRange = document.querySelector("#threeScanGridSoftCli
 const threeScanGridSoftClipValue = document.querySelector("#threeScanGridSoftClipValue");
 const threeScanGridFallEaseRange = document.querySelector("#threeScanGridFallEaseRange");
 const threeScanGridFallEaseValue = document.querySelector("#threeScanGridFallEaseValue");
+const threeLiquidBlobColor = document.querySelector("#threeLiquidBlobColor");
+const threeLiquidBlobColorSecondary = document.querySelector("#threeLiquidBlobColorSecondary");
+const threeLiquidBlobCountRange = document.querySelector("#threeLiquidBlobCountRange");
+const threeLiquidBlobCountValue = document.querySelector("#threeLiquidBlobCountValue");
+const threeLiquidBlobMergeStrengthRange = document.querySelector("#threeLiquidBlobMergeStrengthRange");
+const threeLiquidBlobMergeStrengthValue = document.querySelector("#threeLiquidBlobMergeStrengthValue");
+const threeLiquidBlobWobbleSpeedRange = document.querySelector("#threeLiquidBlobWobbleSpeedRange");
+const threeLiquidBlobWobbleSpeedValue = document.querySelector("#threeLiquidBlobWobbleSpeedValue");
+const threeLiquidBlobBassDriveRange = document.querySelector("#threeLiquidBlobBassDriveRange");
+const threeLiquidBlobBassDriveValue = document.querySelector("#threeLiquidBlobBassDriveValue");
+const threeLiquidBlobBloomToggle = document.querySelector("#threeLiquidBlobBloomToggle");
+const threeLiquidBlobBloomStrengthRange = document.querySelector("#threeLiquidBlobBloomStrengthRange");
+const threeLiquidBlobBloomStrengthValue = document.querySelector("#threeLiquidBlobBloomStrengthValue");
+const threeLiquidBlobGainRange = document.querySelector("#threeLiquidBlobGainRange");
+const threeLiquidBlobGainValue = document.querySelector("#threeLiquidBlobGainValue");
+const threeLiquidBlobSmoothRange = document.querySelector("#threeLiquidBlobSmoothRange");
+const threeLiquidBlobSmoothValue = document.querySelector("#threeLiquidBlobSmoothValue");
+const threeLiquidBlobSoftClipRange = document.querySelector("#threeLiquidBlobSoftClipRange");
+const threeLiquidBlobSoftClipValue = document.querySelector("#threeLiquidBlobSoftClipValue");
+const threeLiquidBlobFallEaseRange = document.querySelector("#threeLiquidBlobFallEaseRange");
+const threeLiquidBlobFallEaseValue = document.querySelector("#threeLiquidBlobFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2896,6 +2918,133 @@ function applyThreeScanGridFormFromStorage(v) {
   }
 }
 
+function readThreeLiquidBlobShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeLiquidBlobShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeLiquidBlobGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeLiquidBlobSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeLiquidBlobSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeLiquidBlobFallEaseRange?.value, 0, 100),
+  };
+  if (threeLiquidBlobGainValue) threeLiquidBlobGainValue.textContent = String(config.gainPercent);
+  if (threeLiquidBlobSmoothValue) threeLiquidBlobSmoothValue.textContent = String(config.smoothPercent);
+  if (threeLiquidBlobSoftClipValue) threeLiquidBlobSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeLiquidBlobFallEaseValue) threeLiquidBlobFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeLiquidBlobShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-liquid-blob-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新液态球体形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeLiquidBlobFormFromStorage(v) {
+  const sg = readThreeLiquidBlobShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
+  if (threeLiquidBlobGainRange) threeLiquidBlobGainRange.value = String(sg.gainPercent);
+  if (threeLiquidBlobSmoothRange) threeLiquidBlobSmoothRange.value = String(sg.smoothPercent);
+  if (threeLiquidBlobSoftClipRange) threeLiquidBlobSoftClipRange.value = String(sg.softClipPercent);
+  if (threeLiquidBlobFallEaseRange) threeLiquidBlobFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeLiquidBlobGainValue) threeLiquidBlobGainValue.textContent = String(sg.gainPercent);
+  if (threeLiquidBlobSmoothValue) threeLiquidBlobSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeLiquidBlobSoftClipValue) threeLiquidBlobSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeLiquidBlobFallEaseValue) threeLiquidBlobFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "threeLiquidBlobColor");
+  if (threeLiquidBlobColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    threeLiquidBlobColor.value = savedColor.toLowerCase();
+  } else if (threeLiquidBlobColor) {
+    threeLiquidBlobColor.value = DEFAULT_CONFIG.threeLiquidBlob.blobColor;
+  }
+
+  const savedSecondary = readWindowStorageString(window.localStorage, v, "threeLiquidBlobColorSecondary");
+  if (threeLiquidBlobColorSecondary && savedSecondary && /^#[0-9A-Fa-f]{6}$/.test(savedSecondary)) {
+    threeLiquidBlobColorSecondary.value = savedSecondary.toLowerCase();
+  } else if (threeLiquidBlobColorSecondary) {
+    threeLiquidBlobColorSecondary.value = DEFAULT_CONFIG.threeLiquidBlob.blobColorSecondary;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeLiquidBlobCount");
+  if (threeLiquidBlobCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 5)
+        : DEFAULT_CONFIG.threeLiquidBlob.blobCount;
+    threeLiquidBlobCountRange.value = String(count);
+    if (threeLiquidBlobCountValue) threeLiquidBlobCountValue.textContent = String(count);
+  }
+
+  const savedMerge = readWindowStorageString(window.localStorage, v, "threeLiquidBlobMergeStrength");
+  if (threeLiquidBlobMergeStrengthRange) {
+    const merge =
+      savedMerge != null && savedMerge !== ""
+        ? clampInt(savedMerge, 0, 100)
+        : DEFAULT_CONFIG.threeLiquidBlob.mergeStrength;
+    threeLiquidBlobMergeStrengthRange.value = String(merge);
+    if (threeLiquidBlobMergeStrengthValue) {
+      threeLiquidBlobMergeStrengthValue.textContent = String(merge);
+    }
+  }
+
+  const savedWobble = readWindowStorageString(window.localStorage, v, "threeLiquidBlobWobbleSpeed");
+  if (threeLiquidBlobWobbleSpeedRange) {
+    const wobble =
+      savedWobble != null && savedWobble !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedWobble)))
+        : DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed;
+    threeLiquidBlobWobbleSpeedRange.value = String(Math.round(wobble * 10));
+    if (threeLiquidBlobWobbleSpeedValue) threeLiquidBlobWobbleSpeedValue.textContent = wobble.toFixed(1);
+  }
+
+  const savedBassDrive = readWindowStorageString(window.localStorage, v, "threeLiquidBlobBassDrive");
+  if (threeLiquidBlobBassDriveRange) {
+    const bassDrive =
+      savedBassDrive != null && savedBassDrive !== ""
+        ? clampInt(savedBassDrive, 0, 100)
+        : DEFAULT_CONFIG.threeLiquidBlob.bassDrive;
+    threeLiquidBlobBassDriveRange.value = String(bassDrive);
+    if (threeLiquidBlobBassDriveValue) threeLiquidBlobBassDriveValue.textContent = String(bassDrive);
+  }
+
+  if (threeLiquidBlobBloomToggle) {
+    threeLiquidBlobBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeLiquidBlobBloom"),
+      DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeLiquidBlobBloomStrength");
+  if (threeLiquidBlobBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
+    threeLiquidBlobBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeLiquidBlobBloomStrengthValue) {
+      threeLiquidBlobBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3525,6 +3674,7 @@ async function init() {
     applyThreeGlitchFormFromStorage(v);
     applyThreePhosphorFormFromStorage(v);
     applyThreeScanGridFormFromStorage(v);
+    applyThreeLiquidBlobFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -6201,6 +6351,126 @@ async function init() {
   });
   threeScanGridFallEaseRange?.addEventListener("input", () => {
     void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeLiquidBlobColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobColor",
+        threeLiquidBlobColor.value,
+      );
+      await emitVisual("waveform-three-liquid-blob-color", threeLiquidBlobColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新主色失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobColorSecondary?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobColorSecondary",
+        threeLiquidBlobColorSecondary.value,
+      );
+      await emitVisual("waveform-three-liquid-blob-color-secondary", threeLiquidBlobColorSecondary.value);
+    } catch (err) {
+      statusEl.textContent = `更新副色失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2, 5);
+    if (threeLiquidBlobCountValue) threeLiquidBlobCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeLiquidBlobCount", String(count));
+      await emitVisual("waveform-three-liquid-blob-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新球体数量失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobMergeStrengthRange?.addEventListener("input", async (event) => {
+    const merge = clampInt(event.target.value, 0, 100);
+    if (threeLiquidBlobMergeStrengthValue) threeLiquidBlobMergeStrengthValue.textContent = String(merge);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobMergeStrength",
+        String(merge),
+      );
+      await emitVisual("waveform-three-liquid-blob-merge-strength", merge);
+    } catch (err) {
+      statusEl.textContent = `更新融合强度失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobWobbleSpeedRange?.addEventListener("input", async (event) => {
+    const wobble = Math.min(3, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeLiquidBlobWobbleSpeedValue) threeLiquidBlobWobbleSpeedValue.textContent = wobble.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobWobbleSpeed",
+        String(wobble),
+      );
+      await emitVisual("waveform-three-liquid-blob-wobble-speed", wobble);
+    } catch (err) {
+      statusEl.textContent = `更新摆动速度失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobBassDriveRange?.addEventListener("input", async (event) => {
+    const bassDrive = clampInt(event.target.value, 0, 100);
+    if (threeLiquidBlobBassDriveValue) threeLiquidBlobBassDriveValue.textContent = String(bassDrive);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobBassDrive",
+        String(bassDrive),
+      );
+      await emitVisual("waveform-three-liquid-blob-bass-drive", bassDrive);
+    } catch (err) {
+      statusEl.textContent = `更新低频驱动失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeLiquidBlobBloom", String(enabled));
+      await emitVisual("waveform-three-liquid-blob-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeLiquidBlobBloomStrengthValue) {
+      threeLiquidBlobBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-liquid-blob-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobGainRange?.addEventListener("input", () => {
+    void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLiquidBlobSmoothRange?.addEventListener("input", () => {
+    void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLiquidBlobSoftClipRange?.addEventListener("input", () => {
+    void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLiquidBlobFallEaseRange?.addEventListener("input", () => {
+    void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

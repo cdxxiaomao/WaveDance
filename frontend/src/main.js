@@ -104,6 +104,7 @@ const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape
 const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
 const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
 const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
+const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -295,6 +296,14 @@ function applyThreeScanGridShapeConfig(payload) {
   threeScanGridShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeLiquidBlobShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeLiquidBlobShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeLiquidBlobShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeLiquidBlobShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeLiquidBlobShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -343,6 +352,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threePhosphorRaw) applyThreePhosphorShapeConfig(JSON.parse(threePhosphorRaw));
     const threeScanGridRaw = readWindowStorageString(window.localStorage, windowLabel, "threeScanGridShape");
     if (threeScanGridRaw) applyThreeScanGridShapeConfig(JSON.parse(threeScanGridRaw));
+    const threeLiquidBlobRaw = readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobShape");
+    if (threeLiquidBlobRaw) applyThreeLiquidBlobShapeConfig(JSON.parse(threeLiquidBlobRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -595,6 +606,14 @@ let threeScanGridHighlightStrength = DEFAULT_CONFIG.threeScanGrid.highlightStren
 let threeScanGridBloomEnabled = DEFAULT_CONFIG.threeScanGrid.bloomEnabled;
 let threeScanGridBloomStrength = DEFAULT_CONFIG.threeScanGrid.bloomStrength;
 let threeScanGridCameraPitchDeg = DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg;
+let threeLiquidBlobColorHex = DEFAULT_CONFIG.threeLiquidBlob.blobColor;
+let threeLiquidBlobColorSecondaryHex = DEFAULT_CONFIG.threeLiquidBlob.blobColorSecondary;
+let threeLiquidBlobCount = DEFAULT_CONFIG.threeLiquidBlob.blobCount;
+let threeLiquidBlobMergeStrength = DEFAULT_CONFIG.threeLiquidBlob.mergeStrength;
+let threeLiquidBlobWobbleSpeed = DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed;
+let threeLiquidBlobBassDrive = DEFAULT_CONFIG.threeLiquidBlob.bassDrive;
+let threeLiquidBlobBloomEnabled = DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled;
+let threeLiquidBlobBloomStrength = DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1555,6 +1574,48 @@ function applyThreeScanGridCameraPitchDeg(value) {
   threeScanGridCameraPitchDeg = clampInt(value, 25, 75);
 }
 
+function applyThreeLiquidBlobColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeLiquidBlob.blobColor;
+  threeLiquidBlobColorHex = safe;
+}
+
+function applyThreeLiquidBlobColorSecondaryHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw)
+    ? raw.toLowerCase()
+    : DEFAULT_CONFIG.threeLiquidBlob.blobColorSecondary;
+  threeLiquidBlobColorSecondaryHex = safe;
+}
+
+function applyThreeLiquidBlobCount(value) {
+  threeLiquidBlobCount = clampInt(value, 2, 5);
+}
+
+function applyThreeLiquidBlobMergeStrength(value) {
+  threeLiquidBlobMergeStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeLiquidBlobWobbleSpeed(value) {
+  const n = Number(value);
+  threeLiquidBlobWobbleSpeed = Number.isFinite(n)
+    ? Math.min(3, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed;
+}
+
+function applyThreeLiquidBlobBassDrive(value) {
+  threeLiquidBlobBassDrive = clampInt(value, 0, 100);
+}
+
+function applyThreeLiquidBlobBloomEnabled(value) {
+  threeLiquidBlobBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled);
+}
+
+function applyThreeLiquidBlobBloomStrength(value) {
+  const n = Number(value);
+  threeLiquidBlobBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1777,6 +1838,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeGlitchSpectrum) return threeGlitchShapeConfig;
   if (mode === DISPLAY_MODES.threePhosphorTrail) return threePhosphorShapeConfig;
   if (mode === DISPLAY_MODES.threeScanGrid) return threeScanGridShapeConfig;
+  if (mode === DISPLAY_MODES.threeLiquidBlob) return threeLiquidBlobShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2084,6 +2146,19 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeScanGridBloomEnabled,
       bloomStrength: threeScanGridBloomStrength,
       cameraPitchDeg: threeScanGridCameraPitchDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeLiquidBlob) {
+    return {
+      blobColor: threeLiquidBlobColorHex,
+      blobColorSecondary: threeLiquidBlobColorSecondaryHex,
+      blobCount: threeLiquidBlobCount,
+      mergeStrength: threeLiquidBlobMergeStrength,
+      wobbleSpeed: threeLiquidBlobWobbleSpeed,
+      bassDrive: threeLiquidBlobBassDrive,
+      bloomEnabled: threeLiquidBlobBloomEnabled,
+      bloomStrength: threeLiquidBlobBloomStrength,
       freqReversed,
     };
   }
@@ -3786,6 +3861,69 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-liquid-blob-color",
+    (event) => {
+      applyThreeLiquidBlobColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-color-secondary",
+    (event) => {
+      applyThreeLiquidBlobColorSecondaryHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-count",
+    (event) => {
+      applyThreeLiquidBlobCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-merge-strength",
+    (event) => {
+      applyThreeLiquidBlobMergeStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-wobble-speed",
+    (event) => {
+      applyThreeLiquidBlobWobbleSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-bass-drive",
+    (event) => {
+      applyThreeLiquidBlobBassDrive(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-bloom-enabled",
+    (event) => {
+      applyThreeLiquidBlobBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-bloom-strength",
+    (event) => {
+      applyThreeLiquidBlobBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-liquid-blob-shape-config",
+    (event) => {
+      applyThreeLiquidBlobShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4562,6 +4700,41 @@ async function init() {
       readWindowStorageString(window.localStorage, windowLabel, "threeScanGridCameraPitch") ??
         DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg,
     );
+    applyThreeLiquidBlobColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobColor") ??
+        DEFAULT_CONFIG.threeLiquidBlob.blobColor,
+    );
+    applyThreeLiquidBlobColorSecondaryHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobColorSecondary") ??
+        DEFAULT_CONFIG.threeLiquidBlob.blobColorSecondary,
+    );
+    applyThreeLiquidBlobCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobCount") ??
+        DEFAULT_CONFIG.threeLiquidBlob.blobCount,
+    );
+    applyThreeLiquidBlobMergeStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobMergeStrength") ??
+        DEFAULT_CONFIG.threeLiquidBlob.mergeStrength,
+    );
+    applyThreeLiquidBlobWobbleSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobWobbleSpeed") ??
+        DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed,
+    );
+    applyThreeLiquidBlobBassDrive(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobBassDrive") ??
+        DEFAULT_CONFIG.threeLiquidBlob.bassDrive,
+    );
+    applyThreeLiquidBlobBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobBloom"),
+    );
+    const savedLiquidBlobBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeLiquidBlobBloomStrength",
+    );
+    if (savedLiquidBlobBloomStrength != null && savedLiquidBlobBloomStrength !== "") {
+      applyThreeLiquidBlobBloomStrength(savedLiquidBlobBloomStrength);
+    }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

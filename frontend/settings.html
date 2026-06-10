@@ -104,6 +104,7 @@
                 <option value="threeGlitchSpectrum">故障频谱</option>
                 <option value="threePhosphorTrail">磷光余辉</option>
                 <option value="threeScanGrid">扫描网格</option>
+                <option value="threeLiquidBlob">液态球体</option>
               </optgroup>
             </select>
           </div>
@@ -1391,6 +1392,61 @@
           <div class="settings-field">
             <label for="threeScanGridFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeScanGridFallEaseValue">48</span>%</label>
             <input id="threeScanGridFallEaseRange" type="range" min="0" max="100" step="1" value="48" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeLiquidBlobConfigPanel" aria-labelledby="sec-three-liquid-blob-display" hidden>
+        <h2 id="sec-three-liquid-blob-display" class="settings-card__title">液态球体配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-liquid-blob" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeLiquidBlobColor" class="settings-label">主色</label>
+            <input id="threeLiquidBlobColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeLiquidBlobColorSecondary" class="settings-label">副色</label>
+            <input id="threeLiquidBlobColorSecondary" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobCountRange" class="settings-label">球体数量 <span class="settings-value" id="threeLiquidBlobCountValue">3</span></label>
+            <input id="threeLiquidBlobCountRange" type="range" min="2" max="5" step="1" value="3" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobMergeStrengthRange" class="settings-label">融合强度 <span class="settings-value" id="threeLiquidBlobMergeStrengthValue">65</span>%</label>
+            <input id="threeLiquidBlobMergeStrengthRange" type="range" min="0" max="100" step="1" value="65" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobWobbleSpeedRange" class="settings-label">摆动速度 <span class="settings-value" id="threeLiquidBlobWobbleSpeedValue">1.0</span></label>
+            <input id="threeLiquidBlobWobbleSpeedRange" type="range" min="2" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobBassDriveRange" class="settings-label">低频驱动 <span class="settings-value" id="threeLiquidBlobBassDriveValue">75</span>%</label>
+            <input id="threeLiquidBlobBassDriveRange" type="range" min="0" max="100" step="1" value="75" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeLiquidBlobBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeLiquidBlobBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeLiquidBlobBloomStrengthValue">0.8</span></label>
+            <input id="threeLiquidBlobBloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobGainRange" class="settings-label">增益 <span class="settings-value" id="threeLiquidBlobGainValue">62</span>%</label>
+            <input id="threeLiquidBlobGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeLiquidBlobSmoothValue">22</span>%</label>
+            <input id="threeLiquidBlobSmoothRange" type="range" min="0" max="400" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeLiquidBlobSoftClipValue">14</span>%</label>
+            <input id="threeLiquidBlobSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLiquidBlobFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeLiquidBlobFallEaseValue">55</span>%</label>
+            <input id="threeLiquidBlobFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>
