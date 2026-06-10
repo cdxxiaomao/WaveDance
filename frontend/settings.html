@@ -112,6 +112,7 @@
               <optgroup label="有机渐变 3D">
                 <option value="threeLavaLamp">熔岩灯</option>
                 <option value="threeOilMarble">油彩大理石</option>
+                <option value="threePearlChain">珍珠链</option>
               </optgroup>
             </select>
           </div>
@@ -1763,6 +1764,68 @@
           <div class="settings-field">
             <label for="threeOilMarbleFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeOilMarbleFallEaseValue">55</span>%</label>
             <input id="threeOilMarbleFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threePearlChainConfigPanel" aria-labelledby="sec-three-pearl-chain-display" hidden>
+        <h2 id="sec-three-pearl-chain-display" class="settings-card__title">珍珠链配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-pearl-chain" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threePearlChainColor1" class="settings-label">颜色 1（链首）</label>
+            <input id="threePearlChainColor1" type="color" value="#f5e6d3" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threePearlChainColor2" class="settings-label">颜色 2（链中）</label>
+            <input id="threePearlChainColor2" type="color" value="#c4b5fd" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threePearlChainColor3" class="settings-label">颜色 3（链尾）</label>
+            <input id="threePearlChainColor3" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainPearlCountRange" class="settings-label">珍珠数量 <span class="settings-value" id="threePearlChainPearlCountValue">7</span></label>
+            <input id="threePearlChainPearlCountRange" type="range" min="5" max="10" step="1" value="7" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainChainRadiusRange" class="settings-label">链弯曲半径 <span class="settings-value" id="threePearlChainChainRadiusValue">0.75</span></label>
+            <input id="threePearlChainChainRadiusRange" type="range" min="40" max="120" step="1" value="75" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainPearlSizeRange" class="settings-label">珍珠大小 <span class="settings-value" id="threePearlChainPearlSizeValue">0.22</span></label>
+            <input id="threePearlChainPearlSizeRange" type="range" min="12" max="35" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainSwaySpeedRange" class="settings-label">摆动速度 <span class="settings-value" id="threePearlChainSwaySpeedValue">0.8</span></label>
+            <input id="threePearlChainSwaySpeedRange" type="range" min="2" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainMergeStrengthRange" class="settings-label">珠间融合 <span class="settings-value" id="threePearlChainMergeStrengthValue">45</span>%</label>
+            <input id="threePearlChainMergeStrengthRange" type="range" min="0" max="100" step="1" value="45" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <input id="threePearlChainBloomToggle" type="checkbox" checked />
+            <label for="threePearlChainBloomToggle" class="settings-label">启用 Bloom</label>
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threePearlChainBloomStrengthValue">0.9</span></label>
+            <input id="threePearlChainBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainGainRange" class="settings-label">增益 <span class="settings-value" id="threePearlChainGainValue">60</span>%</label>
+            <input id="threePearlChainGainRange" type="range" min="10" max="150" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threePearlChainSmoothValue">22</span>%</label>
+            <input id="threePearlChainSmoothRange" type="range" min="0" max="400" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threePearlChainSoftClipValue">12</span>%</label>
+            <input id="threePearlChainSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threePearlChainFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePearlChainFallEaseValue">55</span>%</label>
+            <input id="threePearlChainFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>

@@ -110,6 +110,7 @@ const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.s
 const threeNoiseLandscapeShapeConfig = { ...DEFAULT_CONFIG.threeNoiseLandscape.shape };
 const threeLavaLampShapeConfig = { ...DEFAULT_CONFIG.threeLavaLamp.shape };
 const threeOilMarbleShapeConfig = { ...DEFAULT_CONFIG.threeOilMarble.shape };
+const threePearlChainShapeConfig = { ...DEFAULT_CONFIG.threePearlChain.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -349,6 +350,14 @@ function applyThreeOilMarbleShapeConfig(payload) {
   threeOilMarbleShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreePearlChainShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threePearlChainShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threePearlChainShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threePearlChainShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threePearlChainShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -417,6 +426,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeLavaLampRaw) applyThreeLavaLampShapeConfig(JSON.parse(threeLavaLampRaw));
     const threeOilMarbleRaw = readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleShape");
     if (threeOilMarbleRaw) applyThreeOilMarbleShapeConfig(JSON.parse(threeOilMarbleRaw));
+    const threePearlChainRaw = readWindowStorageString(window.localStorage, windowLabel, "threePearlChainShape");
+    if (threePearlChainRaw) applyThreePearlChainShapeConfig(JSON.parse(threePearlChainRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -725,6 +736,16 @@ let threeOilMarbleWarpStrength = DEFAULT_CONFIG.threeOilMarble.warpStrength;
 let threeOilMarbleReactiveness = DEFAULT_CONFIG.threeOilMarble.reactiveness;
 let threeOilMarbleBloomEnabled = DEFAULT_CONFIG.threeOilMarble.bloomEnabled;
 let threeOilMarbleBloomStrength = DEFAULT_CONFIG.threeOilMarble.bloomStrength;
+let threePearlChainColor1Hex = DEFAULT_CONFIG.threePearlChain.color1;
+let threePearlChainColor2Hex = DEFAULT_CONFIG.threePearlChain.color2;
+let threePearlChainColor3Hex = DEFAULT_CONFIG.threePearlChain.color3;
+let threePearlChainPearlCount = DEFAULT_CONFIG.threePearlChain.pearlCount;
+let threePearlChainChainRadius = DEFAULT_CONFIG.threePearlChain.chainRadius;
+let threePearlChainPearlSize = DEFAULT_CONFIG.threePearlChain.pearlSize;
+let threePearlChainSwaySpeed = DEFAULT_CONFIG.threePearlChain.swaySpeed;
+let threePearlChainMergeStrength = DEFAULT_CONFIG.threePearlChain.mergeStrength;
+let threePearlChainBloomEnabled = DEFAULT_CONFIG.threePearlChain.bloomEnabled;
+let threePearlChainBloomStrength = DEFAULT_CONFIG.threePearlChain.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1824,6 +1845,61 @@ function applyThreeOilMarbleBloomStrength(value) {
     : DEFAULT_CONFIG.threeOilMarble.bloomStrength;
 }
 
+function applyThreePearlChainColor1Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePearlChain.color1;
+  threePearlChainColor1Hex = safe;
+}
+
+function applyThreePearlChainColor2Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePearlChain.color2;
+  threePearlChainColor2Hex = safe;
+}
+
+function applyThreePearlChainColor3Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePearlChain.color3;
+  threePearlChainColor3Hex = safe;
+}
+
+function applyThreePearlChainPearlCount(value) {
+  threePearlChainPearlCount = clampInt(value, 5, 10);
+}
+
+function applyThreePearlChainChainRadius(value) {
+  const n = Number(value);
+  threePearlChainChainRadius = Number.isFinite(n)
+    ? Math.min(1.2, Math.max(0.4, n))
+    : DEFAULT_CONFIG.threePearlChain.chainRadius;
+}
+
+function applyThreePearlChainPearlSize(value) {
+  const n = Number(value);
+  threePearlChainPearlSize = Number.isFinite(n)
+    ? Math.min(0.35, Math.max(0.12, n))
+    : DEFAULT_CONFIG.threePearlChain.pearlSize;
+}
+
+function applyThreePearlChainSwaySpeed(value) {
+  const n = Number(value);
+  threePearlChainSwaySpeed = Number.isFinite(n)
+    ? Math.min(2, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threePearlChain.swaySpeed;
+}
+
+function applyThreePearlChainMergeStrength(value) {
+  threePearlChainMergeStrength = clampInt(value, 0, 100);
+}
+
+function applyThreePearlChainBloomEnabled(value) {
+  threePearlChainBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threePearlChain.bloomEnabled);
+}
+
+function applyThreePearlChainBloomStrength(value) {
+  const n = Number(value);
+  threePearlChainBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threePearlChain.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2221,6 +2297,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeNoiseLandscape) return threeNoiseLandscapeShapeConfig;
   if (mode === DISPLAY_MODES.threeLavaLamp) return threeLavaLampShapeConfig;
   if (mode === DISPLAY_MODES.threeOilMarble) return threeOilMarbleShapeConfig;
+  if (mode === DISPLAY_MODES.threePearlChain) return threePearlChainShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2615,6 +2692,21 @@ function getStyleConfigForMode(mode) {
       reactiveness: threeOilMarbleReactiveness,
       bloomEnabled: threeOilMarbleBloomEnabled,
       bloomStrength: threeOilMarbleBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threePearlChain) {
+    return {
+      color1: threePearlChainColor1Hex,
+      color2: threePearlChainColor2Hex,
+      color3: threePearlChainColor3Hex,
+      pearlCount: threePearlChainPearlCount,
+      chainRadius: threePearlChainChainRadius,
+      pearlSize: threePearlChainPearlSize,
+      swaySpeed: threePearlChainSwaySpeed,
+      mergeStrength: threePearlChainMergeStrength,
+      bloomEnabled: threePearlChainBloomEnabled,
+      bloomStrength: threePearlChainBloomStrength,
       freqReversed,
     };
   }
@@ -4751,6 +4843,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-pearl-chain-color1",
+    (event) => {
+      applyThreePearlChainColor1Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-color2",
+    (event) => {
+      applyThreePearlChainColor2Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-color3",
+    (event) => {
+      applyThreePearlChainColor3Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-pearl-count",
+    (event) => {
+      applyThreePearlChainPearlCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-chain-radius",
+    (event) => {
+      applyThreePearlChainChainRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-pearl-size",
+    (event) => {
+      applyThreePearlChainPearlSize(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-sway-speed",
+    (event) => {
+      applyThreePearlChainSwaySpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-merge-strength",
+    (event) => {
+      applyThreePearlChainMergeStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-bloom-enabled",
+    (event) => {
+      applyThreePearlChainBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-bloom-strength",
+    (event) => {
+      applyThreePearlChainBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-pearl-chain-shape-config",
+    (event) => {
+      applyThreePearlChainShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -5771,6 +5940,49 @@ async function init() {
     );
     if (savedOilMarbleBloomStrength != null && savedOilMarbleBloomStrength !== "") {
       applyThreeOilMarbleBloomStrength(savedOilMarbleBloomStrength);
+    }
+    applyThreePearlChainColor1Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainColor1") ??
+        DEFAULT_CONFIG.threePearlChain.color1,
+    );
+    applyThreePearlChainColor2Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainColor2") ??
+        DEFAULT_CONFIG.threePearlChain.color2,
+    );
+    applyThreePearlChainColor3Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainColor3") ??
+        DEFAULT_CONFIG.threePearlChain.color3,
+    );
+    applyThreePearlChainPearlCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainPearlCount") ??
+        DEFAULT_CONFIG.threePearlChain.pearlCount,
+    );
+    applyThreePearlChainChainRadius(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainChainRadius") ??
+        DEFAULT_CONFIG.threePearlChain.chainRadius,
+    );
+    applyThreePearlChainPearlSize(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainPearlSize") ??
+        DEFAULT_CONFIG.threePearlChain.pearlSize,
+    );
+    applyThreePearlChainSwaySpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainSwaySpeed") ??
+        DEFAULT_CONFIG.threePearlChain.swaySpeed,
+    );
+    applyThreePearlChainMergeStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainMergeStrength") ??
+        DEFAULT_CONFIG.threePearlChain.mergeStrength,
+    );
+    applyThreePearlChainBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threePearlChainBloom"),
+    );
+    const savedPearlChainBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threePearlChainBloomStrength",
+    );
+    if (savedPearlChainBloomStrength != null && savedPearlChainBloomStrength !== "") {
+      applyThreePearlChainBloomStrength(savedPearlChainBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

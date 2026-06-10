@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 32：珍珠链 Three Pearl Chain（E）
+
+- 新建 `frontend/src/renderers/three/pearlChainRenderer.js`：5~10 颗珍珠沿 sin 参数 3D 曲线分布，smin 轻融合，三色链式渐变，bass 驱动半径，链整体 sway；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threePearlChain`、`DEFAULT_CONFIG.threePearlChain` 及 storage keys。
+- `main.js`：监听 `waveform-three-pearl-chain-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「有机渐变 3D → 珍珠链」配置面板（三色 picker、珍珠数量/大小、链弯曲半径、摆动、珠间融合、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 31：油彩大理石 Three Oil Marble（E）
 
 - 新建 `frontend/src/renderers/three/oilMarbleRenderer.js`：薄壳 sphere raymarch + 域扭曲 fbm 四色渐变（`gradientMix.glsl` + `glsl-noise`），bass 驱动流动、mid 偏移 warp；`registerModes.js` 注册。

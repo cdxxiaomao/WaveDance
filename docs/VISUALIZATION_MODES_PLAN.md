@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~31 已全部完成；Phase 32~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~32 已全部完成；Phase 33~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1615,14 +1615,14 @@ threePearlChain: {
 
 #### 32.2 新建 `three/pearlChainRenderer.js`
 
-- [ ] Catmull 或 sin 参数曲线求 pearl 中心
-- [ ] 每珠 SDF sphere；色沿链 index：`mix(color1,color2,color3, t)`
-- [ ] 链整体 sway；bass → pearl 半径
+- [x] Catmull 或 sin 参数曲线求 pearl 中心
+- [x] 每珠 SDF sphere；色沿链 index：`mix(color1,color2,color3, t)`
+- [x] 链整体 sway；bass → pearl 半径
 
 #### 32.3 验收标准
 
-- [ ] 链式渐变可见；pearlCount 变化即时更新
-- [ ] **方案 E（流体渐变）三模式全部可切换**
+- [x] 链式渐变可见；pearlCount 变化即时更新
+- [x] **方案 E（流体渐变）三模式全部可切换**
 
 ---
 
@@ -2041,7 +2041,7 @@ threeKnotOrganic: {
 | 29 | Shader 公共扩展（glsl-noise + raymarch） | `[x]` 已完成 | 2026-06-10 |
 | 30 | 熔岩灯 Three Lava Lamp（E） | `[x]` 已完成 | 2026-06-10 |
 | 31 | 油彩大理石 Three Oil Marble（E） | `[x]` 已完成 | 2026-06-10 |
-| 32 | 珍珠链 Three Pearl Chain（E） | `[ ]` 未开始 | |
+| 32 | 珍珠链 Three Pearl Chain（E） | `[x]` 已完成 | 2026-06-10 |
 | 33 | 宝石晶体 Three Crystal Gem（F） | `[ ]` 未开始 | |
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[ ]` 未开始 | |
 | 35 | 全息棱镜 Three Holo Prism（F） | `[ ]` 未开始 | |
@@ -2049,7 +2049,7 @@ threeKnotOrganic: {
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 32（珍珠链）
+**当前建议下一步**：Phase 33（宝石晶体）
 
 ---
 

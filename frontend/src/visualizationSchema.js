@@ -278,6 +278,17 @@ export const STORAGE_KEYS = {
   threeOilMarbleBloom: "wavedance.threeOilMarbleBloomEnabled",
   threeOilMarbleBloomStrength: "wavedance.threeOilMarbleBloomStrength",
   threeOilMarbleShape: "wavedance.threeOilMarbleShapeConfig",
+  threePearlChainColor1: "wavedance.threePearlChainColor1",
+  threePearlChainColor2: "wavedance.threePearlChainColor2",
+  threePearlChainColor3: "wavedance.threePearlChainColor3",
+  threePearlChainPearlCount: "wavedance.threePearlChainPearlCount",
+  threePearlChainChainRadius: "wavedance.threePearlChainChainRadius",
+  threePearlChainPearlSize: "wavedance.threePearlChainPearlSize",
+  threePearlChainSwaySpeed: "wavedance.threePearlChainSwaySpeed",
+  threePearlChainMergeStrength: "wavedance.threePearlChainMergeStrength",
+  threePearlChainBloom: "wavedance.threePearlChainBloomEnabled",
+  threePearlChainBloomStrength: "wavedance.threePearlChainBloomStrength",
+  threePearlChainShape: "wavedance.threePearlChainShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -314,6 +325,7 @@ export const DISPLAY_MODES = {
   threeNoiseLandscape: "threeNoiseLandscape",
   threeLavaLamp: "threeLavaLamp",
   threeOilMarble: "threeOilMarble",
+  threePearlChain: "threePearlChain",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -332,6 +344,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeNoiseLandscape,
   DISPLAY_MODES.threeLavaLamp,
   DISPLAY_MODES.threeOilMarble,
+  DISPLAY_MODES.threePearlChain,
 ];
 
 /** @param {string} mode */
@@ -842,6 +855,24 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 55,
     },
   },
+  threePearlChain: {
+    color1: "#f5e6d3",
+    color2: "#c4b5fd",
+    color3: "#8f7cff",
+    pearlCount: 7,
+    chainRadius: 0.75,
+    pearlSize: 0.22,
+    swaySpeed: 0.8,
+    mergeStrength: 45,
+    bloomEnabled: true,
+    bloomStrength: 0.9,
+    shape: {
+      gainPercent: 60,
+      smoothPercent: 22,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -876,6 +907,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeNoiseLandscape) return DISPLAY_MODES.threeNoiseLandscape;
   if (s === DISPLAY_MODES.threeLavaLamp) return DISPLAY_MODES.threeLavaLamp;
   if (s === DISPLAY_MODES.threeOilMarble) return DISPLAY_MODES.threeOilMarble;
+  if (s === DISPLAY_MODES.threePearlChain) return DISPLAY_MODES.threePearlChain;
   return DISPLAY_MODES.line;
 }
 
@@ -1261,6 +1293,17 @@ export function windowStorageKeys(windowLabel) {
     threeOilMarbleBloom: `${pre}.threeOilMarbleBloomEnabled`,
     threeOilMarbleBloomStrength: `${pre}.threeOilMarbleBloomStrength`,
     threeOilMarbleShape: `${pre}.threeOilMarbleShapeConfig`,
+    threePearlChainColor1: `${pre}.threePearlChainColor1`,
+    threePearlChainColor2: `${pre}.threePearlChainColor2`,
+    threePearlChainColor3: `${pre}.threePearlChainColor3`,
+    threePearlChainPearlCount: `${pre}.threePearlChainPearlCount`,
+    threePearlChainChainRadius: `${pre}.threePearlChainChainRadius`,
+    threePearlChainPearlSize: `${pre}.threePearlChainPearlSize`,
+    threePearlChainSwaySpeed: `${pre}.threePearlChainSwaySpeed`,
+    threePearlChainMergeStrength: `${pre}.threePearlChainMergeStrength`,
+    threePearlChainBloom: `${pre}.threePearlChainBloomEnabled`,
+    threePearlChainBloomStrength: `${pre}.threePearlChainBloomStrength`,
+    threePearlChainShape: `${pre}.threePearlChainShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,
