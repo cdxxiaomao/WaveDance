@@ -106,6 +106,7 @@ const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
 const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
 const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
 const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
+const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -313,6 +314,14 @@ function applyThreeAuroraShapeConfig(payload) {
   threeAuroraShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeBreathingRingsShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeBreathingRingsShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeBreathingRingsShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeBreathingRingsShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeBreathingRingsShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -365,6 +374,12 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeLiquidBlobRaw) applyThreeLiquidBlobShapeConfig(JSON.parse(threeLiquidBlobRaw));
     const threeAuroraRaw = readWindowStorageString(window.localStorage, windowLabel, "threeAuroraShape");
     if (threeAuroraRaw) applyThreeAuroraShapeConfig(JSON.parse(threeAuroraRaw));
+    const threeBreathingRingsRaw = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeBreathingShape",
+    );
+    if (threeBreathingRingsRaw) applyThreeBreathingRingsShapeConfig(JSON.parse(threeBreathingRingsRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -635,6 +650,15 @@ let threeAuroraBassBandIndex = DEFAULT_CONFIG.threeAuroraRibbon.bassBandIndex;
 let threeAuroraBloomEnabled = DEFAULT_CONFIG.threeAuroraRibbon.bloomEnabled;
 let threeAuroraBloomStrength = DEFAULT_CONFIG.threeAuroraRibbon.bloomStrength;
 let threeAuroraAutoRotateSpeedDeg = DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg;
+let threeBreathingRingColorHex = DEFAULT_CONFIG.threeBreathingRings.ringColor;
+let threeBreathingRingCount = DEFAULT_CONFIG.threeBreathingRings.ringCount;
+let threeBreathingBaseRadius = DEFAULT_CONFIG.threeBreathingRings.baseRadius;
+let threeBreathingRadiusStep = DEFAULT_CONFIG.threeBreathingRings.radiusStep;
+let threeBreathingPulseStrength = DEFAULT_CONFIG.threeBreathingRings.pulseStrength;
+let threeBreathingTubeRadius = DEFAULT_CONFIG.threeBreathingRings.tubeRadius;
+let threeBreathingBloomEnabled = DEFAULT_CONFIG.threeBreathingRings.bloomEnabled;
+let threeBreathingBloomStrength = DEFAULT_CONFIG.threeBreathingRings.bloomStrength;
+let threeBreathingAutoRotateSpeedDeg = DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1694,6 +1718,58 @@ function applyThreeAuroraAutoRotateSpeedDeg(value) {
     : DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg;
 }
 
+function applyThreeBreathingRingColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeBreathingRings.ringColor;
+  threeBreathingRingColorHex = safe;
+}
+
+function applyThreeBreathingRingCount(value) {
+  threeBreathingRingCount = clampInt(value, 2, 8);
+}
+
+function applyThreeBreathingBaseRadius(value) {
+  const n = Number(value);
+  threeBreathingBaseRadius = Number.isFinite(n)
+    ? Math.min(0.8, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threeBreathingRings.baseRadius;
+}
+
+function applyThreeBreathingRadiusStep(value) {
+  const n = Number(value);
+  threeBreathingRadiusStep = Number.isFinite(n)
+    ? Math.min(0.3, Math.max(0.05, n))
+    : DEFAULT_CONFIG.threeBreathingRings.radiusStep;
+}
+
+function applyThreeBreathingPulseStrength(value) {
+  threeBreathingPulseStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeBreathingTubeRadius(value) {
+  const n = Number(value);
+  threeBreathingTubeRadius = Number.isFinite(n)
+    ? Math.min(0.06, Math.max(0.01, n))
+    : DEFAULT_CONFIG.threeBreathingRings.tubeRadius;
+}
+
+function applyThreeBreathingBloomEnabled(value) {
+  threeBreathingBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeBreathingRings.bloomEnabled);
+}
+
+function applyThreeBreathingBloomStrength(value) {
+  const n = Number(value);
+  threeBreathingBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeBreathingRings.bloomStrength;
+}
+
+function applyThreeBreathingAutoRotateSpeedDeg(value) {
+  const n = Number(value);
+  threeBreathingAutoRotateSpeedDeg = Number.isFinite(n)
+    ? Math.min(15, Math.max(0, n))
+    : DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg;
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1918,6 +1994,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeScanGrid) return threeScanGridShapeConfig;
   if (mode === DISPLAY_MODES.threeLiquidBlob) return threeLiquidBlobShapeConfig;
   if (mode === DISPLAY_MODES.threeAuroraRibbon) return threeAuroraShapeConfig;
+  if (mode === DISPLAY_MODES.threeBreathingRings) return threeBreathingRingsShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2253,6 +2330,20 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeAuroraBloomEnabled,
       bloomStrength: threeAuroraBloomStrength,
       autoRotateSpeedDeg: threeAuroraAutoRotateSpeedDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeBreathingRings) {
+    return {
+      ringColor: threeBreathingRingColorHex,
+      ringCount: threeBreathingRingCount,
+      baseRadius: threeBreathingBaseRadius,
+      radiusStep: threeBreathingRadiusStep,
+      pulseStrength: threeBreathingPulseStrength,
+      tubeRadius: threeBreathingTubeRadius,
+      bloomEnabled: threeBreathingBloomEnabled,
+      bloomStrength: threeBreathingBloomStrength,
+      autoRotateSpeedDeg: threeBreathingAutoRotateSpeedDeg,
       freqReversed,
     };
   }
@@ -4095,6 +4186,76 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-breathing-ring-color",
+    (event) => {
+      applyThreeBreathingRingColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-ring-count",
+    (event) => {
+      applyThreeBreathingRingCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-base-radius",
+    (event) => {
+      applyThreeBreathingBaseRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-radius-step",
+    (event) => {
+      applyThreeBreathingRadiusStep(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-pulse-strength",
+    (event) => {
+      applyThreeBreathingPulseStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-tube-radius",
+    (event) => {
+      applyThreeBreathingTubeRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-bloom-enabled",
+    (event) => {
+      applyThreeBreathingBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-bloom-strength",
+    (event) => {
+      applyThreeBreathingBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-auto-rotate-speed",
+    (event) => {
+      applyThreeBreathingAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-breathing-shape-config",
+    (event) => {
+      applyThreeBreathingRingsShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4948,6 +5109,50 @@ async function init() {
     applyThreeAuroraAutoRotateSpeedDeg(
       readWindowStorageString(window.localStorage, windowLabel, "threeAuroraAutoRotateSpeed") ??
         DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg,
+    );
+    applyThreeBreathingRingColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingRingColor") ??
+        DEFAULT_CONFIG.threeBreathingRings.ringColor,
+    );
+    applyThreeBreathingRingCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingRingCount") ??
+        DEFAULT_CONFIG.threeBreathingRings.ringCount,
+    );
+    applyThreeBreathingBaseRadius(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingBaseRadius") ??
+        DEFAULT_CONFIG.threeBreathingRings.baseRadius,
+    );
+    applyThreeBreathingRadiusStep(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingRadiusStep") ??
+        DEFAULT_CONFIG.threeBreathingRings.radiusStep,
+    );
+    applyThreeBreathingPulseStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingPulseStrength") ??
+        DEFAULT_CONFIG.threeBreathingRings.pulseStrength,
+    );
+    applyThreeBreathingTubeRadius(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingTubeRadius") ??
+        DEFAULT_CONFIG.threeBreathingRings.tubeRadius,
+    );
+    const savedBreathingBloom = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeBreathingBloom",
+    );
+    if (savedBreathingBloom != null && savedBreathingBloom !== "") {
+      applyThreeBreathingBloomEnabled(savedBreathingBloom);
+    }
+    const savedBreathingBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeBreathingBloomStrength",
+    );
+    if (savedBreathingBloomStrength != null && savedBreathingBloomStrength !== "") {
+      applyThreeBreathingBloomStrength(savedBreathingBloomStrength);
+    }
+    applyThreeBreathingAutoRotateSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeBreathingAutoRotateSpeed") ??
+        DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg,
     );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

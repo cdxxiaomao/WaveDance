@@ -106,6 +106,7 @@
                 <option value="threeScanGrid">扫描网格</option>
                 <option value="threeLiquidBlob">液态球体</option>
                 <option value="threeAuroraRibbon">极光飘带</option>
+                <option value="threeBreathingRings">呼吸光环</option>
               </optgroup>
             </select>
           </div>
@@ -1511,6 +1512,65 @@
           <div class="settings-field">
             <label for="threeAuroraFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeAuroraFallEaseValue">58</span>%</label>
             <input id="threeAuroraFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeBreathingRingsConfigPanel" aria-labelledby="sec-three-breathing-rings-display" hidden>
+        <h2 id="sec-three-breathing-rings-display" class="settings-card__title">呼吸光环配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-breathing-rings" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeBreathingRingColor" class="settings-label">光环颜色</label>
+            <input id="threeBreathingRingColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingRingCountRange" class="settings-label">光环层数 <span class="settings-value" id="threeBreathingRingCountValue">5</span></label>
+            <input id="threeBreathingRingCountRange" type="range" min="2" max="8" step="1" value="5" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingBaseRadiusRange" class="settings-label">基础半径 <span class="settings-value" id="threeBreathingBaseRadiusValue">0.40</span></label>
+            <input id="threeBreathingBaseRadiusRange" type="range" min="20" max="80" step="1" value="40" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingRadiusStepRange" class="settings-label">层间距 <span class="settings-value" id="threeBreathingRadiusStepValue">0.15</span></label>
+            <input id="threeBreathingRadiusStepRange" type="range" min="5" max="30" step="1" value="15" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingPulseStrengthRange" class="settings-label">呼吸强度 <span class="settings-value" id="threeBreathingPulseStrengthValue">70</span>%</label>
+            <input id="threeBreathingPulseStrengthRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingTubeRadiusRange" class="settings-label">管径 <span class="settings-value" id="threeBreathingTubeRadiusValue">0.02</span></label>
+            <input id="threeBreathingTubeRadiusRange" type="range" min="1" max="6" step="1" value="2" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingAutoRotateSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeBreathingAutoRotateSpeedValue">5</span>°/s</label>
+            <input id="threeBreathingAutoRotateSpeedRange" type="range" min="0" max="15" step="1" value="5" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeBreathingBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeBreathingBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeBreathingBloomStrengthValue">0.9</span></label>
+            <input id="threeBreathingBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingGainRange" class="settings-label">增益 <span class="settings-value" id="threeBreathingGainValue">55</span>%</label>
+            <input id="threeBreathingGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeBreathingSmoothValue">20</span>%</label>
+            <input id="threeBreathingSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeBreathingSoftClipValue">12</span>%</label>
+            <input id="threeBreathingSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeBreathingFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeBreathingFallEaseValue">52</span>%</label>
+            <input id="threeBreathingFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

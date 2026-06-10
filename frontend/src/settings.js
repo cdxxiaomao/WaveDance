@@ -65,6 +65,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
   [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
   [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
+  [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -592,6 +593,30 @@ const threeAuroraSoftClipRange = document.querySelector("#threeAuroraSoftClipRan
 const threeAuroraSoftClipValue = document.querySelector("#threeAuroraSoftClipValue");
 const threeAuroraFallEaseRange = document.querySelector("#threeAuroraFallEaseRange");
 const threeAuroraFallEaseValue = document.querySelector("#threeAuroraFallEaseValue");
+const threeBreathingRingColor = document.querySelector("#threeBreathingRingColor");
+const threeBreathingRingCountRange = document.querySelector("#threeBreathingRingCountRange");
+const threeBreathingRingCountValue = document.querySelector("#threeBreathingRingCountValue");
+const threeBreathingBaseRadiusRange = document.querySelector("#threeBreathingBaseRadiusRange");
+const threeBreathingBaseRadiusValue = document.querySelector("#threeBreathingBaseRadiusValue");
+const threeBreathingRadiusStepRange = document.querySelector("#threeBreathingRadiusStepRange");
+const threeBreathingRadiusStepValue = document.querySelector("#threeBreathingRadiusStepValue");
+const threeBreathingPulseStrengthRange = document.querySelector("#threeBreathingPulseStrengthRange");
+const threeBreathingPulseStrengthValue = document.querySelector("#threeBreathingPulseStrengthValue");
+const threeBreathingTubeRadiusRange = document.querySelector("#threeBreathingTubeRadiusRange");
+const threeBreathingTubeRadiusValue = document.querySelector("#threeBreathingTubeRadiusValue");
+const threeBreathingAutoRotateSpeedRange = document.querySelector("#threeBreathingAutoRotateSpeedRange");
+const threeBreathingAutoRotateSpeedValue = document.querySelector("#threeBreathingAutoRotateSpeedValue");
+const threeBreathingBloomToggle = document.querySelector("#threeBreathingBloomToggle");
+const threeBreathingBloomStrengthRange = document.querySelector("#threeBreathingBloomStrengthRange");
+const threeBreathingBloomStrengthValue = document.querySelector("#threeBreathingBloomStrengthValue");
+const threeBreathingGainRange = document.querySelector("#threeBreathingGainRange");
+const threeBreathingGainValue = document.querySelector("#threeBreathingGainValue");
+const threeBreathingSmoothRange = document.querySelector("#threeBreathingSmoothRange");
+const threeBreathingSmoothValue = document.querySelector("#threeBreathingSmoothValue");
+const threeBreathingSoftClipRange = document.querySelector("#threeBreathingSoftClipRange");
+const threeBreathingSoftClipValue = document.querySelector("#threeBreathingSoftClipValue");
+const threeBreathingFallEaseRange = document.querySelector("#threeBreathingFallEaseRange");
+const threeBreathingFallEaseValue = document.querySelector("#threeBreathingFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3220,6 +3245,152 @@ function applyThreeAuroraFormFromStorage(v) {
   }
 }
 
+function readThreeBreathingShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeBreathingShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeBreathingGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeBreathingSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeBreathingSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeBreathingFallEaseRange?.value, 0, 100),
+  };
+  if (threeBreathingGainValue) threeBreathingGainValue.textContent = String(config.gainPercent);
+  if (threeBreathingSmoothValue) threeBreathingSmoothValue.textContent = String(config.smoothPercent);
+  if (threeBreathingSoftClipValue) threeBreathingSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeBreathingFallEaseValue) threeBreathingFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeBreathingShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-breathing-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新呼吸光环形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeBreathingFormFromStorage(v) {
+  const sg = readThreeBreathingShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeBreathingRings.shape };
+  if (threeBreathingGainRange) threeBreathingGainRange.value = String(sg.gainPercent);
+  if (threeBreathingSmoothRange) threeBreathingSmoothRange.value = String(sg.smoothPercent);
+  if (threeBreathingSoftClipRange) threeBreathingSoftClipRange.value = String(sg.softClipPercent);
+  if (threeBreathingFallEaseRange) threeBreathingFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeBreathingGainValue) threeBreathingGainValue.textContent = String(sg.gainPercent);
+  if (threeBreathingSmoothValue) threeBreathingSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeBreathingSoftClipValue) threeBreathingSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeBreathingFallEaseValue) threeBreathingFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "threeBreathingRingColor");
+  if (threeBreathingRingColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    threeBreathingRingColor.value = savedColor.toLowerCase();
+  } else if (threeBreathingRingColor) {
+    threeBreathingRingColor.value = DEFAULT_CONFIG.threeBreathingRings.ringColor;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeBreathingRingCount");
+  if (threeBreathingRingCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 8)
+        : DEFAULT_CONFIG.threeBreathingRings.ringCount;
+    threeBreathingRingCountRange.value = String(count);
+    if (threeBreathingRingCountValue) threeBreathingRingCountValue.textContent = String(count);
+  }
+
+  const savedBaseRadius = readWindowStorageString(window.localStorage, v, "threeBreathingBaseRadius");
+  if (threeBreathingBaseRadiusRange) {
+    const baseRadius =
+      savedBaseRadius != null && savedBaseRadius !== ""
+        ? Math.min(0.8, Math.max(0.2, Number(savedBaseRadius)))
+        : DEFAULT_CONFIG.threeBreathingRings.baseRadius;
+    threeBreathingBaseRadiusRange.value = String(Math.round(baseRadius * 100));
+    if (threeBreathingBaseRadiusValue) threeBreathingBaseRadiusValue.textContent = baseRadius.toFixed(2);
+  }
+
+  const savedRadiusStep = readWindowStorageString(window.localStorage, v, "threeBreathingRadiusStep");
+  if (threeBreathingRadiusStepRange) {
+    const radiusStep =
+      savedRadiusStep != null && savedRadiusStep !== ""
+        ? Math.min(0.3, Math.max(0.05, Number(savedRadiusStep)))
+        : DEFAULT_CONFIG.threeBreathingRings.radiusStep;
+    threeBreathingRadiusStepRange.value = String(Math.round(radiusStep * 100));
+    if (threeBreathingRadiusStepValue) threeBreathingRadiusStepValue.textContent = radiusStep.toFixed(2);
+  }
+
+  const savedPulse = readWindowStorageString(window.localStorage, v, "threeBreathingPulseStrength");
+  if (threeBreathingPulseStrengthRange) {
+    const pulseStrength =
+      savedPulse != null && savedPulse !== ""
+        ? clampInt(savedPulse, 0, 100)
+        : DEFAULT_CONFIG.threeBreathingRings.pulseStrength;
+    threeBreathingPulseStrengthRange.value = String(pulseStrength);
+    if (threeBreathingPulseStrengthValue) {
+      threeBreathingPulseStrengthValue.textContent = String(pulseStrength);
+    }
+  }
+
+  const savedTubeRadius = readWindowStorageString(window.localStorage, v, "threeBreathingTubeRadius");
+  if (threeBreathingTubeRadiusRange) {
+    const tubeRadius =
+      savedTubeRadius != null && savedTubeRadius !== ""
+        ? Math.min(0.06, Math.max(0.01, Number(savedTubeRadius)))
+        : DEFAULT_CONFIG.threeBreathingRings.tubeRadius;
+    threeBreathingTubeRadiusRange.value = String(Math.round(tubeRadius * 100));
+    if (threeBreathingTubeRadiusValue) threeBreathingTubeRadiusValue.textContent = tubeRadius.toFixed(2);
+  }
+
+  const savedRotate = readWindowStorageString(window.localStorage, v, "threeBreathingAutoRotateSpeed");
+  if (threeBreathingAutoRotateSpeedRange) {
+    const rotateSpeed =
+      savedRotate != null && savedRotate !== ""
+        ? Math.min(15, Math.max(0, Number(savedRotate)))
+        : DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg;
+    threeBreathingAutoRotateSpeedRange.value = String(Math.round(rotateSpeed));
+    if (threeBreathingAutoRotateSpeedValue) {
+      threeBreathingAutoRotateSpeedValue.textContent = String(Math.round(rotateSpeed));
+    }
+  }
+
+  if (threeBreathingBloomToggle) {
+    threeBreathingBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeBreathingBloom"),
+      DEFAULT_CONFIG.threeBreathingRings.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeBreathingBloomStrength",
+  );
+  if (threeBreathingBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeBreathingRings.bloomStrength;
+    threeBreathingBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeBreathingBloomStrengthValue) {
+      threeBreathingBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3851,6 +4022,7 @@ async function init() {
     applyThreeScanGridFormFromStorage(v);
     applyThreeLiquidBlobFormFromStorage(v);
     applyThreeAuroraFormFromStorage(v);
+    applyThreeBreathingFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -6801,6 +6973,157 @@ async function init() {
   });
   threeAuroraFallEaseRange?.addEventListener("input", () => {
     void syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeBreathingRingColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingRingColor",
+        threeBreathingRingColor.value,
+      );
+      await emitVisual("waveform-three-breathing-ring-color", threeBreathingRingColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新光环颜色失败：${String(err)}`;
+    }
+  });
+  threeBreathingRingCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2, 8);
+    if (threeBreathingRingCountValue) threeBreathingRingCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingRingCount",
+        String(count),
+      );
+      await emitVisual("waveform-three-breathing-ring-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新光环层数失败：${String(err)}`;
+    }
+  });
+  threeBreathingBaseRadiusRange?.addEventListener("input", async (event) => {
+    const baseRadius = Math.min(0.8, Math.max(0.2, Number(event.target.value) / 100));
+    if (threeBreathingBaseRadiusValue) threeBreathingBaseRadiusValue.textContent = baseRadius.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingBaseRadius",
+        String(baseRadius),
+      );
+      await emitVisual("waveform-three-breathing-base-radius", baseRadius);
+    } catch (err) {
+      statusEl.textContent = `更新基础半径失败：${String(err)}`;
+    }
+  });
+  threeBreathingRadiusStepRange?.addEventListener("input", async (event) => {
+    const radiusStep = Math.min(0.3, Math.max(0.05, Number(event.target.value) / 100));
+    if (threeBreathingRadiusStepValue) threeBreathingRadiusStepValue.textContent = radiusStep.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingRadiusStep",
+        String(radiusStep),
+      );
+      await emitVisual("waveform-three-breathing-radius-step", radiusStep);
+    } catch (err) {
+      statusEl.textContent = `更新层间距失败：${String(err)}`;
+    }
+  });
+  threeBreathingPulseStrengthRange?.addEventListener("input", async (event) => {
+    const pulseStrength = clampInt(event.target.value, 0, 100);
+    if (threeBreathingPulseStrengthValue) {
+      threeBreathingPulseStrengthValue.textContent = String(pulseStrength);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingPulseStrength",
+        String(pulseStrength),
+      );
+      await emitVisual("waveform-three-breathing-pulse-strength", pulseStrength);
+    } catch (err) {
+      statusEl.textContent = `更新呼吸强度失败：${String(err)}`;
+    }
+  });
+  threeBreathingTubeRadiusRange?.addEventListener("input", async (event) => {
+    const tubeRadius = Math.min(0.06, Math.max(0.01, Number(event.target.value) / 100));
+    if (threeBreathingTubeRadiusValue) threeBreathingTubeRadiusValue.textContent = tubeRadius.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingTubeRadius",
+        String(tubeRadius),
+      );
+      await emitVisual("waveform-three-breathing-tube-radius", tubeRadius);
+    } catch (err) {
+      statusEl.textContent = `更新管径失败：${String(err)}`;
+    }
+  });
+  threeBreathingAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const rotateSpeed = Math.min(15, Math.max(0, Number(event.target.value)));
+    if (threeBreathingAutoRotateSpeedValue) {
+      threeBreathingAutoRotateSpeedValue.textContent = String(Math.round(rotateSpeed));
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingAutoRotateSpeed",
+        String(rotateSpeed),
+      );
+      await emitVisual("waveform-three-breathing-auto-rotate-speed", rotateSpeed);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeBreathingBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingBloom",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-breathing-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeBreathingBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeBreathingBloomStrengthValue) {
+      threeBreathingBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeBreathingBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-breathing-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeBreathingGainRange?.addEventListener("input", () => {
+    void syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeBreathingSmoothRange?.addEventListener("input", () => {
+    void syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeBreathingSoftClipRange?.addEventListener("input", () => {
+    void syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeBreathingFallEaseRange?.addEventListener("input", () => {
+    void syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

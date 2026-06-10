@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 26：呼吸光环 Three Breathing Rings（C）
+
+- 新建 `frontend/src/renderers/three/breathingRingsRenderer.js`：多层同心 `TorusGeometry`，peak 驱动分层缩放脉冲 + 慢速自转，`MeshBasicMaterial` additive + 可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeBreathingRings` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-breathing-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 呼吸光环」、`#threeBreathingRingsConfigPanel`（光环颜色、层数、基础半径/层间距、呼吸强度、管径、自转、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 25：极光飘带 Three Aurora Ribbon（C）
 
 - 新建 `frontend/src/renderers/three/auroraRibbonRenderer.js`：`CatmullRomCurve3` + `TubeGeometry` 3D 飘带，控制点每帧 noise 偏移，各 ribbon 绑定不同频带 aggregate 驱动 hue 与摆动，`MeshBasicMaterial` additive + 可选 Bloom；`registerModes.js` 注册。

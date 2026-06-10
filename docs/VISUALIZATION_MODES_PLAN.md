@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~25 已全部完成；Phase 26~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~26 已全部完成；Phase 27~28 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1361,14 +1361,14 @@ threeBreathingRings: {
 
 #### 26.2 新建 `renderers/three/breathingRingsRenderer.js`
 
-- [ ] 多个 `TorusGeometry` 同心嵌套
-- [ ] `scale.setScalar(1 + pulseStrength * peak * layerFactor)` 分层差异化
-- [ ] `MeshBasicMaterial` + Bloom
+- [x] 多个 `TorusGeometry` 同心嵌套
+- [x] `scale.setScalar(1 + pulseStrength * peak * layerFactor)` 分层差异化
+- [x] `MeshBasicMaterial` + Bloom
 
 #### 26.3 验收标准
 
-- [ ] 强拍时整体「呼吸」可见
-- [ ] ringCount 增减即时生效
+- [x] 强拍时整体「呼吸」可见
+- [x] ringCount 增减即时生效
 
 ---
 
@@ -1582,11 +1582,11 @@ threeNoiseLandscape: {
 | 23 | 扫描网格 Three Scan Grid（B） | `[x]` 已完成 | 2026-06-10 |
 | 24 | 液态球体 Three Liquid Blob（C） | `[x]` 已完成 | 2026-06-10 |
 | 25 | 极光飘带 Three Aurora Ribbon（C） | `[x]` 已完成 | 2026-06-10 |
-| 26 | 呼吸光环 Three Breathing Rings（C） | `[ ]` 未开始 | |
+| 26 | 呼吸光环 Three Breathing Rings（C） | `[x]` 已完成 | 2026-06-10 |
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 26（呼吸光环 Three Breathing Rings，方案 C）
+**当前建议下一步**：Phase 27（噪声地貌 Three Noise Landscape，方案 C）
 
 ---
 
