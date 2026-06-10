@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~35 已全部完成；Phase 36~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~36 已全部完成；Phase 37~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1764,14 +1764,14 @@ threeNebulaVolume: {
 
 #### 36.2 新建 `three/nebulaVolumeRenderer.js`
 
-- [ ] 体积 raymarch：沿 rd 累积 density × color gradient
-- [ ] `glsl-noise` 3D fbm；bass 膨胀 core；swirl 绕 Y
-- [ ] early exit 优化；marchSteps UI 可调
+- [x] 体积 raymarch：沿 rd 累积 density × color gradient
+- [x] `glsl-noise` 3D fbm；bass 膨胀 core；swirl 绕 Y
+- [x] early exit 优化；marchSteps UI 可调
 
 #### 36.3 验收标准
 
-- [ ] 云雾柔和，非硬球；marchSteps≤48 时 macOS 浮窗 fps ≥ 25
-- [ ] 停止音乐后云雾缓慢衰减
+- [x] 云雾柔和，非硬球；marchSteps≤48 时 macOS 浮窗 fps ≥ 25
+- [x] 停止音乐后云雾缓慢衰减
 
 ---
 
@@ -2045,11 +2045,11 @@ threeKnotOrganic: {
 | 33 | 宝石晶体 Three Crystal Gem（F） | `[x]` 已完成 | 2026-06-10 |
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[x]` 已完成 | 2026-06-10 |
 | 35 | 全息棱镜 Three Holo Prism（F） | `[x]` 已完成 | 2026-06-10 |
-| 36 | 星云团 Three Nebula Volume（G） | `[ ]` 未开始 | |
+| 36 | 星云团 Three Nebula Volume（G） | `[x]` 已完成 | 2026-06-10 |
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 36（星云团）
+**当前建议下一步**：Phase 37（扭结有机体）
 
 ---
 

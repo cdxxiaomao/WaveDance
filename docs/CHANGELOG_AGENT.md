@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 36：星云团 Three Nebula Volume（G）
+
+- 新建 `frontend/src/renderers/three/nebulaVolumeRenderer.js`：体积 raymarch 沿视线累积密度，3D fbm 噪声 + Y 轴旋涡，核心暖→中间→边缘冷三色渐变，bass 膨胀核心，transmittance early exit，marchSteps 32~48 可调，频谱缓落实现停播后云雾衰减；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeNebulaVolume`、`DEFAULT_CONFIG.threeNebulaVolume` 及 storage keys。
+- `main.js`：监听 `waveform-three-nebula-volume-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「有机渐变 3D → 星云团」配置面板（核心/中间/边缘色、密度缩放、噪声尺度、旋涡速度、体积步数、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 35：全息棱镜 Three Holo Prism（F）
 
 - 新建 `frontend/src/renderers/three/holoPrismRenderer.js`：N 棱柱 SDF raymarch 慢自转，`tintLow/tintHigh` 按角度染色，棱边 `spectralStrength` 彩虹色散，峰值触发 ChromaticAberration 脉冲衰减，始终启用 radial 色散 + 可选 Bloom；`registerModes.js` 注册。

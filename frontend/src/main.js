@@ -114,6 +114,7 @@ const threePearlChainShapeConfig = { ...DEFAULT_CONFIG.threePearlChain.shape };
 const threeCrystalGemShapeConfig = { ...DEFAULT_CONFIG.threeCrystalGem.shape };
 const threeGlassOrbsShapeConfig = { ...DEFAULT_CONFIG.threeGlassOrbs.shape };
 const threeHoloPrismShapeConfig = { ...DEFAULT_CONFIG.threeHoloPrism.shape };
+const threeNebulaVolumeShapeConfig = { ...DEFAULT_CONFIG.threeNebulaVolume.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -385,6 +386,14 @@ function applyThreeHoloPrismShapeConfig(payload) {
   threeHoloPrismShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeNebulaVolumeShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeNebulaVolumeShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeNebulaVolumeShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeNebulaVolumeShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeNebulaVolumeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -461,6 +470,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeGlassOrbsRaw) applyThreeGlassOrbsShapeConfig(JSON.parse(threeGlassOrbsRaw));
     const threeHoloPrismRaw = readWindowStorageString(window.localStorage, windowLabel, "threeHoloPrismShape");
     if (threeHoloPrismRaw) applyThreeHoloPrismShapeConfig(JSON.parse(threeHoloPrismRaw));
+    const threeNebulaVolumeRaw = readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeShape");
+    if (threeNebulaVolumeRaw) applyThreeNebulaVolumeShapeConfig(JSON.parse(threeNebulaVolumeRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -812,6 +823,15 @@ let threeHoloPrismPulseOnPeak = DEFAULT_CONFIG.threeHoloPrism.pulseOnPeak;
 let threeHoloPrismChromaticOffset = DEFAULT_CONFIG.threeHoloPrism.chromaticOffset;
 let threeHoloPrismBloomEnabled = DEFAULT_CONFIG.threeHoloPrism.bloomEnabled;
 let threeHoloPrismBloomStrength = DEFAULT_CONFIG.threeHoloPrism.bloomStrength;
+let threeNebulaVolumeColorCoreHex = DEFAULT_CONFIG.threeNebulaVolume.colorCore;
+let threeNebulaVolumeColorMidHex = DEFAULT_CONFIG.threeNebulaVolume.colorMid;
+let threeNebulaVolumeColorEdgeHex = DEFAULT_CONFIG.threeNebulaVolume.colorEdge;
+let threeNebulaVolumeDensityScale = DEFAULT_CONFIG.threeNebulaVolume.densityScale;
+let threeNebulaVolumeNoiseScale = DEFAULT_CONFIG.threeNebulaVolume.noiseScale;
+let threeNebulaVolumeSwirlSpeed = DEFAULT_CONFIG.threeNebulaVolume.swirlSpeed;
+let threeNebulaVolumeMarchSteps = DEFAULT_CONFIG.threeNebulaVolume.marchSteps;
+let threeNebulaVolumeBloomEnabled = DEFAULT_CONFIG.threeNebulaVolume.bloomEnabled;
+let threeNebulaVolumeBloomStrength = DEFAULT_CONFIG.threeNebulaVolume.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -2129,6 +2149,57 @@ function applyThreeHoloPrismBloomStrength(value) {
     : DEFAULT_CONFIG.threeHoloPrism.bloomStrength;
 }
 
+function applyThreeNebulaVolumeColorCoreHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeNebulaVolume.colorCore;
+  threeNebulaVolumeColorCoreHex = safe;
+}
+
+function applyThreeNebulaVolumeColorMidHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeNebulaVolume.colorMid;
+  threeNebulaVolumeColorMidHex = safe;
+}
+
+function applyThreeNebulaVolumeColorEdgeHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeNebulaVolume.colorEdge;
+  threeNebulaVolumeColorEdgeHex = safe;
+}
+
+function applyThreeNebulaVolumeDensityScale(value) {
+  const n = Number(value);
+  threeNebulaVolumeDensityScale = Number.isFinite(n)
+    ? Math.min(2.5, Math.max(0.4, n))
+    : DEFAULT_CONFIG.threeNebulaVolume.densityScale;
+}
+
+function applyThreeNebulaVolumeNoiseScale(value) {
+  const n = Number(value);
+  threeNebulaVolumeNoiseScale = Number.isFinite(n)
+    ? Math.min(4.0, Math.max(0.6, n))
+    : DEFAULT_CONFIG.threeNebulaVolume.noiseScale;
+}
+
+function applyThreeNebulaVolumeSwirlSpeed(value) {
+  const n = Number(value);
+  threeNebulaVolumeSwirlSpeed = Number.isFinite(n)
+    ? Math.min(2.0, Math.max(0.1, n))
+    : DEFAULT_CONFIG.threeNebulaVolume.swirlSpeed;
+}
+
+function applyThreeNebulaVolumeMarchSteps(value) {
+  threeNebulaVolumeMarchSteps = clampInt(value, 32, 48);
+}
+
+function applyThreeNebulaVolumeBloomEnabled(value) {
+  threeNebulaVolumeBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeNebulaVolume.bloomEnabled);
+}
+
+function applyThreeNebulaVolumeBloomStrength(value) {
+  const n = Number(value);
+  threeNebulaVolumeBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeNebulaVolume.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2530,6 +2601,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeCrystalGem) return threeCrystalGemShapeConfig;
   if (mode === DISPLAY_MODES.threeGlassOrbs) return threeGlassOrbsShapeConfig;
   if (mode === DISPLAY_MODES.threeHoloPrism) return threeHoloPrismShapeConfig;
+  if (mode === DISPLAY_MODES.threeNebulaVolume) return threeNebulaVolumeShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2987,6 +3059,20 @@ function getStyleConfigForMode(mode) {
       chromaticOffset: threeHoloPrismChromaticOffset,
       bloomEnabled: threeHoloPrismBloomEnabled,
       bloomStrength: threeHoloPrismBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeNebulaVolume) {
+    return {
+      colorCore: threeNebulaVolumeColorCoreHex,
+      colorMid: threeNebulaVolumeColorMidHex,
+      colorEdge: threeNebulaVolumeColorEdgeHex,
+      densityScale: threeNebulaVolumeDensityScale,
+      noiseScale: threeNebulaVolumeNoiseScale,
+      swirlSpeed: threeNebulaVolumeSwirlSpeed,
+      marchSteps: threeNebulaVolumeMarchSteps,
+      bloomEnabled: threeNebulaVolumeBloomEnabled,
+      bloomStrength: threeNebulaVolumeBloomStrength,
       freqReversed,
     };
   }
@@ -5452,6 +5538,76 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-nebula-volume-color-core",
+    (event) => {
+      applyThreeNebulaVolumeColorCoreHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-color-mid",
+    (event) => {
+      applyThreeNebulaVolumeColorMidHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-color-edge",
+    (event) => {
+      applyThreeNebulaVolumeColorEdgeHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-density-scale",
+    (event) => {
+      applyThreeNebulaVolumeDensityScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-noise-scale",
+    (event) => {
+      applyThreeNebulaVolumeNoiseScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-swirl-speed",
+    (event) => {
+      applyThreeNebulaVolumeSwirlSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-march-steps",
+    (event) => {
+      applyThreeNebulaVolumeMarchSteps(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-bloom-enabled",
+    (event) => {
+      applyThreeNebulaVolumeBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-bloom-strength",
+    (event) => {
+      applyThreeNebulaVolumeBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-nebula-volume-shape-config",
+    (event) => {
+      applyThreeNebulaVolumeShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -6668,6 +6824,45 @@ async function init() {
     );
     if (savedHoloPrismBloomStrength != null && savedHoloPrismBloomStrength !== "") {
       applyThreeHoloPrismBloomStrength(savedHoloPrismBloomStrength);
+    }
+    applyThreeNebulaVolumeColorCoreHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeColorCore") ??
+        DEFAULT_CONFIG.threeNebulaVolume.colorCore,
+    );
+    applyThreeNebulaVolumeColorMidHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeColorMid") ??
+        DEFAULT_CONFIG.threeNebulaVolume.colorMid,
+    );
+    applyThreeNebulaVolumeColorEdgeHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeColorEdge") ??
+        DEFAULT_CONFIG.threeNebulaVolume.colorEdge,
+    );
+    applyThreeNebulaVolumeDensityScale(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeDensityScale") ??
+        DEFAULT_CONFIG.threeNebulaVolume.densityScale,
+    );
+    applyThreeNebulaVolumeNoiseScale(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeNoiseScale") ??
+        DEFAULT_CONFIG.threeNebulaVolume.noiseScale,
+    );
+    applyThreeNebulaVolumeSwirlSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeSwirlSpeed") ??
+        DEFAULT_CONFIG.threeNebulaVolume.swirlSpeed,
+    );
+    applyThreeNebulaVolumeMarchSteps(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeMarchSteps") ??
+        DEFAULT_CONFIG.threeNebulaVolume.marchSteps,
+    );
+    applyThreeNebulaVolumeBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNebulaVolumeBloom"),
+    );
+    const savedNebulaBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeNebulaVolumeBloomStrength",
+    );
+    if (savedNebulaBloomStrength != null && savedNebulaBloomStrength !== "") {
+      applyThreeNebulaVolumeBloomStrength(savedNebulaBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

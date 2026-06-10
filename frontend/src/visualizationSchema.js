@@ -325,6 +325,16 @@ export const STORAGE_KEYS = {
   threeHoloPrismBloom: "wavedance.threeHoloPrismBloomEnabled",
   threeHoloPrismBloomStrength: "wavedance.threeHoloPrismBloomStrength",
   threeHoloPrismShape: "wavedance.threeHoloPrismShapeConfig",
+  threeNebulaVolumeColorCore: "wavedance.threeNebulaVolumeColorCore",
+  threeNebulaVolumeColorMid: "wavedance.threeNebulaVolumeColorMid",
+  threeNebulaVolumeColorEdge: "wavedance.threeNebulaVolumeColorEdge",
+  threeNebulaVolumeDensityScale: "wavedance.threeNebulaVolumeDensityScale",
+  threeNebulaVolumeNoiseScale: "wavedance.threeNebulaVolumeNoiseScale",
+  threeNebulaVolumeSwirlSpeed: "wavedance.threeNebulaVolumeSwirlSpeed",
+  threeNebulaVolumeMarchSteps: "wavedance.threeNebulaVolumeMarchSteps",
+  threeNebulaVolumeBloom: "wavedance.threeNebulaVolumeBloomEnabled",
+  threeNebulaVolumeBloomStrength: "wavedance.threeNebulaVolumeBloomStrength",
+  threeNebulaVolumeShape: "wavedance.threeNebulaVolumeShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -365,6 +375,7 @@ export const DISPLAY_MODES = {
   threeCrystalGem: "threeCrystalGem",
   threeGlassOrbs: "threeGlassOrbs",
   threeHoloPrism: "threeHoloPrism",
+  threeNebulaVolume: "threeNebulaVolume",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -387,6 +398,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeCrystalGem,
   DISPLAY_MODES.threeGlassOrbs,
   DISPLAY_MODES.threeHoloPrism,
+  DISPLAY_MODES.threeNebulaVolume,
 ];
 
 /** @param {string} mode */
@@ -972,6 +984,23 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 48,
     },
   },
+  threeNebulaVolume: {
+    colorCore: "#ff6b35",
+    colorMid: "#8f7cff",
+    colorEdge: "#1a1a2e",
+    densityScale: 1.1,
+    noiseScale: 1.8,
+    swirlSpeed: 0.7,
+    marchSteps: 40,
+    bloomEnabled: true,
+    bloomStrength: 1.1,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -1010,6 +1039,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeCrystalGem) return DISPLAY_MODES.threeCrystalGem;
   if (s === DISPLAY_MODES.threeGlassOrbs) return DISPLAY_MODES.threeGlassOrbs;
   if (s === DISPLAY_MODES.threeHoloPrism) return DISPLAY_MODES.threeHoloPrism;
+  if (s === DISPLAY_MODES.threeNebulaVolume) return DISPLAY_MODES.threeNebulaVolume;
   return DISPLAY_MODES.line;
 }
 
@@ -1442,6 +1472,16 @@ export function windowStorageKeys(windowLabel) {
     threeHoloPrismBloom: `${pre}.threeHoloPrismBloomEnabled`,
     threeHoloPrismBloomStrength: `${pre}.threeHoloPrismBloomStrength`,
     threeHoloPrismShape: `${pre}.threeHoloPrismShapeConfig`,
+    threeNebulaVolumeColorCore: `${pre}.threeNebulaVolumeColorCore`,
+    threeNebulaVolumeColorMid: `${pre}.threeNebulaVolumeColorMid`,
+    threeNebulaVolumeColorEdge: `${pre}.threeNebulaVolumeColorEdge`,
+    threeNebulaVolumeDensityScale: `${pre}.threeNebulaVolumeDensityScale`,
+    threeNebulaVolumeNoiseScale: `${pre}.threeNebulaVolumeNoiseScale`,
+    threeNebulaVolumeSwirlSpeed: `${pre}.threeNebulaVolumeSwirlSpeed`,
+    threeNebulaVolumeMarchSteps: `${pre}.threeNebulaVolumeMarchSteps`,
+    threeNebulaVolumeBloom: `${pre}.threeNebulaVolumeBloomEnabled`,
+    threeNebulaVolumeBloomStrength: `${pre}.threeNebulaVolumeBloomStrength`,
+    threeNebulaVolumeShape: `${pre}.threeNebulaVolumeShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

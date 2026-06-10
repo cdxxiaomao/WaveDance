@@ -73,6 +73,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeCrystalGem]: "threeCrystalGemConfigPanel",
   [DISPLAY_MODES.threeGlassOrbs]: "threeGlassOrbsConfigPanel",
   [DISPLAY_MODES.threeHoloPrism]: "threeHoloPrismConfigPanel",
+  [DISPLAY_MODES.threeNebulaVolume]: "threeNebulaVolumeConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -792,6 +793,28 @@ const threeHoloPrismSoftClipRange = document.querySelector("#threeHoloPrismSoftC
 const threeHoloPrismSoftClipValue = document.querySelector("#threeHoloPrismSoftClipValue");
 const threeHoloPrismFallEaseRange = document.querySelector("#threeHoloPrismFallEaseRange");
 const threeHoloPrismFallEaseValue = document.querySelector("#threeHoloPrismFallEaseValue");
+const threeNebulaVolumeColorCore = document.querySelector("#threeNebulaVolumeColorCore");
+const threeNebulaVolumeColorMid = document.querySelector("#threeNebulaVolumeColorMid");
+const threeNebulaVolumeColorEdge = document.querySelector("#threeNebulaVolumeColorEdge");
+const threeNebulaVolumeDensityScaleRange = document.querySelector("#threeNebulaVolumeDensityScaleRange");
+const threeNebulaVolumeDensityScaleValue = document.querySelector("#threeNebulaVolumeDensityScaleValue");
+const threeNebulaVolumeNoiseScaleRange = document.querySelector("#threeNebulaVolumeNoiseScaleRange");
+const threeNebulaVolumeNoiseScaleValue = document.querySelector("#threeNebulaVolumeNoiseScaleValue");
+const threeNebulaVolumeSwirlSpeedRange = document.querySelector("#threeNebulaVolumeSwirlSpeedRange");
+const threeNebulaVolumeSwirlSpeedValue = document.querySelector("#threeNebulaVolumeSwirlSpeedValue");
+const threeNebulaVolumeMarchStepsRange = document.querySelector("#threeNebulaVolumeMarchStepsRange");
+const threeNebulaVolumeMarchStepsValue = document.querySelector("#threeNebulaVolumeMarchStepsValue");
+const threeNebulaVolumeBloomToggle = document.querySelector("#threeNebulaVolumeBloomToggle");
+const threeNebulaVolumeBloomStrengthRange = document.querySelector("#threeNebulaVolumeBloomStrengthRange");
+const threeNebulaVolumeBloomStrengthValue = document.querySelector("#threeNebulaVolumeBloomStrengthValue");
+const threeNebulaVolumeGainRange = document.querySelector("#threeNebulaVolumeGainRange");
+const threeNebulaVolumeGainValue = document.querySelector("#threeNebulaVolumeGainValue");
+const threeNebulaVolumeSmoothRange = document.querySelector("#threeNebulaVolumeSmoothRange");
+const threeNebulaVolumeSmoothValue = document.querySelector("#threeNebulaVolumeSmoothValue");
+const threeNebulaVolumeSoftClipRange = document.querySelector("#threeNebulaVolumeSoftClipRange");
+const threeNebulaVolumeSoftClipValue = document.querySelector("#threeNebulaVolumeSoftClipValue");
+const threeNebulaVolumeFallEaseRange = document.querySelector("#threeNebulaVolumeFallEaseRange");
+const threeNebulaVolumeFallEaseValue = document.querySelector("#threeNebulaVolumeFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -4100,6 +4123,133 @@ function applyThreeHoloPrismFormFromStorage(v) {
   }
 }
 
+function readThreeNebulaVolumeShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeNebulaVolumeShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeNebulaVolumeShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeNebulaVolumeGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeNebulaVolumeSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeNebulaVolumeSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeNebulaVolumeFallEaseRange?.value, 0, 100),
+  };
+  if (threeNebulaVolumeGainValue) threeNebulaVolumeGainValue.textContent = String(config.gainPercent);
+  if (threeNebulaVolumeSmoothValue) threeNebulaVolumeSmoothValue.textContent = String(config.smoothPercent);
+  if (threeNebulaVolumeSoftClipValue) threeNebulaVolumeSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeNebulaVolumeFallEaseValue) threeNebulaVolumeFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeNebulaVolumeShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-nebula-volume-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新星云团形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeNebulaVolumeFormFromStorage(v) {
+  const sg = readThreeNebulaVolumeShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeNebulaVolume.shape };
+  if (threeNebulaVolumeGainRange) threeNebulaVolumeGainRange.value = String(sg.gainPercent);
+  if (threeNebulaVolumeSmoothRange) threeNebulaVolumeSmoothRange.value = String(sg.smoothPercent);
+  if (threeNebulaVolumeSoftClipRange) threeNebulaVolumeSoftClipRange.value = String(sg.softClipPercent);
+  if (threeNebulaVolumeFallEaseRange) threeNebulaVolumeFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeNebulaVolumeGainValue) threeNebulaVolumeGainValue.textContent = String(sg.gainPercent);
+  if (threeNebulaVolumeSmoothValue) threeNebulaVolumeSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeNebulaVolumeSoftClipValue) threeNebulaVolumeSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeNebulaVolumeFallEaseValue) threeNebulaVolumeFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const colorKeys = [
+    ["threeNebulaVolumeColorCore", threeNebulaVolumeColorCore, "colorCore"],
+    ["threeNebulaVolumeColorMid", threeNebulaVolumeColorMid, "colorMid"],
+    ["threeNebulaVolumeColorEdge", threeNebulaVolumeColorEdge, "colorEdge"],
+  ];
+  for (const [storageKey, el, defaultKey] of colorKeys) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (el && saved && /^#[0-9A-Fa-f]{6}$/.test(saved)) {
+      el.value = saved.toLowerCase();
+    } else if (el) {
+      el.value = DEFAULT_CONFIG.threeNebulaVolume[defaultKey];
+    }
+  }
+
+  const savedDensity = readWindowStorageString(window.localStorage, v, "threeNebulaVolumeDensityScale");
+  if (threeNebulaVolumeDensityScaleRange) {
+    const density =
+      savedDensity != null && savedDensity !== ""
+        ? Math.min(2.5, Math.max(0.4, Number(savedDensity)))
+        : DEFAULT_CONFIG.threeNebulaVolume.densityScale;
+    threeNebulaVolumeDensityScaleRange.value = String(Math.round(density * 10));
+    if (threeNebulaVolumeDensityScaleValue) {
+      threeNebulaVolumeDensityScaleValue.textContent = density.toFixed(1);
+    }
+  }
+
+  const savedNoise = readWindowStorageString(window.localStorage, v, "threeNebulaVolumeNoiseScale");
+  if (threeNebulaVolumeNoiseScaleRange) {
+    const noise =
+      savedNoise != null && savedNoise !== ""
+        ? Math.min(4.0, Math.max(0.6, Number(savedNoise)))
+        : DEFAULT_CONFIG.threeNebulaVolume.noiseScale;
+    threeNebulaVolumeNoiseScaleRange.value = String(Math.round(noise * 10));
+    if (threeNebulaVolumeNoiseScaleValue) threeNebulaVolumeNoiseScaleValue.textContent = noise.toFixed(1);
+  }
+
+  const savedSwirl = readWindowStorageString(window.localStorage, v, "threeNebulaVolumeSwirlSpeed");
+  if (threeNebulaVolumeSwirlSpeedRange) {
+    const swirl =
+      savedSwirl != null && savedSwirl !== ""
+        ? Math.min(2.0, Math.max(0.1, Number(savedSwirl)))
+        : DEFAULT_CONFIG.threeNebulaVolume.swirlSpeed;
+    threeNebulaVolumeSwirlSpeedRange.value = String(Math.round(swirl * 10));
+    if (threeNebulaVolumeSwirlSpeedValue) threeNebulaVolumeSwirlSpeedValue.textContent = swirl.toFixed(1);
+  }
+
+  const savedMarch = readWindowStorageString(window.localStorage, v, "threeNebulaVolumeMarchSteps");
+  if (threeNebulaVolumeMarchStepsRange) {
+    const steps =
+      savedMarch != null && savedMarch !== ""
+        ? clampInt(savedMarch, 32, 48)
+        : DEFAULT_CONFIG.threeNebulaVolume.marchSteps;
+    threeNebulaVolumeMarchStepsRange.value = String(steps);
+    if (threeNebulaVolumeMarchStepsValue) threeNebulaVolumeMarchStepsValue.textContent = String(steps);
+  }
+
+  if (threeNebulaVolumeBloomToggle) {
+    threeNebulaVolumeBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeNebulaVolumeBloom"),
+      DEFAULT_CONFIG.threeNebulaVolume.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeNebulaVolumeBloomStrength");
+  if (threeNebulaVolumeBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeNebulaVolume.bloomStrength;
+    threeNebulaVolumeBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeNebulaVolumeBloomStrengthValue) {
+      threeNebulaVolumeBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -5176,6 +5326,7 @@ async function init() {
     applyThreeCrystalGemFormFromStorage(v);
     applyThreeGlassOrbsFormFromStorage(v);
     applyThreeHoloPrismFormFromStorage(v);
+    applyThreeNebulaVolumeFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -8946,6 +9097,151 @@ async function init() {
   });
   threeHoloPrismFallEaseRange?.addEventListener("input", () => {
     void syncThreeHoloPrismShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeNebulaVolumeColorCore?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeColorCore",
+        threeNebulaVolumeColorCore.value,
+      );
+      await emitVisual("waveform-three-nebula-volume-color-core", threeNebulaVolumeColorCore.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心色失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeColorMid?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeColorMid",
+        threeNebulaVolumeColorMid.value,
+      );
+      await emitVisual("waveform-three-nebula-volume-color-mid", threeNebulaVolumeColorMid.value);
+    } catch (err) {
+      statusEl.textContent = `更新中间色失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeColorEdge?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeColorEdge",
+        threeNebulaVolumeColorEdge.value,
+      );
+      await emitVisual("waveform-three-nebula-volume-color-edge", threeNebulaVolumeColorEdge.value);
+    } catch (err) {
+      statusEl.textContent = `更新边缘色失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeDensityScaleRange?.addEventListener("input", async (event) => {
+    const density = Math.min(2.5, Math.max(0.4, Number(event.target.value) / 10));
+    if (threeNebulaVolumeDensityScaleValue) {
+      threeNebulaVolumeDensityScaleValue.textContent = density.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeDensityScale",
+        String(density),
+      );
+      await emitVisual("waveform-three-nebula-volume-density-scale", density);
+    } catch (err) {
+      statusEl.textContent = `更新密度缩放失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeNoiseScaleRange?.addEventListener("input", async (event) => {
+    const noise = Math.min(4.0, Math.max(0.6, Number(event.target.value) / 10));
+    if (threeNebulaVolumeNoiseScaleValue) threeNebulaVolumeNoiseScaleValue.textContent = noise.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeNoiseScale",
+        String(noise),
+      );
+      await emitVisual("waveform-three-nebula-volume-noise-scale", noise);
+    } catch (err) {
+      statusEl.textContent = `更新噪声尺度失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeSwirlSpeedRange?.addEventListener("input", async (event) => {
+    const swirl = Math.min(2.0, Math.max(0.1, Number(event.target.value) / 10));
+    if (threeNebulaVolumeSwirlSpeedValue) threeNebulaVolumeSwirlSpeedValue.textContent = swirl.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeSwirlSpeed",
+        String(swirl),
+      );
+      await emitVisual("waveform-three-nebula-volume-swirl-speed", swirl);
+    } catch (err) {
+      statusEl.textContent = `更新旋涡速度失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeMarchStepsRange?.addEventListener("input", async (event) => {
+    const steps = clampInt(event.target.value, 32, 48);
+    if (threeNebulaVolumeMarchStepsValue) threeNebulaVolumeMarchStepsValue.textContent = String(steps);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeMarchSteps",
+        String(steps),
+      );
+      await emitVisual("waveform-three-nebula-volume-march-steps", steps);
+    } catch (err) {
+      statusEl.textContent = `更新体积步数失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeBloomToggle?.addEventListener("change", async () => {
+    const enabled = threeNebulaVolumeBloomToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-nebula-volume-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeNebulaVolumeBloomStrengthValue) {
+      threeNebulaVolumeBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNebulaVolumeBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-nebula-volume-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeNebulaVolumeGainRange?.addEventListener("input", () => {
+    void syncThreeNebulaVolumeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNebulaVolumeSmoothRange?.addEventListener("input", () => {
+    void syncThreeNebulaVolumeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNebulaVolumeSoftClipRange?.addEventListener("input", () => {
+    void syncThreeNebulaVolumeShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNebulaVolumeFallEaseRange?.addEventListener("input", () => {
+    void syncThreeNebulaVolumeShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {
