@@ -66,6 +66,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
   [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
   [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
+  [DISPLAY_MODES.threeNoiseLandscape]: "threeNoiseLandscapeConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -617,6 +618,30 @@ const threeBreathingSoftClipRange = document.querySelector("#threeBreathingSoftC
 const threeBreathingSoftClipValue = document.querySelector("#threeBreathingSoftClipValue");
 const threeBreathingFallEaseRange = document.querySelector("#threeBreathingFallEaseRange");
 const threeBreathingFallEaseValue = document.querySelector("#threeBreathingFallEaseValue");
+const threeNoiseColorLow = document.querySelector("#threeNoiseColorLow");
+const threeNoiseColorHigh = document.querySelector("#threeNoiseColorHigh");
+const threeNoiseGridSizeRange = document.querySelector("#threeNoiseGridSizeRange");
+const threeNoiseGridSizeValue = document.querySelector("#threeNoiseGridSizeValue");
+const threeNoiseHeightScaleRange = document.querySelector("#threeNoiseHeightScaleRange");
+const threeNoiseHeightScaleValue = document.querySelector("#threeNoiseHeightScaleValue");
+const threeNoiseNoiseScaleRange = document.querySelector("#threeNoiseNoiseScaleRange");
+const threeNoiseNoiseScaleValue = document.querySelector("#threeNoiseNoiseScaleValue");
+const threeNoiseScrollSpeedRange = document.querySelector("#threeNoiseScrollSpeedRange");
+const threeNoiseScrollSpeedValue = document.querySelector("#threeNoiseScrollSpeedValue");
+const threeNoiseCameraPitchRange = document.querySelector("#threeNoiseCameraPitchRange");
+const threeNoiseCameraPitchValue = document.querySelector("#threeNoiseCameraPitchValue");
+const threeNoiseWireframeToggle = document.querySelector("#threeNoiseWireframeToggle");
+const threeNoiseBloomToggle = document.querySelector("#threeNoiseBloomToggle");
+const threeNoiseBloomStrengthRange = document.querySelector("#threeNoiseBloomStrengthRange");
+const threeNoiseBloomStrengthValue = document.querySelector("#threeNoiseBloomStrengthValue");
+const threeNoiseGainRange = document.querySelector("#threeNoiseGainRange");
+const threeNoiseGainValue = document.querySelector("#threeNoiseGainValue");
+const threeNoiseSmoothRange = document.querySelector("#threeNoiseSmoothRange");
+const threeNoiseSmoothValue = document.querySelector("#threeNoiseSmoothValue");
+const threeNoiseSoftClipRange = document.querySelector("#threeNoiseSoftClipRange");
+const threeNoiseSoftClipValue = document.querySelector("#threeNoiseSoftClipValue");
+const threeNoiseFallEaseRange = document.querySelector("#threeNoiseFallEaseRange");
+const threeNoiseFallEaseValue = document.querySelector("#threeNoiseFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3391,6 +3416,148 @@ function applyThreeBreathingFormFromStorage(v) {
   }
 }
 
+function readThreeNoiseShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeNoiseShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeNoiseShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeNoiseGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeNoiseSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeNoiseSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeNoiseFallEaseRange?.value, 0, 100),
+  };
+  if (threeNoiseGainValue) threeNoiseGainValue.textContent = String(config.gainPercent);
+  if (threeNoiseSmoothValue) threeNoiseSmoothValue.textContent = String(config.smoothPercent);
+  if (threeNoiseSoftClipValue) threeNoiseSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeNoiseFallEaseValue) threeNoiseFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeNoiseShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-noise-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新噪声地貌形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeNoiseFormFromStorage(v) {
+  const sg = readThreeNoiseShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeNoiseLandscape.shape };
+  if (threeNoiseGainRange) threeNoiseGainRange.value = String(sg.gainPercent);
+  if (threeNoiseSmoothRange) threeNoiseSmoothRange.value = String(sg.smoothPercent);
+  if (threeNoiseSoftClipRange) threeNoiseSoftClipRange.value = String(sg.softClipPercent);
+  if (threeNoiseFallEaseRange) threeNoiseFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeNoiseGainValue) threeNoiseGainValue.textContent = String(sg.gainPercent);
+  if (threeNoiseSmoothValue) threeNoiseSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeNoiseSoftClipValue) threeNoiseSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeNoiseFallEaseValue) threeNoiseFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "threeNoiseColorLow");
+  if (threeNoiseColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    threeNoiseColorLow.value = savedColorLow.toLowerCase();
+  } else if (threeNoiseColorLow) {
+    threeNoiseColorLow.value = DEFAULT_CONFIG.threeNoiseLandscape.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "threeNoiseColorHigh");
+  if (threeNoiseColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    threeNoiseColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (threeNoiseColorHigh) {
+    threeNoiseColorHigh.value = DEFAULT_CONFIG.threeNoiseLandscape.colorHigh;
+  }
+
+  const savedGridSize = readWindowStorageString(window.localStorage, v, "threeNoiseGridSize");
+  if (threeNoiseGridSizeRange) {
+    const gridSize =
+      savedGridSize != null && savedGridSize !== ""
+        ? clampInt(savedGridSize, 32, 96)
+        : DEFAULT_CONFIG.threeNoiseLandscape.gridSize;
+    threeNoiseGridSizeRange.value = String(gridSize);
+    if (threeNoiseGridSizeValue) threeNoiseGridSizeValue.textContent = String(gridSize);
+  }
+
+  const savedHeightScale = readWindowStorageString(window.localStorage, v, "threeNoiseHeightScale");
+  if (threeNoiseHeightScaleRange) {
+    const heightScale =
+      savedHeightScale != null && savedHeightScale !== ""
+        ? Math.min(1.2, Math.max(0.1, Number(savedHeightScale)))
+        : DEFAULT_CONFIG.threeNoiseLandscape.heightScale;
+    threeNoiseHeightScaleRange.value = String(Math.round(heightScale * 100));
+    if (threeNoiseHeightScaleValue) threeNoiseHeightScaleValue.textContent = heightScale.toFixed(2);
+  }
+
+  const savedNoiseScale = readWindowStorageString(window.localStorage, v, "threeNoiseNoiseScale");
+  if (threeNoiseNoiseScaleRange) {
+    const noiseScale =
+      savedNoiseScale != null && savedNoiseScale !== ""
+        ? Math.min(4, Math.max(0.5, Number(savedNoiseScale)))
+        : DEFAULT_CONFIG.threeNoiseLandscape.noiseScale;
+    threeNoiseNoiseScaleRange.value = String(Math.round(noiseScale * 10));
+    if (threeNoiseNoiseScaleValue) threeNoiseNoiseScaleValue.textContent = noiseScale.toFixed(1);
+  }
+
+  const savedScrollSpeed = readWindowStorageString(window.localStorage, v, "threeNoiseScrollSpeed");
+  if (threeNoiseScrollSpeedRange) {
+    const scrollSpeed =
+      savedScrollSpeed != null && savedScrollSpeed !== ""
+        ? Math.min(2.5, Math.max(0.1, Number(savedScrollSpeed)))
+        : DEFAULT_CONFIG.threeNoiseLandscape.scrollSpeed;
+    threeNoiseScrollSpeedRange.value = String(Math.round(scrollSpeed * 10));
+    if (threeNoiseScrollSpeedValue) threeNoiseScrollSpeedValue.textContent = scrollSpeed.toFixed(1);
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "threeNoiseCameraPitch");
+  if (threeNoiseCameraPitchRange) {
+    const cameraPitchDeg =
+      savedPitch != null && savedPitch !== ""
+        ? clampInt(savedPitch, 25, 75)
+        : DEFAULT_CONFIG.threeNoiseLandscape.cameraPitchDeg;
+    threeNoiseCameraPitchRange.value = String(cameraPitchDeg);
+    if (threeNoiseCameraPitchValue) threeNoiseCameraPitchValue.textContent = String(cameraPitchDeg);
+  }
+
+  if (threeNoiseWireframeToggle) {
+    threeNoiseWireframeToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeNoiseWireframe"),
+      DEFAULT_CONFIG.threeNoiseLandscape.wireframeOverlay,
+    );
+  }
+
+  if (threeNoiseBloomToggle) {
+    threeNoiseBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeNoiseBloom"),
+      DEFAULT_CONFIG.threeNoiseLandscape.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeNoiseBloomStrength");
+  if (threeNoiseBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeNoiseLandscape.bloomStrength;
+    threeNoiseBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeNoiseBloomStrengthValue) {
+      threeNoiseBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -4023,6 +4190,7 @@ async function init() {
     applyThreeLiquidBlobFormFromStorage(v);
     applyThreeAuroraFormFromStorage(v);
     applyThreeBreathingFormFromStorage(v);
+    applyThreeNoiseFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -7124,6 +7292,165 @@ async function init() {
   });
   threeBreathingFallEaseRange?.addEventListener("input", () => {
     void syncThreeBreathingShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeNoiseColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseColorLow",
+        threeNoiseColorLow.value,
+      );
+      await emitVisual("waveform-three-noise-color-low", threeNoiseColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  threeNoiseColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseColorHigh",
+        threeNoiseColorHigh.value,
+      );
+      await emitVisual("waveform-three-noise-color-high", threeNoiseColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  threeNoiseGridSizeRange?.addEventListener("input", async (event) => {
+    const gridSize = clampInt(event.target.value, 32, 96);
+    if (threeNoiseGridSizeValue) threeNoiseGridSizeValue.textContent = String(gridSize);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseGridSize",
+        String(gridSize),
+      );
+      await emitVisual("waveform-three-noise-grid-size", gridSize);
+    } catch (err) {
+      statusEl.textContent = `更新网格精度失败：${String(err)}`;
+    }
+  });
+  threeNoiseHeightScaleRange?.addEventListener("input", async (event) => {
+    const heightScale = Math.min(1.2, Math.max(0.1, Number(event.target.value) / 100));
+    if (threeNoiseHeightScaleValue) threeNoiseHeightScaleValue.textContent = heightScale.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseHeightScale",
+        String(heightScale),
+      );
+      await emitVisual("waveform-three-noise-height-scale", heightScale);
+    } catch (err) {
+      statusEl.textContent = `更新高度缩放失败：${String(err)}`;
+    }
+  });
+  threeNoiseNoiseScaleRange?.addEventListener("input", async (event) => {
+    const noiseScale = Math.min(4, Math.max(0.5, Number(event.target.value) / 10));
+    if (threeNoiseNoiseScaleValue) threeNoiseNoiseScaleValue.textContent = noiseScale.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseNoiseScale",
+        String(noiseScale),
+      );
+      await emitVisual("waveform-three-noise-noise-scale", noiseScale);
+    } catch (err) {
+      statusEl.textContent = `更新噪声尺度失败：${String(err)}`;
+    }
+  });
+  threeNoiseScrollSpeedRange?.addEventListener("input", async (event) => {
+    const scrollSpeed = Math.min(2.5, Math.max(0.1, Number(event.target.value) / 10));
+    if (threeNoiseScrollSpeedValue) threeNoiseScrollSpeedValue.textContent = scrollSpeed.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseScrollSpeed",
+        String(scrollSpeed),
+      );
+      await emitVisual("waveform-three-noise-scroll-speed", scrollSpeed);
+    } catch (err) {
+      statusEl.textContent = `更新滚动速度失败：${String(err)}`;
+    }
+  });
+  threeNoiseCameraPitchRange?.addEventListener("input", async (event) => {
+    const cameraPitchDeg = clampInt(event.target.value, 25, 75);
+    if (threeNoiseCameraPitchValue) threeNoiseCameraPitchValue.textContent = String(cameraPitchDeg);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseCameraPitch",
+        String(cameraPitchDeg),
+      );
+      await emitVisual("waveform-three-noise-camera-pitch", cameraPitchDeg);
+    } catch (err) {
+      statusEl.textContent = `更新相机俯角失败：${String(err)}`;
+    }
+  });
+  threeNoiseWireframeToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseWireframe",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-noise-wireframe", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新线框叠加失败：${String(err)}`;
+    }
+  });
+  threeNoiseBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseBloom",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-noise-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeNoiseBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeNoiseBloomStrengthValue) {
+      threeNoiseBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeNoiseBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-noise-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeNoiseGainRange?.addEventListener("input", () => {
+    void syncThreeNoiseShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNoiseSmoothRange?.addEventListener("input", () => {
+    void syncThreeNoiseShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNoiseSoftClipRange?.addEventListener("input", () => {
+    void syncThreeNoiseShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeNoiseFallEaseRange?.addEventListener("input", () => {
+    void syncThreeNoiseShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

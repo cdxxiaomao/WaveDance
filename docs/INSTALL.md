@@ -100,7 +100,15 @@ tccutil reset Microphone com.wavedance.desktop
 
 ## 八、第三方组件说明
 
-**BlackHole** 由 Existential Audio 等项目维护，以官方许可证为准。使用与分发时请遵守其许可与版权声明。
+WaveDance 在运行或分发时可能涉及以下第三方组件，使用与分发时请遵守各自许可与版权声明。
+
+| 组件 | 用途 | 许可证 |
+|------|------|--------|
+| **BlackHole** | 虚拟音频设备，系统播放声音回环采集 | 以 [Existential Audio](https://existential.audio/blackhole/) 官方说明为准 |
+| **three** | Three.js 3D 渲染引擎，驱动「Three 高阶」展示模式 | [MIT](https://github.com/mrdoob/three.js/blob/dev/LICENSE) |
+| **postprocessing** | 基于 Three.js 的后处理效果（Bloom、故障、磷光等） | [Zlib](https://github.com/pmndrs/postprocessing/blob/main/LICENSE) |
+
+说明：`three` 与 `postprocessing` 为前端构建依赖，已随应用打包；最终用户无需单独安装 Node.js 或执行 `npm install`。
 
 ---
 

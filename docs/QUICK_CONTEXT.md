@@ -12,10 +12,14 @@ WaveDance 是一个 macOS 浮层频谱工具：采集系统音频并实时显示
 
 - 系统音频实时频谱（BlackHole 路线）
 - 分桶 / 模式 / 高频补偿 / 频率区间动态调节
-- **9 种展示模式**（设置页切换，每窗独立持久化）：
-  - `line` 线状图 · `bar` 柱状图 · `area` 填充波形
-  - `gradientBar` 渐变频谱柱 · `glowLine` 霓虹发光线 · `glowCircle` 霓虹圆形
-  - `radial` 圆形频谱 · `waterfall` 瀑布频谱 · `dotRing` 环形圆点
+- **28 种展示模式**（设置页切换，每窗独立持久化），分两组：
+  - **Vanilla WebGL（16）** — 自研 WebGL renderer，不含 Three.js
+    - 2D：`line` · `bar` · `area` · `gradientBar` · `glowLine` · `glowCircle` · `radial` · `waterfall` · `dotRing` · `oscilloscope`
+    - 2.5D / 3D：`obliqueBar` · `depthLayers` · `isometricSkyline` · `ring3d` · `terrain3d` · `helix3d`
+  - **Three 高阶（12）** — `renderers/three/`，依赖 `three` + `postprocessing`
+    - A：`threePlasmaField` · `threeParticleGalaxy` · `threeBloomTunnel` · `threeEnergySphere`
+    - B：`threeKaleidoscope` · `threeGlitchSpectrum` · `threePhosphorTrail` · `threeScanGrid`
+    - C：`threeLiquidBlob` · `threeAuroraRibbon` · `threeBreathingRings` · `threeNoiseLandscape`
 - 透明无边框浮层 + 全屏可见（macOS 增强）
 - 置顶模式开关 + 快捷键召回
 - 鼠标穿透锁定：主窗穿透后主操作在子窗 `toolbar.html` 解锁；快捷键 `⌘⇧⌥L` 切换

@@ -107,6 +107,7 @@ const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
 const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
 const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
 const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.shape };
+const threeNoiseLandscapeShapeConfig = { ...DEFAULT_CONFIG.threeNoiseLandscape.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -322,6 +323,14 @@ function applyThreeBreathingRingsShapeConfig(payload) {
   threeBreathingRingsShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeNoiseLandscapeShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeNoiseLandscapeShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeNoiseLandscapeShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeNoiseLandscapeShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeNoiseLandscapeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -380,6 +389,12 @@ function loadShapeConfigsFromStorage(windowLabel) {
       "threeBreathingShape",
     );
     if (threeBreathingRingsRaw) applyThreeBreathingRingsShapeConfig(JSON.parse(threeBreathingRingsRaw));
+    const threeNoiseLandscapeRaw = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeNoiseShape",
+    );
+    if (threeNoiseLandscapeRaw) applyThreeNoiseLandscapeShapeConfig(JSON.parse(threeNoiseLandscapeRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -659,6 +674,16 @@ let threeBreathingTubeRadius = DEFAULT_CONFIG.threeBreathingRings.tubeRadius;
 let threeBreathingBloomEnabled = DEFAULT_CONFIG.threeBreathingRings.bloomEnabled;
 let threeBreathingBloomStrength = DEFAULT_CONFIG.threeBreathingRings.bloomStrength;
 let threeBreathingAutoRotateSpeedDeg = DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg;
+let threeNoiseColorLowHex = DEFAULT_CONFIG.threeNoiseLandscape.colorLow;
+let threeNoiseColorHighHex = DEFAULT_CONFIG.threeNoiseLandscape.colorHigh;
+let threeNoiseGridSize = DEFAULT_CONFIG.threeNoiseLandscape.gridSize;
+let threeNoiseHeightScale = DEFAULT_CONFIG.threeNoiseLandscape.heightScale;
+let threeNoiseNoiseScale = DEFAULT_CONFIG.threeNoiseLandscape.noiseScale;
+let threeNoiseScrollSpeed = DEFAULT_CONFIG.threeNoiseLandscape.scrollSpeed;
+let threeNoiseWireframeOverlay = DEFAULT_CONFIG.threeNoiseLandscape.wireframeOverlay;
+let threeNoiseBloomEnabled = DEFAULT_CONFIG.threeNoiseLandscape.bloomEnabled;
+let threeNoiseBloomStrength = DEFAULT_CONFIG.threeNoiseLandscape.bloomStrength;
+let threeNoiseCameraPitchDeg = DEFAULT_CONFIG.threeNoiseLandscape.cameraPitchDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1770,6 +1795,60 @@ function applyThreeBreathingAutoRotateSpeedDeg(value) {
     : DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg;
 }
 
+function applyThreeNoiseColorLowHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeNoiseLandscape.colorLow;
+  threeNoiseColorLowHex = safe;
+}
+
+function applyThreeNoiseColorHighHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeNoiseLandscape.colorHigh;
+  threeNoiseColorHighHex = safe;
+}
+
+function applyThreeNoiseGridSize(value) {
+  threeNoiseGridSize = clampInt(value, 32, 96);
+}
+
+function applyThreeNoiseHeightScale(value) {
+  const n = Number(value);
+  threeNoiseHeightScale = Number.isFinite(n)
+    ? Math.min(1.2, Math.max(0.1, n))
+    : DEFAULT_CONFIG.threeNoiseLandscape.heightScale;
+}
+
+function applyThreeNoiseNoiseScale(value) {
+  const n = Number(value);
+  threeNoiseNoiseScale = Number.isFinite(n)
+    ? Math.min(4, Math.max(0.5, n))
+    : DEFAULT_CONFIG.threeNoiseLandscape.noiseScale;
+}
+
+function applyThreeNoiseScrollSpeed(value) {
+  const n = Number(value);
+  threeNoiseScrollSpeed = Number.isFinite(n)
+    ? Math.min(2.5, Math.max(0.1, n))
+    : DEFAULT_CONFIG.threeNoiseLandscape.scrollSpeed;
+}
+
+function applyThreeNoiseWireframeOverlay(value) {
+  threeNoiseWireframeOverlay = parseBoolean(value, DEFAULT_CONFIG.threeNoiseLandscape.wireframeOverlay);
+}
+
+function applyThreeNoiseBloomEnabled(value) {
+  threeNoiseBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeNoiseLandscape.bloomEnabled);
+}
+
+function applyThreeNoiseBloomStrength(value) {
+  const n = Number(value);
+  threeNoiseBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeNoiseLandscape.bloomStrength;
+}
+
+function applyThreeNoiseCameraPitchDeg(value) {
+  threeNoiseCameraPitchDeg = clampInt(value, 25, 75);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1995,6 +2074,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeLiquidBlob) return threeLiquidBlobShapeConfig;
   if (mode === DISPLAY_MODES.threeAuroraRibbon) return threeAuroraShapeConfig;
   if (mode === DISPLAY_MODES.threeBreathingRings) return threeBreathingRingsShapeConfig;
+  if (mode === DISPLAY_MODES.threeNoiseLandscape) return threeNoiseLandscapeShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2344,6 +2424,21 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeBreathingBloomEnabled,
       bloomStrength: threeBreathingBloomStrength,
       autoRotateSpeedDeg: threeBreathingAutoRotateSpeedDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeNoiseLandscape) {
+    return {
+      colorLow: threeNoiseColorLowHex,
+      colorHigh: threeNoiseColorHighHex,
+      gridSize: threeNoiseGridSize,
+      heightScale: threeNoiseHeightScale,
+      noiseScale: threeNoiseNoiseScale,
+      scrollSpeed: threeNoiseScrollSpeed,
+      wireframeOverlay: threeNoiseWireframeOverlay,
+      bloomEnabled: threeNoiseBloomEnabled,
+      bloomStrength: threeNoiseBloomStrength,
+      cameraPitchDeg: threeNoiseCameraPitchDeg,
       freqReversed,
     };
   }
@@ -4256,6 +4351,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-noise-color-low",
+    (event) => {
+      applyThreeNoiseColorLowHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-color-high",
+    (event) => {
+      applyThreeNoiseColorHighHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-grid-size",
+    (event) => {
+      applyThreeNoiseGridSize(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-height-scale",
+    (event) => {
+      applyThreeNoiseHeightScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-noise-scale",
+    (event) => {
+      applyThreeNoiseNoiseScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-scroll-speed",
+    (event) => {
+      applyThreeNoiseScrollSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-wireframe",
+    (event) => {
+      applyThreeNoiseWireframeOverlay(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-bloom-enabled",
+    (event) => {
+      applyThreeNoiseBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-bloom-strength",
+    (event) => {
+      applyThreeNoiseBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-camera-pitch",
+    (event) => {
+      applyThreeNoiseCameraPitchDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-noise-shape-config",
+    (event) => {
+      applyThreeNoiseLandscapeShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -5153,6 +5325,48 @@ async function init() {
     applyThreeBreathingAutoRotateSpeedDeg(
       readWindowStorageString(window.localStorage, windowLabel, "threeBreathingAutoRotateSpeed") ??
         DEFAULT_CONFIG.threeBreathingRings.autoRotateSpeedDeg,
+    );
+    applyThreeNoiseColorLowHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseColorLow") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.colorLow,
+    );
+    applyThreeNoiseColorHighHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseColorHigh") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.colorHigh,
+    );
+    applyThreeNoiseGridSize(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseGridSize") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.gridSize,
+    );
+    applyThreeNoiseHeightScale(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseHeightScale") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.heightScale,
+    );
+    applyThreeNoiseNoiseScale(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseNoiseScale") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.noiseScale,
+    );
+    applyThreeNoiseScrollSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseScrollSpeed") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.scrollSpeed,
+    );
+    applyThreeNoiseWireframeOverlay(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseWireframe"),
+    );
+    applyThreeNoiseBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseBloom"),
+    );
+    const savedNoiseBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeNoiseBloomStrength",
+    );
+    if (savedNoiseBloomStrength != null && savedNoiseBloomStrength !== "") {
+      applyThreeNoiseBloomStrength(savedNoiseBloomStrength);
+    }
+    applyThreeNoiseCameraPitchDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeNoiseCameraPitch") ??
+        DEFAULT_CONFIG.threeNoiseLandscape.cameraPitchDeg,
     );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

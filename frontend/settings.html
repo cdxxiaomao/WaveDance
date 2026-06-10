@@ -107,6 +107,7 @@
                 <option value="threeLiquidBlob">液态球体</option>
                 <option value="threeAuroraRibbon">极光飘带</option>
                 <option value="threeBreathingRings">呼吸光环</option>
+                <option value="threeNoiseLandscape">噪声地貌</option>
               </optgroup>
             </select>
           </div>
@@ -1571,6 +1572,70 @@
           <div class="settings-field">
             <label for="threeBreathingFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeBreathingFallEaseValue">52</span>%</label>
             <input id="threeBreathingFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeNoiseLandscapeConfigPanel" aria-labelledby="sec-three-noise-landscape-display" hidden>
+        <h2 id="sec-three-noise-landscape-display" class="settings-card__title">噪声地貌配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-noise-landscape" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeNoiseColorLow" class="settings-label">低能量色</label>
+            <input id="threeNoiseColorLow" type="color" value="#1a1a2e" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeNoiseColorHigh" class="settings-label">高能量色</label>
+            <input id="threeNoiseColorHigh" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseGridSizeRange" class="settings-label">网格精度 <span class="settings-value" id="threeNoiseGridSizeValue">64</span></label>
+            <input id="threeNoiseGridSizeRange" type="range" min="32" max="96" step="4" value="64" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseHeightScaleRange" class="settings-label">高度缩放 <span class="settings-value" id="threeNoiseHeightScaleValue">0.40</span></label>
+            <input id="threeNoiseHeightScaleRange" type="range" min="10" max="120" step="1" value="40" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseNoiseScaleRange" class="settings-label">噪声尺度 <span class="settings-value" id="threeNoiseNoiseScaleValue">1.8</span></label>
+            <input id="threeNoiseNoiseScaleRange" type="range" min="5" max="40" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseScrollSpeedRange" class="settings-label">滚动速度 <span class="settings-value" id="threeNoiseScrollSpeedValue">0.6</span></label>
+            <input id="threeNoiseScrollSpeedRange" type="range" min="1" max="25" step="1" value="6" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseCameraPitchRange" class="settings-label">相机俯角 <span class="settings-value" id="threeNoiseCameraPitchValue">55</span>°</label>
+            <input id="threeNoiseCameraPitchRange" type="range" min="25" max="75" step="1" value="55" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeNoiseWireframeToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>线框叠加</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeNoiseBloomToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeNoiseBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeNoiseBloomStrengthValue">0.7</span></label>
+            <input id="threeNoiseBloomStrengthRange" type="range" min="0" max="20" step="1" value="7" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseGainRange" class="settings-label">增益 <span class="settings-value" id="threeNoiseGainValue">55</span>%</label>
+            <input id="threeNoiseGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeNoiseSmoothValue">16</span>%</label>
+            <input id="threeNoiseSmoothRange" type="range" min="0" max="400" step="1" value="16" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeNoiseSoftClipValue">10</span>%</label>
+            <input id="threeNoiseSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeNoiseFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeNoiseFallEaseValue">45</span>%</label>
+            <input id="threeNoiseFallEaseRange" type="range" min="0" max="100" step="1" value="45" />
           </div>
         </div>
       </section>

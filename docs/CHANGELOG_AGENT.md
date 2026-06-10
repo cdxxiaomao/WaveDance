@@ -8,6 +8,23 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 28：Three 模式文档与 README 更新
+
+- `README.md`：效果预览补充 Vanilla WebGL（16）与 Three 高阶（12）分组模式表，项目特性与快速开始注明 `three` / `postprocessing` 依赖。
+- `docs/QUICK_CONTEXT.md`：「现在能做什么」展示模式按 vanilla / Three 分组列出全部 28 种模式 id。
+- `docs/INSTALL.md`：「第三方组件说明」增加 `three`（MIT）、`postprocessing`（Zlib）许可表。
+
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 27：噪声地貌 Three Noise Landscape（C）
+
+- 新建 `frontend/src/renderers/three/noiseLandscapeRenderer.js`：`PlaneGeometry` + 2D Simplex 分层噪声驱动基础地貌，频谱按 X 轴插值调制局部隆起，顶点色高度渐变，UV 滚动模拟前进，可选 `WireframeGeometry` 线框叠加与 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeNoiseLandscape` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-noise-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 噪声地貌」、`#threeNoiseLandscapeConfigPanel`（低/高能量色、网格精度、高度/噪声尺度、滚动速度、相机俯角、线框、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 26：呼吸光环 Three Breathing Rings（C）
 
 - 新建 `frontend/src/renderers/three/breathingRingsRenderer.js`：多层同心 `TorusGeometry`，peak 驱动分层缩放脉冲 + 慢速自转，`MeshBasicMaterial` additive + 可选 Bloom；`registerModes.js` 注册。

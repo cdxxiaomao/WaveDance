@@ -11,6 +11,7 @@ import { createScanGridRenderer } from "./scanGridRenderer.js";
 import { createLiquidBlobRenderer } from "./liquidBlobRenderer.js";
 import { createAuroraRibbonRenderer } from "./auroraRibbonRenderer.js";
 import { createBreathingRingsRenderer } from "./breathingRingsRenderer.js";
+import { createNoiseLandscapeRenderer } from "./noiseLandscapeRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
@@ -23,3 +24,4 @@ registerThreeMode(DISPLAY_MODES.threeScanGrid, createScanGridRenderer);
 registerThreeMode(DISPLAY_MODES.threeLiquidBlob, createLiquidBlobRenderer);
 registerThreeMode(DISPLAY_MODES.threeAuroraRibbon, createAuroraRibbonRenderer);
 registerThreeMode(DISPLAY_MODES.threeBreathingRings, createBreathingRingsRenderer);
+registerThreeMode(DISPLAY_MODES.threeNoiseLandscape, createNoiseLandscapeRenderer);

@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~26 已全部完成；Phase 27~28 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~28 已全部完成（Phase 28 可选 GIF 预览未做）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1398,15 +1398,15 @@ threeNoiseLandscape: {
 
 #### 27.2 新建 `renderers/three/noiseLandscapeRenderer.js`
 
-- [ ] `PlaneGeometry(gridSize, gridSize)` 顶点 Y = noise(x,z,t) + spectrumMod(x)
-- [ ] 顶点色或 fragment 按高度 gradient
-- [ ] 可选 wireframe overlay：`WireframeGeometry` 第二 pass
+- [x] `PlaneGeometry(gridSize, gridSize)` 顶点 Y = noise(x,z,t) + spectrumMod(x)
+- [x] 顶点色或 fragment 按高度 gradient
+- [x] 可选 wireframe overlay：`WireframeGeometry` 第二 pass
 
 #### 27.3 验收标准
 
-- [ ] 地貌连续滚动，无裂缝
-- [ ] 频谱变化时局部隆起明显
-- [ ] **方案 C（有机流体）四模式全部可切换**
+- [x] 地貌连续滚动，无裂缝
+- [x] 频谱变化时局部隆起明显
+- [x] **方案 C（有机流体）四模式全部可切换**
 
 ---
 
@@ -1414,9 +1414,9 @@ threeNoiseLandscape: {
 
 > Phase 15~27 全部完成后执行（或每完成一个方案包更新 CHANGELOG）。
 
-- [ ] `README.md` 补充 Three 高阶模式列表与依赖说明
-- [ ] `docs/QUICK_CONTEXT.md` 展示模式分组（vanilla / Three）
-- [ ] `docs/INSTALL.md` 第三方组件增加 `three`、`postprocessing`
+- [x] `README.md` 补充 Three 高阶模式列表与依赖说明
+- [x] `docs/QUICK_CONTEXT.md` 展示模式分组（vanilla / Three）
+- [x] `docs/INSTALL.md` 第三方组件增加 `three`、`postprocessing`
 - [ ] 可选：各模式 GIF 预览 `docs/images/three-*.gif`
 
 ---
@@ -1583,10 +1583,10 @@ threeNoiseLandscape: {
 | 24 | 液态球体 Three Liquid Blob（C） | `[x]` 已完成 | 2026-06-10 |
 | 25 | 极光飘带 Three Aurora Ribbon（C） | `[x]` 已完成 | 2026-06-10 |
 | 26 | 呼吸光环 Three Breathing Rings（C） | `[x]` 已完成 | 2026-06-10 |
-| 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
-| 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
+| 27 | 噪声地貌 Three Noise Landscape（C） | `[x]` 已完成 | 2026-06-10 |
+| 28 | Three 模式文档与 README（可选） | `[x]` 已完成 | 2026-06-10 |
 
-**当前建议下一步**：Phase 27（噪声地貌 Three Noise Landscape，方案 C）
+**当前建议下一步**：全部 Phase 已完成；可选后续为各 Three 模式录制 GIF 预览（`docs/images/three-*.gif`）。
 
 ---
 
