@@ -102,6 +102,7 @@ const threeTunnelShapeConfig = { ...DEFAULT_CONFIG.threeBloomTunnel.shape };
 const threeSphereShapeConfig = { ...DEFAULT_CONFIG.threeEnergySphere.shape };
 const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape };
 const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
+const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -277,6 +278,14 @@ function applyThreeGlitchShapeConfig(payload) {
   threeGlitchShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreePhosphorShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threePhosphorShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threePhosphorShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threePhosphorShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threePhosphorShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -321,6 +330,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeKaleidoscopeRaw) applyThreeKaleidoscopeShapeConfig(JSON.parse(threeKaleidoscopeRaw));
     const threeGlitchRaw = readWindowStorageString(window.localStorage, windowLabel, "threeGlitchShape");
     if (threeGlitchRaw) applyThreeGlitchShapeConfig(JSON.parse(threeGlitchRaw));
+    const threePhosphorRaw = readWindowStorageString(window.localStorage, windowLabel, "threePhosphorShape");
+    if (threePhosphorRaw) applyThreePhosphorShapeConfig(JSON.parse(threePhosphorRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -556,6 +567,13 @@ let threeGlitchRgbSplitPx = DEFAULT_CONFIG.threeGlitchSpectrum.rgbSplitPx;
 let threeGlitchScanlineOpacity = DEFAULT_CONFIG.threeGlitchSpectrum.scanlineOpacity;
 let threeGlitchTriggerThreshold = DEFAULT_CONFIG.threeGlitchSpectrum.triggerThreshold;
 let threeGlitchCooldownMs = DEFAULT_CONFIG.threeGlitchSpectrum.cooldownMs;
+let threePhosphorLineColorHex = DEFAULT_CONFIG.threePhosphorTrail.lineColor;
+let threePhosphorGlowColorHex = DEFAULT_CONFIG.threePhosphorTrail.glowColor;
+let threePhosphorLineWidthPx = DEFAULT_CONFIG.threePhosphorTrail.lineWidthPx;
+let threePhosphorDecayPercent = DEFAULT_CONFIG.threePhosphorTrail.decayPercent;
+let threePhosphorBloomEnabled = DEFAULT_CONFIG.threePhosphorTrail.bloomEnabled;
+let threePhosphorBloomStrength = DEFAULT_CONFIG.threePhosphorTrail.bloomStrength;
+let threePhosphorMirrorEnabled = DEFAULT_CONFIG.threePhosphorTrail.mirrorEnabled;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1439,6 +1457,38 @@ function applyThreeGlitchCooldownMs(value) {
   threeGlitchCooldownMs = clampInt(value, 30, 2000);
 }
 
+function applyThreePhosphorLineColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePhosphorTrail.lineColor;
+  threePhosphorLineColorHex = safe;
+}
+
+function applyThreePhosphorGlowColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePhosphorTrail.glowColor;
+  threePhosphorGlowColorHex = safe;
+}
+
+function applyThreePhosphorLineWidthPx(value) {
+  threePhosphorLineWidthPx = clampInt(value, 1, 12);
+}
+
+function applyThreePhosphorDecayPercent(value) {
+  threePhosphorDecayPercent = clampInt(value, 10, 90);
+}
+
+function applyThreePhosphorBloomEnabled(value) {
+  threePhosphorBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threePhosphorTrail.bloomEnabled);
+}
+
+function applyThreePhosphorBloomStrength(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threePhosphorBloomStrength = Math.min(2, Math.max(0, n));
+}
+
+function applyThreePhosphorMirrorEnabled(value) {
+  threePhosphorMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.threePhosphorTrail.mirrorEnabled);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1659,6 +1709,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeEnergySphere) return threeSphereShapeConfig;
   if (mode === DISPLAY_MODES.threeKaleidoscope) return threeKaleidoscopeShapeConfig;
   if (mode === DISPLAY_MODES.threeGlitchSpectrum) return threeGlitchShapeConfig;
+  if (mode === DISPLAY_MODES.threePhosphorTrail) return threePhosphorShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1939,6 +1990,18 @@ function getStyleConfigForMode(mode) {
       scanlineOpacity: threeGlitchScanlineOpacity,
       triggerThreshold: threeGlitchTriggerThreshold,
       cooldownMs: threeGlitchCooldownMs,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threePhosphorTrail) {
+    return {
+      lineColor: threePhosphorLineColorHex,
+      glowColor: threePhosphorGlowColorHex,
+      lineWidthPx: threePhosphorLineWidthPx,
+      decayPercent: threePhosphorDecayPercent,
+      bloomEnabled: threePhosphorBloomEnabled,
+      bloomStrength: threePhosphorBloomStrength,
+      mirrorEnabled: threePhosphorMirrorEnabled,
       freqReversed,
     };
   }
@@ -3508,6 +3571,62 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-phosphor-line-color",
+    (event) => {
+      applyThreePhosphorLineColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-glow-color",
+    (event) => {
+      applyThreePhosphorGlowColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-line-width",
+    (event) => {
+      applyThreePhosphorLineWidthPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-decay",
+    (event) => {
+      applyThreePhosphorDecayPercent(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-bloom-enabled",
+    (event) => {
+      applyThreePhosphorBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-bloom-strength",
+    (event) => {
+      applyThreePhosphorBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-mirror-enabled",
+    (event) => {
+      applyThreePhosphorMirrorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-phosphor-shape-config",
+    (event) => {
+      applyThreePhosphorShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4210,6 +4329,36 @@ async function init() {
     applyThreeGlitchCooldownMs(
       readWindowStorageString(window.localStorage, windowLabel, "threeGlitchCooldownMs") ??
         DEFAULT_CONFIG.threeGlitchSpectrum.cooldownMs,
+    );
+    applyThreePhosphorLineColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorLineColor") ??
+        DEFAULT_CONFIG.threePhosphorTrail.lineColor,
+    );
+    applyThreePhosphorGlowColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorGlowColor") ??
+        DEFAULT_CONFIG.threePhosphorTrail.glowColor,
+    );
+    applyThreePhosphorLineWidthPx(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorLineWidth") ??
+        DEFAULT_CONFIG.threePhosphorTrail.lineWidthPx,
+    );
+    applyThreePhosphorDecayPercent(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorDecay") ??
+        DEFAULT_CONFIG.threePhosphorTrail.decayPercent,
+    );
+    applyThreePhosphorBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorBloom"),
+    );
+    const savedPhosphorBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threePhosphorBloomStrength",
+    );
+    if (savedPhosphorBloomStrength != null && savedPhosphorBloomStrength !== "") {
+      applyThreePhosphorBloomStrength(savedPhosphorBloomStrength);
+    }
+    applyThreePhosphorMirrorEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threePhosphorMirror"),
     );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

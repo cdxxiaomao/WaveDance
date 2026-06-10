@@ -10,6 +10,16 @@
 
 ## 2026-06-10（续）
 
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 22：磷光余辉 Three Phosphor Trail（B）
+
+- 新建 `frontend/src/renderers/three/phosphorTrailRenderer.js`：全屏频谱线 shader + `EffectComposer`（自定义 `AfterimagePass` 磷光拖尾 + 可选 Bloom）；`registerModes.js` 注册。
+- `postProcessing.js`：新增 `AfterimagePass`、`decayPercentToDamp`、`createPhosphorTrailComposer`；暗部快速衰减，透明背景友好。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threePhosphorTrail` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-phosphor-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 磷光余辉」、`#threePhosphorTrailConfigPanel`（线条/辉光色、线宽、余辉衰减、Bloom、镜像、形状四件套）。
+
 ### 可视化模式扩展 — Phase 21：故障频谱 Three Glitch Spectrum（B）
 
 - 新建 `frontend/src/renderers/three/glitchSpectrumRenderer.js`：全屏频谱柱 shader 基底 + `EffectComposer`（`GlitchEffect` + `ScanlineEffect`），peak 超阈值触发 glitch 脉冲、RGB 分离与扫描线；`registerModes.js` 注册。

@@ -61,6 +61,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeEnergySphere]: "threeEnergySphereConfigPanel",
   [DISPLAY_MODES.threeKaleidoscope]: "threeKaleidoscopeConfigPanel",
   [DISPLAY_MODES.threeGlitchSpectrum]: "threeGlitchSpectrumConfigPanel",
+  [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -500,6 +501,24 @@ const threeGlitchSoftClipRange = document.querySelector("#threeGlitchSoftClipRan
 const threeGlitchSoftClipValue = document.querySelector("#threeGlitchSoftClipValue");
 const threeGlitchFallEaseRange = document.querySelector("#threeGlitchFallEaseRange");
 const threeGlitchFallEaseValue = document.querySelector("#threeGlitchFallEaseValue");
+const threePhosphorLineColor = document.querySelector("#threePhosphorLineColor");
+const threePhosphorGlowColor = document.querySelector("#threePhosphorGlowColor");
+const threePhosphorLineWidthRange = document.querySelector("#threePhosphorLineWidthRange");
+const threePhosphorLineWidthValue = document.querySelector("#threePhosphorLineWidthValue");
+const threePhosphorDecayRange = document.querySelector("#threePhosphorDecayRange");
+const threePhosphorDecayValue = document.querySelector("#threePhosphorDecayValue");
+const threePhosphorBloomToggle = document.querySelector("#threePhosphorBloomToggle");
+const threePhosphorBloomStrengthRange = document.querySelector("#threePhosphorBloomStrengthRange");
+const threePhosphorBloomStrengthValue = document.querySelector("#threePhosphorBloomStrengthValue");
+const threePhosphorMirrorToggle = document.querySelector("#threePhosphorMirrorToggle");
+const threePhosphorGainRange = document.querySelector("#threePhosphorGainRange");
+const threePhosphorGainValue = document.querySelector("#threePhosphorGainValue");
+const threePhosphorSmoothRange = document.querySelector("#threePhosphorSmoothRange");
+const threePhosphorSmoothValue = document.querySelector("#threePhosphorSmoothValue");
+const threePhosphorSoftClipRange = document.querySelector("#threePhosphorSoftClipRange");
+const threePhosphorSoftClipValue = document.querySelector("#threePhosphorSoftClipValue");
+const threePhosphorFallEaseRange = document.querySelector("#threePhosphorFallEaseRange");
+const threePhosphorFallEaseValue = document.querySelector("#threePhosphorFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2606,6 +2625,113 @@ function applyThreeGlitchFormFromStorage(v) {
   }
 }
 
+function readThreePhosphorShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threePhosphorShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threePhosphorGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threePhosphorSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threePhosphorSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threePhosphorFallEaseRange?.value, 0, 100),
+  };
+  if (threePhosphorGainValue) threePhosphorGainValue.textContent = String(config.gainPercent);
+  if (threePhosphorSmoothValue) threePhosphorSmoothValue.textContent = String(config.smoothPercent);
+  if (threePhosphorSoftClipValue) threePhosphorSoftClipValue.textContent = String(config.softClipPercent);
+  if (threePhosphorFallEaseValue) threePhosphorFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threePhosphorShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-phosphor-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新磷光余辉形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreePhosphorFormFromStorage(v) {
+  const sg = readThreePhosphorShapeConfig(v) ?? { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
+  if (threePhosphorGainRange) threePhosphorGainRange.value = String(sg.gainPercent);
+  if (threePhosphorSmoothRange) threePhosphorSmoothRange.value = String(sg.smoothPercent);
+  if (threePhosphorSoftClipRange) threePhosphorSoftClipRange.value = String(sg.softClipPercent);
+  if (threePhosphorFallEaseRange) threePhosphorFallEaseRange.value = String(sg.fallEasePercent);
+  if (threePhosphorGainValue) threePhosphorGainValue.textContent = String(sg.gainPercent);
+  if (threePhosphorSmoothValue) threePhosphorSmoothValue.textContent = String(sg.smoothPercent);
+  if (threePhosphorSoftClipValue) threePhosphorSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threePhosphorFallEaseValue) threePhosphorFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedLineColor = readWindowStorageString(window.localStorage, v, "threePhosphorLineColor");
+  if (threePhosphorLineColor && savedLineColor && /^#[0-9A-Fa-f]{6}$/.test(savedLineColor)) {
+    threePhosphorLineColor.value = savedLineColor.toLowerCase();
+  } else if (threePhosphorLineColor) {
+    threePhosphorLineColor.value = DEFAULT_CONFIG.threePhosphorTrail.lineColor;
+  }
+
+  const savedGlowColor = readWindowStorageString(window.localStorage, v, "threePhosphorGlowColor");
+  if (threePhosphorGlowColor && savedGlowColor && /^#[0-9A-Fa-f]{6}$/.test(savedGlowColor)) {
+    threePhosphorGlowColor.value = savedGlowColor.toLowerCase();
+  } else if (threePhosphorGlowColor) {
+    threePhosphorGlowColor.value = DEFAULT_CONFIG.threePhosphorTrail.glowColor;
+  }
+
+  const savedLineWidth = readWindowStorageString(window.localStorage, v, "threePhosphorLineWidth");
+  if (threePhosphorLineWidthRange) {
+    const lineWidthPx =
+      savedLineWidth != null && savedLineWidth !== ""
+        ? clampInt(savedLineWidth, 1, 12)
+        : DEFAULT_CONFIG.threePhosphorTrail.lineWidthPx;
+    threePhosphorLineWidthRange.value = String(lineWidthPx);
+    if (threePhosphorLineWidthValue) threePhosphorLineWidthValue.textContent = String(lineWidthPx);
+  }
+
+  const savedDecay = readWindowStorageString(window.localStorage, v, "threePhosphorDecay");
+  if (threePhosphorDecayRange) {
+    const decayPercent =
+      savedDecay != null && savedDecay !== ""
+        ? clampInt(savedDecay, 10, 90)
+        : DEFAULT_CONFIG.threePhosphorTrail.decayPercent;
+    threePhosphorDecayRange.value = String(decayPercent);
+    if (threePhosphorDecayValue) threePhosphorDecayValue.textContent = String(decayPercent);
+  }
+
+  if (threePhosphorBloomToggle) {
+    threePhosphorBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threePhosphorBloom"),
+      DEFAULT_CONFIG.threePhosphorTrail.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threePhosphorBloomStrength");
+  if (threePhosphorBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threePhosphorTrail.bloomStrength;
+    threePhosphorBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threePhosphorBloomStrengthValue) {
+      threePhosphorBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+
+  if (threePhosphorMirrorToggle) {
+    threePhosphorMirrorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threePhosphorMirror"),
+      DEFAULT_CONFIG.threePhosphorTrail.mirrorEnabled,
+    );
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3233,6 +3359,7 @@ async function init() {
     applyThreeSphereFormFromStorage(v);
     applyThreeKaleidoscopeFormFromStorage(v);
     applyThreeGlitchFormFromStorage(v);
+    applyThreePhosphorFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -5660,6 +5787,120 @@ async function init() {
   });
   threeGlitchFallEaseRange?.addEventListener("input", () => {
     void syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threePhosphorLineColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorLineColor",
+        threePhosphorLineColor.value,
+      );
+      await emitVisual("waveform-three-phosphor-line-color", threePhosphorLineColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新线条颜色失败：${String(err)}`;
+    }
+  });
+  threePhosphorGlowColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorGlowColor",
+        threePhosphorGlowColor.value,
+      );
+      await emitVisual("waveform-three-phosphor-glow-color", threePhosphorGlowColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新辉光颜色失败：${String(err)}`;
+    }
+  });
+  threePhosphorLineWidthRange?.addEventListener("input", async (event) => {
+    const lineWidthPx = clampInt(event.target.value, 1, 12);
+    if (threePhosphorLineWidthValue) threePhosphorLineWidthValue.textContent = String(lineWidthPx);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorLineWidth",
+        String(lineWidthPx),
+      );
+      await emitVisual("waveform-three-phosphor-line-width", lineWidthPx);
+    } catch (err) {
+      statusEl.textContent = `更新线宽失败：${String(err)}`;
+    }
+  });
+  threePhosphorDecayRange?.addEventListener("input", async (event) => {
+    const decayPercent = clampInt(event.target.value, 10, 90);
+    if (threePhosphorDecayValue) threePhosphorDecayValue.textContent = String(decayPercent);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorDecay",
+        String(decayPercent),
+      );
+      await emitVisual("waveform-three-phosphor-decay", decayPercent);
+    } catch (err) {
+      statusEl.textContent = `更新余辉衰减失败：${String(err)}`;
+    }
+  });
+  threePhosphorBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-phosphor-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threePhosphorBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threePhosphorBloomStrengthValue) {
+      threePhosphorBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-phosphor-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threePhosphorMirrorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threePhosphorMirror",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-phosphor-mirror-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新镜像对称失败：${String(err)}`;
+    }
+  });
+  threePhosphorGainRange?.addEventListener("input", () => {
+    void syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePhosphorSmoothRange?.addEventListener("input", () => {
+    void syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePhosphorSoftClipRange?.addEventListener("input", () => {
+    void syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePhosphorFallEaseRange?.addEventListener("input", () => {
+    void syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~21 已全部完成；Phase 22~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~22 已全部完成；Phase 23~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1209,15 +1209,15 @@ threePhosphorTrail: {
 
 #### 22.2 新建 `renderers/three/phosphorTrailRenderer.js`
 
-- [ ] `EffectComposer` + `AfterimagePass`（damp = f(decayPercent)）
-- [ ] 每帧绘制当前频谱线（`Line` 或 ribbon mesh）到 composer
-- [ ] 透明背景：Afterimage 仅累积亮部，暗部快速衰减
+- [x] `EffectComposer` + `AfterimagePass`（damp = f(decayPercent)）
+- [x] 每帧绘制当前频谱线（`Line` 或 ribbon mesh）到 composer
+- [x] 透明背景：Afterimage 仅累积亮部，暗部快速衰减
 
 #### 22.3 验收标准
 
-- [ ] decay 低时长拖尾，高时短促
-- [ ] 静默后画面在 2s 内清干净
-- [ ] 与 glowLine 并存不冲突（不同 displayMode）
+- [x] decay 低时长拖尾，高时短促
+- [x] 静默后画面在 2s 内清干净
+- [x] 与 glowLine 并存不冲突（不同 displayMode）
 
 ---
 
@@ -1578,7 +1578,7 @@ threeNoiseLandscape: {
 | 19 | 能量球 Three Energy Sphere（A） | `[x]` 已完成 | 2026-06-10 |
 | 20 | 万花筒 Three Kaleidoscope（B） | `[x]` 已完成 | 2026-06-10 |
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[x]` 已完成 | 2026-06-10 |
-| 22 | 磷光余辉 Three Phosphor Trail（B） | `[ ]` 未开始 | |
+| 22 | 磷光余辉 Three Phosphor Trail（B） | `[x]` 已完成 | 2026-06-10 |
 | 23 | 扫描网格 Three Scan Grid（B） | `[ ]` 未开始 | |
 | 24 | 液态球体 Three Liquid Blob（C） | `[ ]` 未开始 | |
 | 25 | 极光飘带 Three Aurora Ribbon（C） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 22（磷光余辉 Three Phosphor Trail，方案 B）
+**当前建议下一步**：Phase 23（扫描网格 Three Scan Grid，方案 B）
 
 ---
 

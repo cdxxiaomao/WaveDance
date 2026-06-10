@@ -102,6 +102,7 @@
                 <option value="threeEnergySphere">能量球</option>
                 <option value="threeKaleidoscope">万花筒</option>
                 <option value="threeGlitchSpectrum">故障频谱</option>
+                <option value="threePhosphorTrail">磷光余辉</option>
               </optgroup>
             </select>
           </div>
@@ -1273,6 +1274,59 @@
           <div class="settings-field">
             <label for="threeGlitchFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGlitchFallEaseValue">40</span>%</label>
             <input id="threeGlitchFallEaseRange" type="range" min="0" max="100" step="1" value="40" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threePhosphorTrailConfigPanel" aria-labelledby="sec-three-phosphor-display" hidden>
+        <h2 id="sec-three-phosphor-display" class="settings-card__title">磷光余辉配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-phosphor" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threePhosphorLineColor" class="settings-label">线条颜色</label>
+            <input id="threePhosphorLineColor" type="color" value="#c4a574" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threePhosphorGlowColor" class="settings-label">辉光颜色</label>
+            <input id="threePhosphorGlowColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threePhosphorLineWidthRange" class="settings-label">线宽 <span class="settings-value" id="threePhosphorLineWidthValue">3</span> px</label>
+            <input id="threePhosphorLineWidthRange" type="range" min="1" max="12" step="1" value="3" />
+          </div>
+          <div class="settings-field">
+            <label for="threePhosphorDecayRange" class="settings-label">余辉衰减 <span class="settings-value" id="threePhosphorDecayValue">55</span>%</label>
+            <input id="threePhosphorDecayRange" type="range" min="10" max="90" step="1" value="55" />
+            <p class="settings-hint">数值越低拖尾越长</p>
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threePhosphorBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threePhosphorBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threePhosphorBloomStrengthValue">0.9</span></label>
+            <input id="threePhosphorBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threePhosphorMirrorToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>镜像对称</span>
+          </label>
+          <div class="settings-field">
+            <label for="threePhosphorGainRange" class="settings-label">增益 <span class="settings-value" id="threePhosphorGainValue">50</span>%</label>
+            <input id="threePhosphorGainRange" type="range" min="10" max="150" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="threePhosphorSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threePhosphorSmoothValue">22</span>%</label>
+            <input id="threePhosphorSmoothRange" type="range" min="0" max="400" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="threePhosphorSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threePhosphorSoftClipValue">14</span>%</label>
+            <input id="threePhosphorSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threePhosphorFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePhosphorFallEaseValue">60</span>%</label>
+            <input id="threePhosphorFallEaseRange" type="range" min="0" max="100" step="1" value="60" />
           </div>
         </div>
       </section>
