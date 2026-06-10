@@ -64,6 +64,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
   [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
   [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
+  [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -566,6 +567,31 @@ const threeLiquidBlobSoftClipRange = document.querySelector("#threeLiquidBlobSof
 const threeLiquidBlobSoftClipValue = document.querySelector("#threeLiquidBlobSoftClipValue");
 const threeLiquidBlobFallEaseRange = document.querySelector("#threeLiquidBlobFallEaseRange");
 const threeLiquidBlobFallEaseValue = document.querySelector("#threeLiquidBlobFallEaseValue");
+const threeAuroraColorLow = document.querySelector("#threeAuroraColorLow");
+const threeAuroraColorHigh = document.querySelector("#threeAuroraColorHigh");
+const threeAuroraRibbonCountRange = document.querySelector("#threeAuroraRibbonCountRange");
+const threeAuroraRibbonCountValue = document.querySelector("#threeAuroraRibbonCountValue");
+const threeAuroraRibbonWidthRange = document.querySelector("#threeAuroraRibbonWidthRange");
+const threeAuroraRibbonWidthValue = document.querySelector("#threeAuroraRibbonWidthValue");
+const threeAuroraWaveAmplitudeRange = document.querySelector("#threeAuroraWaveAmplitudeRange");
+const threeAuroraWaveAmplitudeValue = document.querySelector("#threeAuroraWaveAmplitudeValue");
+const threeAuroraWaveSpeedRange = document.querySelector("#threeAuroraWaveSpeedRange");
+const threeAuroraWaveSpeedValue = document.querySelector("#threeAuroraWaveSpeedValue");
+const threeAuroraBassBandIndexRange = document.querySelector("#threeAuroraBassBandIndexRange");
+const threeAuroraBassBandIndexValue = document.querySelector("#threeAuroraBassBandIndexValue");
+const threeAuroraAutoRotateSpeedRange = document.querySelector("#threeAuroraAutoRotateSpeedRange");
+const threeAuroraAutoRotateSpeedValue = document.querySelector("#threeAuroraAutoRotateSpeedValue");
+const threeAuroraBloomToggle = document.querySelector("#threeAuroraBloomToggle");
+const threeAuroraBloomStrengthRange = document.querySelector("#threeAuroraBloomStrengthRange");
+const threeAuroraBloomStrengthValue = document.querySelector("#threeAuroraBloomStrengthValue");
+const threeAuroraGainRange = document.querySelector("#threeAuroraGainRange");
+const threeAuroraGainValue = document.querySelector("#threeAuroraGainValue");
+const threeAuroraSmoothRange = document.querySelector("#threeAuroraSmoothRange");
+const threeAuroraSmoothValue = document.querySelector("#threeAuroraSmoothValue");
+const threeAuroraSoftClipRange = document.querySelector("#threeAuroraSoftClipRange");
+const threeAuroraSoftClipValue = document.querySelector("#threeAuroraSoftClipValue");
+const threeAuroraFallEaseRange = document.querySelector("#threeAuroraFallEaseRange");
+const threeAuroraFallEaseValue = document.querySelector("#threeAuroraFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3045,6 +3071,155 @@ function applyThreeLiquidBlobFormFromStorage(v) {
   }
 }
 
+function readThreeAuroraShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeAuroraGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeAuroraSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeAuroraSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeAuroraFallEaseRange?.value, 0, 100),
+  };
+  if (threeAuroraGainValue) threeAuroraGainValue.textContent = String(config.gainPercent);
+  if (threeAuroraSmoothValue) threeAuroraSmoothValue.textContent = String(config.smoothPercent);
+  if (threeAuroraSoftClipValue) threeAuroraSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeAuroraFallEaseValue) threeAuroraFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeAuroraShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-aurora-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新极光飘带形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeAuroraFormFromStorage(v) {
+  const sg = readThreeAuroraShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
+  if (threeAuroraGainRange) threeAuroraGainRange.value = String(sg.gainPercent);
+  if (threeAuroraSmoothRange) threeAuroraSmoothRange.value = String(sg.smoothPercent);
+  if (threeAuroraSoftClipRange) threeAuroraSoftClipRange.value = String(sg.softClipPercent);
+  if (threeAuroraFallEaseRange) threeAuroraFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeAuroraGainValue) threeAuroraGainValue.textContent = String(sg.gainPercent);
+  if (threeAuroraSmoothValue) threeAuroraSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeAuroraSoftClipValue) threeAuroraSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeAuroraFallEaseValue) threeAuroraFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "threeAuroraColorLow");
+  if (threeAuroraColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    threeAuroraColorLow.value = savedColorLow.toLowerCase();
+  } else if (threeAuroraColorLow) {
+    threeAuroraColorLow.value = DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "threeAuroraColorHigh");
+  if (threeAuroraColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    threeAuroraColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (threeAuroraColorHigh) {
+    threeAuroraColorHigh.value = DEFAULT_CONFIG.threeAuroraRibbon.colorHigh;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeAuroraRibbonCount");
+  if (threeAuroraRibbonCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 6)
+        : DEFAULT_CONFIG.threeAuroraRibbon.ribbonCount;
+    threeAuroraRibbonCountRange.value = String(count);
+    if (threeAuroraRibbonCountValue) threeAuroraRibbonCountValue.textContent = String(count);
+  }
+
+  const savedWidth = readWindowStorageString(window.localStorage, v, "threeAuroraRibbonWidth");
+  if (threeAuroraRibbonWidthRange) {
+    const width =
+      savedWidth != null && savedWidth !== ""
+        ? Math.min(0.2, Math.max(0.02, Number(savedWidth)))
+        : DEFAULT_CONFIG.threeAuroraRibbon.ribbonWidth;
+    threeAuroraRibbonWidthRange.value = String(Math.round(width * 100));
+    if (threeAuroraRibbonWidthValue) threeAuroraRibbonWidthValue.textContent = width.toFixed(2);
+  }
+
+  const savedAmplitude = readWindowStorageString(window.localStorage, v, "threeAuroraWaveAmplitude");
+  if (threeAuroraWaveAmplitudeRange) {
+    const amplitude =
+      savedAmplitude != null && savedAmplitude !== ""
+        ? Math.min(0.8, Math.max(0.1, Number(savedAmplitude)))
+        : DEFAULT_CONFIG.threeAuroraRibbon.waveAmplitude;
+    threeAuroraWaveAmplitudeRange.value = String(Math.round(amplitude * 100));
+    if (threeAuroraWaveAmplitudeValue) {
+      threeAuroraWaveAmplitudeValue.textContent = amplitude.toFixed(2);
+    }
+  }
+
+  const savedWaveSpeed = readWindowStorageString(window.localStorage, v, "threeAuroraWaveSpeed");
+  if (threeAuroraWaveSpeedRange) {
+    const waveSpeed =
+      savedWaveSpeed != null && savedWaveSpeed !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedWaveSpeed)))
+        : DEFAULT_CONFIG.threeAuroraRibbon.waveSpeed;
+    threeAuroraWaveSpeedRange.value = String(Math.round(waveSpeed * 10));
+    if (threeAuroraWaveSpeedValue) threeAuroraWaveSpeedValue.textContent = waveSpeed.toFixed(1);
+  }
+
+  const savedBassBand = readWindowStorageString(window.localStorage, v, "threeAuroraBassBandIndex");
+  if (threeAuroraBassBandIndexRange) {
+    const bassBand =
+      savedBassBand != null && savedBassBand !== ""
+        ? clampInt(savedBassBand, 0, 7)
+        : DEFAULT_CONFIG.threeAuroraRibbon.bassBandIndex;
+    threeAuroraBassBandIndexRange.value = String(bassBand);
+    if (threeAuroraBassBandIndexValue) threeAuroraBassBandIndexValue.textContent = String(bassBand);
+  }
+
+  const savedRotate = readWindowStorageString(window.localStorage, v, "threeAuroraAutoRotateSpeed");
+  if (threeAuroraAutoRotateSpeedRange) {
+    const rotateSpeed =
+      savedRotate != null && savedRotate !== ""
+        ? Math.min(15, Math.max(0, Number(savedRotate)))
+        : DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg;
+    threeAuroraAutoRotateSpeedRange.value = String(Math.round(rotateSpeed));
+    if (threeAuroraAutoRotateSpeedValue) {
+      threeAuroraAutoRotateSpeedValue.textContent = String(Math.round(rotateSpeed));
+    }
+  }
+
+  if (threeAuroraBloomToggle) {
+    threeAuroraBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeAuroraBloom"),
+      DEFAULT_CONFIG.threeAuroraRibbon.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeAuroraBloomStrength");
+  if (threeAuroraBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeAuroraRibbon.bloomStrength;
+    threeAuroraBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeAuroraBloomStrengthValue) {
+      threeAuroraBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3675,6 +3850,7 @@ async function init() {
     applyThreePhosphorFormFromStorage(v);
     applyThreeScanGridFormFromStorage(v);
     applyThreeLiquidBlobFormFromStorage(v);
+    applyThreeAuroraFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -6471,6 +6647,160 @@ async function init() {
   });
   threeLiquidBlobFallEaseRange?.addEventListener("input", () => {
     void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeAuroraColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraColorLow",
+        threeAuroraColorLow.value,
+      );
+      await emitVisual("waveform-three-aurora-color-low", threeAuroraColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  threeAuroraColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraColorHigh",
+        threeAuroraColorHigh.value,
+      );
+      await emitVisual("waveform-three-aurora-color-high", threeAuroraColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  threeAuroraRibbonCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2, 6);
+    if (threeAuroraRibbonCountValue) threeAuroraRibbonCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraRibbonCount", String(count));
+      await emitVisual("waveform-three-aurora-ribbon-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新飘带数量失败：${String(err)}`;
+    }
+  });
+  threeAuroraRibbonWidthRange?.addEventListener("input", async (event) => {
+    const width = Math.min(0.2, Math.max(0.02, Number(event.target.value) / 100));
+    if (threeAuroraRibbonWidthValue) threeAuroraRibbonWidthValue.textContent = width.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraRibbonWidth",
+        String(width),
+      );
+      await emitVisual("waveform-three-aurora-ribbon-width", width);
+    } catch (err) {
+      statusEl.textContent = `更新飘带宽度失败：${String(err)}`;
+    }
+  });
+  threeAuroraWaveAmplitudeRange?.addEventListener("input", async (event) => {
+    const amplitude = Math.min(0.8, Math.max(0.1, Number(event.target.value) / 100));
+    if (threeAuroraWaveAmplitudeValue) {
+      threeAuroraWaveAmplitudeValue.textContent = amplitude.toFixed(2);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraWaveAmplitude",
+        String(amplitude),
+      );
+      await emitVisual("waveform-three-aurora-wave-amplitude", amplitude);
+    } catch (err) {
+      statusEl.textContent = `更新波浪幅度失败：${String(err)}`;
+    }
+  });
+  threeAuroraWaveSpeedRange?.addEventListener("input", async (event) => {
+    const waveSpeed = Math.min(3, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeAuroraWaveSpeedValue) threeAuroraWaveSpeedValue.textContent = waveSpeed.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraWaveSpeed",
+        String(waveSpeed),
+      );
+      await emitVisual("waveform-three-aurora-wave-speed", waveSpeed);
+    } catch (err) {
+      statusEl.textContent = `更新波浪速度失败：${String(err)}`;
+    }
+  });
+  threeAuroraBassBandIndexRange?.addEventListener("input", async (event) => {
+    const bassBand = clampInt(event.target.value, 0, 7);
+    if (threeAuroraBassBandIndexValue) threeAuroraBassBandIndexValue.textContent = String(bassBand);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraBassBandIndex",
+        String(bassBand),
+      );
+      await emitVisual("waveform-three-aurora-bass-band-index", bassBand);
+    } catch (err) {
+      statusEl.textContent = `更新低频带偏移失败：${String(err)}`;
+    }
+  });
+  threeAuroraAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const rotateSpeed = Math.min(15, Math.max(0, Number(event.target.value)));
+    if (threeAuroraAutoRotateSpeedValue) {
+      threeAuroraAutoRotateSpeedValue.textContent = String(Math.round(rotateSpeed));
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraAutoRotateSpeed",
+        String(rotateSpeed),
+      );
+      await emitVisual("waveform-three-aurora-auto-rotate-speed", rotateSpeed);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeAuroraBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraBloom", String(enabled));
+      await emitVisual("waveform-three-aurora-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeAuroraBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeAuroraBloomStrengthValue) {
+      threeAuroraBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeAuroraBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-aurora-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeAuroraGainRange?.addEventListener("input", () => {
+    void syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeAuroraSmoothRange?.addEventListener("input", () => {
+    void syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeAuroraSoftClipRange?.addEventListener("input", () => {
+    void syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeAuroraFallEaseRange?.addEventListener("input", () => {
+    void syncThreeAuroraShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

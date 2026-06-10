@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~24 已全部完成；Phase 25~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~25 已全部完成；Phase 26~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1324,14 +1324,14 @@ threeAuroraRibbon: {
 
 #### 25.2 新建 `renderers/three/auroraRibbonRenderer.js`
 
-- [ ] `CatmullRomCurve3` + `TubeGeometry` 或 custom strip mesh
-- [ ] 控制点每帧 noise 偏移；不同 ribbon 绑定不同频带 aggregate
-- [ ] `MeshBasicMaterial` transparent + additive
+- [x] `CatmullRomCurve3` + `TubeGeometry` 或 custom strip mesh
+- [x] 控制点每帧 noise 偏移；不同 ribbon 绑定不同频带 aggregate
+- [x] `MeshBasicMaterial` transparent + additive
 
 #### 25.3 验收标准
 
-- [ ] 飘带柔和连续，无断裂
-- [ ] 各 ribbon 颜色/摆动可区分
+- [x] 飘带柔和连续，无断裂
+- [x] 各 ribbon 颜色/摆动可区分
 
 ---
 
@@ -1581,12 +1581,12 @@ threeNoiseLandscape: {
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[x]` 已完成 | 2026-06-10 |
 | 23 | 扫描网格 Three Scan Grid（B） | `[x]` 已完成 | 2026-06-10 |
 | 24 | 液态球体 Three Liquid Blob（C） | `[x]` 已完成 | 2026-06-10 |
-| 25 | 极光飘带 Three Aurora Ribbon（C） | `[ ]` 未开始 | |
+| 25 | 极光飘带 Three Aurora Ribbon（C） | `[x]` 已完成 | 2026-06-10 |
 | 26 | 呼吸光环 Three Breathing Rings（C） | `[ ]` 未开始 | |
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 25（极光飘带 Three Aurora Ribbon，方案 C）
+**当前建议下一步**：Phase 26（呼吸光环 Three Breathing Rings，方案 C）
 
 ---
 

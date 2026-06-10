@@ -105,6 +105,7 @@ const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
 const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
 const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
 const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
+const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -304,6 +305,14 @@ function applyThreeLiquidBlobShapeConfig(payload) {
   threeLiquidBlobShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeAuroraShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeAuroraShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeAuroraShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeAuroraShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeAuroraShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -354,6 +363,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeScanGridRaw) applyThreeScanGridShapeConfig(JSON.parse(threeScanGridRaw));
     const threeLiquidBlobRaw = readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobShape");
     if (threeLiquidBlobRaw) applyThreeLiquidBlobShapeConfig(JSON.parse(threeLiquidBlobRaw));
+    const threeAuroraRaw = readWindowStorageString(window.localStorage, windowLabel, "threeAuroraShape");
+    if (threeAuroraRaw) applyThreeAuroraShapeConfig(JSON.parse(threeAuroraRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -614,6 +625,16 @@ let threeLiquidBlobWobbleSpeed = DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed;
 let threeLiquidBlobBassDrive = DEFAULT_CONFIG.threeLiquidBlob.bassDrive;
 let threeLiquidBlobBloomEnabled = DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled;
 let threeLiquidBlobBloomStrength = DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
+let threeAuroraColorLowHex = DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
+let threeAuroraColorHighHex = DEFAULT_CONFIG.threeAuroraRibbon.colorHigh;
+let threeAuroraRibbonCount = DEFAULT_CONFIG.threeAuroraRibbon.ribbonCount;
+let threeAuroraRibbonWidth = DEFAULT_CONFIG.threeAuroraRibbon.ribbonWidth;
+let threeAuroraWaveAmplitude = DEFAULT_CONFIG.threeAuroraRibbon.waveAmplitude;
+let threeAuroraWaveSpeed = DEFAULT_CONFIG.threeAuroraRibbon.waveSpeed;
+let threeAuroraBassBandIndex = DEFAULT_CONFIG.threeAuroraRibbon.bassBandIndex;
+let threeAuroraBloomEnabled = DEFAULT_CONFIG.threeAuroraRibbon.bloomEnabled;
+let threeAuroraBloomStrength = DEFAULT_CONFIG.threeAuroraRibbon.bloomStrength;
+let threeAuroraAutoRotateSpeedDeg = DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1616,6 +1637,63 @@ function applyThreeLiquidBlobBloomStrength(value) {
     : DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
 }
 
+function applyThreeAuroraColorLowHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
+  threeAuroraColorLowHex = safe;
+}
+
+function applyThreeAuroraColorHighHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorHigh;
+  threeAuroraColorHighHex = safe;
+}
+
+function applyThreeAuroraRibbonCount(value) {
+  threeAuroraRibbonCount = clampInt(value, 2, 6);
+}
+
+function applyThreeAuroraRibbonWidth(value) {
+  const n = Number(value);
+  threeAuroraRibbonWidth = Number.isFinite(n)
+    ? Math.min(0.2, Math.max(0.02, n))
+    : DEFAULT_CONFIG.threeAuroraRibbon.ribbonWidth;
+}
+
+function applyThreeAuroraWaveAmplitude(value) {
+  const n = Number(value);
+  threeAuroraWaveAmplitude = Number.isFinite(n)
+    ? Math.min(0.8, Math.max(0.1, n))
+    : DEFAULT_CONFIG.threeAuroraRibbon.waveAmplitude;
+}
+
+function applyThreeAuroraWaveSpeed(value) {
+  const n = Number(value);
+  threeAuroraWaveSpeed = Number.isFinite(n)
+    ? Math.min(3, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threeAuroraRibbon.waveSpeed;
+}
+
+function applyThreeAuroraBassBandIndex(value) {
+  threeAuroraBassBandIndex = clampInt(value, 0, 7);
+}
+
+function applyThreeAuroraBloomEnabled(value) {
+  threeAuroraBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeAuroraRibbon.bloomEnabled);
+}
+
+function applyThreeAuroraBloomStrength(value) {
+  const n = Number(value);
+  threeAuroraBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeAuroraRibbon.bloomStrength;
+}
+
+function applyThreeAuroraAutoRotateSpeedDeg(value) {
+  const n = Number(value);
+  threeAuroraAutoRotateSpeedDeg = Number.isFinite(n)
+    ? Math.min(15, Math.max(0, n))
+    : DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg;
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1839,6 +1917,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threePhosphorTrail) return threePhosphorShapeConfig;
   if (mode === DISPLAY_MODES.threeScanGrid) return threeScanGridShapeConfig;
   if (mode === DISPLAY_MODES.threeLiquidBlob) return threeLiquidBlobShapeConfig;
+  if (mode === DISPLAY_MODES.threeAuroraRibbon) return threeAuroraShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2159,6 +2238,21 @@ function getStyleConfigForMode(mode) {
       bassDrive: threeLiquidBlobBassDrive,
       bloomEnabled: threeLiquidBlobBloomEnabled,
       bloomStrength: threeLiquidBlobBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeAuroraRibbon) {
+    return {
+      colorLow: threeAuroraColorLowHex,
+      colorHigh: threeAuroraColorHighHex,
+      ribbonCount: threeAuroraRibbonCount,
+      ribbonWidth: threeAuroraRibbonWidth,
+      waveAmplitude: threeAuroraWaveAmplitude,
+      waveSpeed: threeAuroraWaveSpeed,
+      bassBandIndex: threeAuroraBassBandIndex,
+      bloomEnabled: threeAuroraBloomEnabled,
+      bloomStrength: threeAuroraBloomStrength,
+      autoRotateSpeedDeg: threeAuroraAutoRotateSpeedDeg,
       freqReversed,
     };
   }
@@ -3924,6 +4018,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-aurora-color-low",
+    (event) => {
+      applyThreeAuroraColorLowHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-color-high",
+    (event) => {
+      applyThreeAuroraColorHighHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-ribbon-count",
+    (event) => {
+      applyThreeAuroraRibbonCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-ribbon-width",
+    (event) => {
+      applyThreeAuroraRibbonWidth(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-wave-amplitude",
+    (event) => {
+      applyThreeAuroraWaveAmplitude(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-wave-speed",
+    (event) => {
+      applyThreeAuroraWaveSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-bass-band-index",
+    (event) => {
+      applyThreeAuroraBassBandIndex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-bloom-enabled",
+    (event) => {
+      applyThreeAuroraBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-bloom-strength",
+    (event) => {
+      applyThreeAuroraBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-auto-rotate-speed",
+    (event) => {
+      applyThreeAuroraAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-aurora-shape-config",
+    (event) => {
+      applyThreeAuroraShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4735,6 +4906,49 @@ async function init() {
     if (savedLiquidBlobBloomStrength != null && savedLiquidBlobBloomStrength !== "") {
       applyThreeLiquidBlobBloomStrength(savedLiquidBlobBloomStrength);
     }
+    applyThreeAuroraColorLowHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraColorLow") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.colorLow,
+    );
+    applyThreeAuroraColorHighHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraColorHigh") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.colorHigh,
+    );
+    applyThreeAuroraRibbonCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraRibbonCount") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.ribbonCount,
+    );
+    applyThreeAuroraRibbonWidth(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraRibbonWidth") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.ribbonWidth,
+    );
+    applyThreeAuroraWaveAmplitude(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraWaveAmplitude") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.waveAmplitude,
+    );
+    applyThreeAuroraWaveSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraWaveSpeed") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.waveSpeed,
+    );
+    applyThreeAuroraBassBandIndex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraBassBandIndex") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.bassBandIndex,
+    );
+    applyThreeAuroraBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraBloom"),
+    );
+    const savedAuroraBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeAuroraBloomStrength",
+    );
+    if (savedAuroraBloomStrength != null && savedAuroraBloomStrength !== "") {
+      applyThreeAuroraBloomStrength(savedAuroraBloomStrength);
+    }
+    applyThreeAuroraAutoRotateSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeAuroraAutoRotateSpeed") ??
+        DEFAULT_CONFIG.threeAuroraRibbon.autoRotateSpeedDeg,
+    );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

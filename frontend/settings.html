@@ -105,6 +105,7 @@
                 <option value="threePhosphorTrail">磷光余辉</option>
                 <option value="threeScanGrid">扫描网格</option>
                 <option value="threeLiquidBlob">液态球体</option>
+                <option value="threeAuroraRibbon">极光飘带</option>
               </optgroup>
             </select>
           </div>
@@ -1447,6 +1448,69 @@
           <div class="settings-field">
             <label for="threeLiquidBlobFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeLiquidBlobFallEaseValue">55</span>%</label>
             <input id="threeLiquidBlobFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeAuroraRibbonConfigPanel" aria-labelledby="sec-three-aurora-display" hidden>
+        <h2 id="sec-three-aurora-display" class="settings-card__title">极光飘带配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-aurora" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeAuroraColorLow" class="settings-label">低能量色</label>
+            <input id="threeAuroraColorLow" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeAuroraColorHigh" class="settings-label">高能量色</label>
+            <input id="threeAuroraColorHigh" type="color" value="#a855f7" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraRibbonCountRange" class="settings-label">飘带数量 <span class="settings-value" id="threeAuroraRibbonCountValue">4</span></label>
+            <input id="threeAuroraRibbonCountRange" type="range" min="2" max="6" step="1" value="4" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraRibbonWidthRange" class="settings-label">飘带宽度 <span class="settings-value" id="threeAuroraRibbonWidthValue">0.08</span></label>
+            <input id="threeAuroraRibbonWidthRange" type="range" min="2" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraWaveAmplitudeRange" class="settings-label">波浪幅度 <span class="settings-value" id="threeAuroraWaveAmplitudeValue">0.35</span></label>
+            <input id="threeAuroraWaveAmplitudeRange" type="range" min="10" max="80" step="1" value="35" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraWaveSpeedRange" class="settings-label">波浪速度 <span class="settings-value" id="threeAuroraWaveSpeedValue">1.0</span></label>
+            <input id="threeAuroraWaveSpeedRange" type="range" min="2" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraBassBandIndexRange" class="settings-label">低频带偏移 <span class="settings-value" id="threeAuroraBassBandIndexValue">0</span></label>
+            <input id="threeAuroraBassBandIndexRange" type="range" min="0" max="7" step="1" value="0" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraAutoRotateSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeAuroraAutoRotateSpeedValue">3</span>°/s</label>
+            <input id="threeAuroraAutoRotateSpeedRange" type="range" min="0" max="15" step="1" value="3" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeAuroraBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeAuroraBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeAuroraBloomStrengthValue">1.0</span></label>
+            <input id="threeAuroraBloomStrengthRange" type="range" min="0" max="20" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraGainRange" class="settings-label">增益 <span class="settings-value" id="threeAuroraGainValue">58</span>%</label>
+            <input id="threeAuroraGainRange" type="range" min="10" max="150" step="1" value="58" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeAuroraSmoothValue">24</span>%</label>
+            <input id="threeAuroraSmoothRange" type="range" min="0" max="400" step="1" value="24" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeAuroraSoftClipValue">14</span>%</label>
+            <input id="threeAuroraSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeAuroraFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeAuroraFallEaseValue">58</span>%</label>
+            <input id="threeAuroraFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
           </div>
         </div>
       </section>
