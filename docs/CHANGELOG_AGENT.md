@@ -8,6 +8,16 @@
 
 ## 2026-06-10（续）
 
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 21：故障频谱 Three Glitch Spectrum（B）
+
+- 新建 `frontend/src/renderers/three/glitchSpectrumRenderer.js`：全屏频谱柱 shader 基底 + `EffectComposer`（`GlitchEffect` + `ScanlineEffect`），peak 超阈值触发 glitch 脉冲、RGB 分离与扫描线；`registerModes.js` 注册。
+- `postProcessing.js`：新增 `createGlitchSpectrumComposer`（rgbSplitPx=0 时禁用 chromatic aberration）。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeGlitchSpectrum` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-glitch-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 故障频谱」、`#threeGlitchSpectrumConfigPanel`（基底色/故障强度/RGB 分离/扫描线/触发阈值/冷却/形状四件套）。
+
 ### 可视化模式扩展 — Phase 20：万花筒 Three Kaleidoscope（B）
 
 - 新建 `frontend/src/renderers/three/kaleidoscopeRenderer.js`：全屏 shader 极坐标万花筒镜像（`foldAngle` + 频谱 DataTexture 驱动径向条与 hue 染色）、旋转速度与 Bloom；`registerModes.js` 注册。

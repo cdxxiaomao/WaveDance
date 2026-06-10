@@ -60,6 +60,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeBloomTunnel]: "threeBloomTunnelConfigPanel",
   [DISPLAY_MODES.threeEnergySphere]: "threeEnergySphereConfigPanel",
   [DISPLAY_MODES.threeKaleidoscope]: "threeKaleidoscopeConfigPanel",
+  [DISPLAY_MODES.threeGlitchSpectrum]: "threeGlitchSpectrumConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -480,6 +481,25 @@ const threeKaleidoscopeSoftClipRange = document.querySelector("#threeKaleidoscop
 const threeKaleidoscopeSoftClipValue = document.querySelector("#threeKaleidoscopeSoftClipValue");
 const threeKaleidoscopeFallEaseRange = document.querySelector("#threeKaleidoscopeFallEaseRange");
 const threeKaleidoscopeFallEaseValue = document.querySelector("#threeKaleidoscopeFallEaseValue");
+const threeGlitchBaseColor = document.querySelector("#threeGlitchBaseColor");
+const threeGlitchIntensityRange = document.querySelector("#threeGlitchIntensityRange");
+const threeGlitchIntensityValue = document.querySelector("#threeGlitchIntensityValue");
+const threeGlitchRgbSplitRange = document.querySelector("#threeGlitchRgbSplitRange");
+const threeGlitchRgbSplitValue = document.querySelector("#threeGlitchRgbSplitValue");
+const threeGlitchScanlineOpacityRange = document.querySelector("#threeGlitchScanlineOpacityRange");
+const threeGlitchScanlineOpacityValue = document.querySelector("#threeGlitchScanlineOpacityValue");
+const threeGlitchTriggerThresholdRange = document.querySelector("#threeGlitchTriggerThresholdRange");
+const threeGlitchTriggerThresholdValue = document.querySelector("#threeGlitchTriggerThresholdValue");
+const threeGlitchCooldownRange = document.querySelector("#threeGlitchCooldownRange");
+const threeGlitchCooldownValue = document.querySelector("#threeGlitchCooldownValue");
+const threeGlitchGainRange = document.querySelector("#threeGlitchGainRange");
+const threeGlitchGainValue = document.querySelector("#threeGlitchGainValue");
+const threeGlitchSmoothRange = document.querySelector("#threeGlitchSmoothRange");
+const threeGlitchSmoothValue = document.querySelector("#threeGlitchSmoothValue");
+const threeGlitchSoftClipRange = document.querySelector("#threeGlitchSoftClipRange");
+const threeGlitchSoftClipValue = document.querySelector("#threeGlitchSoftClipValue");
+const threeGlitchFallEaseRange = document.querySelector("#threeGlitchFallEaseRange");
+const threeGlitchFallEaseValue = document.querySelector("#threeGlitchFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2478,6 +2498,114 @@ function applyThreeKaleidoscopeFormFromStorage(v) {
   }
 }
 
+function readThreeGlitchShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeGlitchShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeGlitchGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeGlitchSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeGlitchSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeGlitchFallEaseRange?.value, 0, 100),
+  };
+  if (threeGlitchGainValue) threeGlitchGainValue.textContent = String(config.gainPercent);
+  if (threeGlitchSmoothValue) threeGlitchSmoothValue.textContent = String(config.smoothPercent);
+  if (threeGlitchSoftClipValue) threeGlitchSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeGlitchFallEaseValue) threeGlitchFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGlitchShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-glitch-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新故障频谱形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeGlitchFormFromStorage(v) {
+  const sg = readThreeGlitchShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
+  if (threeGlitchGainRange) threeGlitchGainRange.value = String(sg.gainPercent);
+  if (threeGlitchSmoothRange) threeGlitchSmoothRange.value = String(sg.smoothPercent);
+  if (threeGlitchSoftClipRange) threeGlitchSoftClipRange.value = String(sg.softClipPercent);
+  if (threeGlitchFallEaseRange) threeGlitchFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeGlitchGainValue) threeGlitchGainValue.textContent = String(sg.gainPercent);
+  if (threeGlitchSmoothValue) threeGlitchSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeGlitchSoftClipValue) threeGlitchSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeGlitchFallEaseValue) threeGlitchFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedBaseColor = readWindowStorageString(window.localStorage, v, "threeGlitchBaseColor");
+  if (threeGlitchBaseColor && savedBaseColor && /^#[0-9A-Fa-f]{6}$/.test(savedBaseColor)) {
+    threeGlitchBaseColor.value = savedBaseColor.toLowerCase();
+  } else if (threeGlitchBaseColor) {
+    threeGlitchBaseColor.value = DEFAULT_CONFIG.threeGlitchSpectrum.baseColor;
+  }
+
+  const savedIntensity = readWindowStorageString(window.localStorage, v, "threeGlitchIntensity");
+  if (threeGlitchIntensityRange) {
+    const intensity =
+      savedIntensity != null && savedIntensity !== ""
+        ? clampInt(savedIntensity, 0, 100)
+        : DEFAULT_CONFIG.threeGlitchSpectrum.glitchIntensity;
+    threeGlitchIntensityRange.value = String(intensity);
+    if (threeGlitchIntensityValue) threeGlitchIntensityValue.textContent = String(intensity);
+  }
+
+  const savedRgbSplit = readWindowStorageString(window.localStorage, v, "threeGlitchRgbSplit");
+  if (threeGlitchRgbSplitRange) {
+    const rgbSplit =
+      savedRgbSplit != null && savedRgbSplit !== ""
+        ? clampInt(savedRgbSplit, 0, 12)
+        : DEFAULT_CONFIG.threeGlitchSpectrum.rgbSplitPx;
+    threeGlitchRgbSplitRange.value = String(rgbSplit);
+    if (threeGlitchRgbSplitValue) threeGlitchRgbSplitValue.textContent = String(rgbSplit);
+  }
+
+  const savedScanline = readWindowStorageString(window.localStorage, v, "threeGlitchScanlineOpacity");
+  if (threeGlitchScanlineOpacityRange) {
+    const scanlineOpacity =
+      savedScanline != null && savedScanline !== ""
+        ? clampInt(savedScanline, 0, 100)
+        : DEFAULT_CONFIG.threeGlitchSpectrum.scanlineOpacity;
+    threeGlitchScanlineOpacityRange.value = String(scanlineOpacity);
+    if (threeGlitchScanlineOpacityValue) {
+      threeGlitchScanlineOpacityValue.textContent = String(scanlineOpacity);
+    }
+  }
+
+  const savedThreshold = readWindowStorageString(window.localStorage, v, "threeGlitchTriggerThreshold");
+  if (threeGlitchTriggerThresholdRange) {
+    const triggerThreshold =
+      savedThreshold != null && savedThreshold !== ""
+        ? clampInt(savedThreshold, 0, 100)
+        : DEFAULT_CONFIG.threeGlitchSpectrum.triggerThreshold;
+    threeGlitchTriggerThresholdRange.value = String(triggerThreshold);
+    if (threeGlitchTriggerThresholdValue) {
+      threeGlitchTriggerThresholdValue.textContent = String(triggerThreshold);
+    }
+  }
+
+  const savedCooldown = readWindowStorageString(window.localStorage, v, "threeGlitchCooldownMs");
+  if (threeGlitchCooldownRange) {
+    const cooldownMs =
+      savedCooldown != null && savedCooldown !== ""
+        ? clampInt(savedCooldown, 30, 2000)
+        : DEFAULT_CONFIG.threeGlitchSpectrum.cooldownMs;
+    threeGlitchCooldownRange.value = String(cooldownMs);
+    if (threeGlitchCooldownValue) threeGlitchCooldownValue.textContent = String(cooldownMs);
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3104,6 +3232,7 @@ async function init() {
     applyThreeTunnelFormFromStorage(v);
     applyThreeSphereFormFromStorage(v);
     applyThreeKaleidoscopeFormFromStorage(v);
+    applyThreeGlitchFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -5426,6 +5555,111 @@ async function init() {
   });
   threeKaleidoscopeFallEaseRange?.addEventListener("input", () => {
     void syncThreeKaleidoscopeShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeGlitchBaseColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchBaseColor",
+        threeGlitchBaseColor.value,
+      );
+      await emitVisual("waveform-three-glitch-base-color", threeGlitchBaseColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新基底颜色失败：${String(err)}`;
+    }
+  });
+  threeGlitchIntensityRange?.addEventListener("input", async (event) => {
+    const intensity = clampInt(event.target.value, 0, 100);
+    if (threeGlitchIntensityValue) threeGlitchIntensityValue.textContent = String(intensity);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchIntensity",
+        String(intensity),
+      );
+      await emitVisual("waveform-three-glitch-intensity", intensity);
+    } catch (err) {
+      statusEl.textContent = `更新故障强度失败：${String(err)}`;
+    }
+  });
+  threeGlitchRgbSplitRange?.addEventListener("input", async (event) => {
+    const rgbSplit = clampInt(event.target.value, 0, 12);
+    if (threeGlitchRgbSplitValue) threeGlitchRgbSplitValue.textContent = String(rgbSplit);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchRgbSplit",
+        String(rgbSplit),
+      );
+      await emitVisual("waveform-three-glitch-rgb-split", rgbSplit);
+    } catch (err) {
+      statusEl.textContent = `更新 RGB 分离失败：${String(err)}`;
+    }
+  });
+  threeGlitchScanlineOpacityRange?.addEventListener("input", async (event) => {
+    const scanlineOpacity = clampInt(event.target.value, 0, 100);
+    if (threeGlitchScanlineOpacityValue) {
+      threeGlitchScanlineOpacityValue.textContent = String(scanlineOpacity);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchScanlineOpacity",
+        String(scanlineOpacity),
+      );
+      await emitVisual("waveform-three-glitch-scanline-opacity", scanlineOpacity);
+    } catch (err) {
+      statusEl.textContent = `更新扫描线透明度失败：${String(err)}`;
+    }
+  });
+  threeGlitchTriggerThresholdRange?.addEventListener("input", async (event) => {
+    const triggerThreshold = clampInt(event.target.value, 0, 100);
+    if (threeGlitchTriggerThresholdValue) {
+      threeGlitchTriggerThresholdValue.textContent = String(triggerThreshold);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchTriggerThreshold",
+        String(triggerThreshold),
+      );
+      await emitVisual("waveform-three-glitch-trigger-threshold", triggerThreshold);
+    } catch (err) {
+      statusEl.textContent = `更新触发阈值失败：${String(err)}`;
+    }
+  });
+  threeGlitchCooldownRange?.addEventListener("input", async (event) => {
+    const cooldownMs = clampInt(event.target.value, 30, 2000);
+    if (threeGlitchCooldownValue) threeGlitchCooldownValue.textContent = String(cooldownMs);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlitchCooldownMs",
+        String(cooldownMs),
+      );
+      await emitVisual("waveform-three-glitch-cooldown-ms", cooldownMs);
+    } catch (err) {
+      statusEl.textContent = `更新冷却时间失败：${String(err)}`;
+    }
+  });
+  threeGlitchGainRange?.addEventListener("input", () => {
+    void syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlitchSmoothRange?.addEventListener("input", () => {
+    void syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlitchSoftClipRange?.addEventListener("input", () => {
+    void syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlitchFallEaseRange?.addEventListener("input", () => {
+    void syncThreeGlitchShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

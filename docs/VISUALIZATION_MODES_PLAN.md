@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~20 已全部完成；Phase 21~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~21 已全部完成；Phase 22~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1173,15 +1173,15 @@ threeGlitchSpectrum: {
 
 #### 21.2 新建 `renderers/three/glitchSpectrumRenderer.js`
 
-- [ ] 基底：频谱柱状 mesh 或 2D shader 条
-- [ ] `EffectComposer`：RenderPass → GlitchPass（或自定义）→ 可选 Bloom
-- [ ] peak 触发：`frameMeta.peak` 超阈值时 glitch 强度脉冲
+- [x] 基底：频谱柱状 mesh 或 2D shader 条
+- [x] `EffectComposer`：RenderPass → GlitchPass（或自定义）→ 可选 Bloom
+- [x] peak 触发：`frameMeta.peak` 超阈值时 glitch 强度脉冲
 
 #### 21.3 验收标准
 
-- [ ] 强拍时 glitch 明显，弱段恢复干净
-- [ ] rgbSplit=0 时无分离伪影
-- [ ] 长时间运行无 composer leak
+- [x] 强拍时 glitch 明显，弱段恢复干净
+- [x] rgbSplit=0 时无分离伪影
+- [x] 长时间运行无 composer leak
 
 ---
 
@@ -1577,7 +1577,7 @@ threeNoiseLandscape: {
 | 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 19 | 能量球 Three Energy Sphere（A） | `[x]` 已完成 | 2026-06-10 |
 | 20 | 万花筒 Three Kaleidoscope（B） | `[x]` 已完成 | 2026-06-10 |
-| 21 | 故障频谱 Three Glitch Spectrum（B） | `[ ]` 未开始 | |
+| 21 | 故障频谱 Three Glitch Spectrum（B） | `[x]` 已完成 | 2026-06-10 |
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[ ]` 未开始 | |
 | 23 | 扫描网格 Three Scan Grid（B） | `[ ]` 未开始 | |
 | 24 | 液态球体 Three Liquid Blob（C） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 21（故障频谱 Three Glitch Spectrum，方案 B）
+**当前建议下一步**：Phase 22（磷光余辉 Three Phosphor Trail，方案 B）
 
 ---
 

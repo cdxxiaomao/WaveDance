@@ -101,6 +101,7 @@ const threeGalaxyShapeConfig = { ...DEFAULT_CONFIG.threeParticleGalaxy.shape };
 const threeTunnelShapeConfig = { ...DEFAULT_CONFIG.threeBloomTunnel.shape };
 const threeSphereShapeConfig = { ...DEFAULT_CONFIG.threeEnergySphere.shape };
 const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape };
+const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -268,6 +269,14 @@ function applyThreeKaleidoscopeShapeConfig(payload) {
   threeKaleidoscopeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeGlitchShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeGlitchShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeGlitchShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeGlitchShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeGlitchShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -310,6 +319,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeSphereRaw) applyThreeSphereShapeConfig(JSON.parse(threeSphereRaw));
     const threeKaleidoscopeRaw = readWindowStorageString(window.localStorage, windowLabel, "threeKaleidoscopeShape");
     if (threeKaleidoscopeRaw) applyThreeKaleidoscopeShapeConfig(JSON.parse(threeKaleidoscopeRaw));
+    const threeGlitchRaw = readWindowStorageString(window.localStorage, windowLabel, "threeGlitchShape");
+    if (threeGlitchRaw) applyThreeGlitchShapeConfig(JSON.parse(threeGlitchRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -539,6 +550,12 @@ let threeKaleidoscopeRotationSpeedDeg = DEFAULT_CONFIG.threeKaleidoscope.rotatio
 let threeKaleidoscopeReactiveness = DEFAULT_CONFIG.threeKaleidoscope.reactiveness;
 let threeKaleidoscopeBloomEnabled = DEFAULT_CONFIG.threeKaleidoscope.bloomEnabled;
 let threeKaleidoscopeBloomStrength = DEFAULT_CONFIG.threeKaleidoscope.bloomStrength;
+let threeGlitchBaseColorHex = DEFAULT_CONFIG.threeGlitchSpectrum.baseColor;
+let threeGlitchIntensity = DEFAULT_CONFIG.threeGlitchSpectrum.glitchIntensity;
+let threeGlitchRgbSplitPx = DEFAULT_CONFIG.threeGlitchSpectrum.rgbSplitPx;
+let threeGlitchScanlineOpacity = DEFAULT_CONFIG.threeGlitchSpectrum.scanlineOpacity;
+let threeGlitchTriggerThreshold = DEFAULT_CONFIG.threeGlitchSpectrum.triggerThreshold;
+let threeGlitchCooldownMs = DEFAULT_CONFIG.threeGlitchSpectrum.cooldownMs;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1397,6 +1414,31 @@ function applyThreeKaleidoscopeBloomStrength(value) {
   threeKaleidoscopeBloomStrength = Math.min(2, Math.max(0, n));
 }
 
+function applyThreeGlitchBaseColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeGlitchSpectrum.baseColor;
+  threeGlitchBaseColorHex = safe;
+}
+
+function applyThreeGlitchIntensity(value) {
+  threeGlitchIntensity = clampInt(value, 0, 100);
+}
+
+function applyThreeGlitchRgbSplitPx(value) {
+  threeGlitchRgbSplitPx = clampInt(value, 0, 12);
+}
+
+function applyThreeGlitchScanlineOpacity(value) {
+  threeGlitchScanlineOpacity = clampInt(value, 0, 100);
+}
+
+function applyThreeGlitchTriggerThreshold(value) {
+  threeGlitchTriggerThreshold = clampInt(value, 0, 100);
+}
+
+function applyThreeGlitchCooldownMs(value) {
+  threeGlitchCooldownMs = clampInt(value, 30, 2000);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1616,6 +1658,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeBloomTunnel) return threeTunnelShapeConfig;
   if (mode === DISPLAY_MODES.threeEnergySphere) return threeSphereShapeConfig;
   if (mode === DISPLAY_MODES.threeKaleidoscope) return threeKaleidoscopeShapeConfig;
+  if (mode === DISPLAY_MODES.threeGlitchSpectrum) return threeGlitchShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1885,6 +1928,17 @@ function getStyleConfigForMode(mode) {
       reactiveness: threeKaleidoscopeReactiveness,
       bloomEnabled: threeKaleidoscopeBloomEnabled,
       bloomStrength: threeKaleidoscopeBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeGlitchSpectrum) {
+    return {
+      baseColor: threeGlitchBaseColorHex,
+      glitchIntensity: threeGlitchIntensity,
+      rgbSplitPx: threeGlitchRgbSplitPx,
+      scanlineOpacity: threeGlitchScanlineOpacity,
+      triggerThreshold: threeGlitchTriggerThreshold,
+      cooldownMs: threeGlitchCooldownMs,
       freqReversed,
     };
   }
@@ -3405,6 +3459,55 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-glitch-base-color",
+    (event) => {
+      applyThreeGlitchBaseColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-intensity",
+    (event) => {
+      applyThreeGlitchIntensity(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-rgb-split",
+    (event) => {
+      applyThreeGlitchRgbSplitPx(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-scanline-opacity",
+    (event) => {
+      applyThreeGlitchScanlineOpacity(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-trigger-threshold",
+    (event) => {
+      applyThreeGlitchTriggerThreshold(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-cooldown-ms",
+    (event) => {
+      applyThreeGlitchCooldownMs(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-glitch-shape-config",
+    (event) => {
+      applyThreeGlitchShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4084,6 +4187,30 @@ async function init() {
     if (savedKaleidoscopeBloomStrength != null && savedKaleidoscopeBloomStrength !== "") {
       applyThreeKaleidoscopeBloomStrength(savedKaleidoscopeBloomStrength);
     }
+    applyThreeGlitchBaseColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchBaseColor") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.baseColor,
+    );
+    applyThreeGlitchIntensity(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchIntensity") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.glitchIntensity,
+    );
+    applyThreeGlitchRgbSplitPx(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchRgbSplit") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.rgbSplitPx,
+    );
+    applyThreeGlitchScanlineOpacity(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchScanlineOpacity") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.scanlineOpacity,
+    );
+    applyThreeGlitchTriggerThreshold(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchTriggerThreshold") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.triggerThreshold,
+    );
+    applyThreeGlitchCooldownMs(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGlitchCooldownMs") ??
+        DEFAULT_CONFIG.threeGlitchSpectrum.cooldownMs,
+    );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures

@@ -101,6 +101,7 @@
                 <option value="threeBloomTunnel">能量隧道</option>
                 <option value="threeEnergySphere">能量球</option>
                 <option value="threeKaleidoscope">万花筒</option>
+                <option value="threeGlitchSpectrum">故障频谱</option>
               </optgroup>
             </select>
           </div>
@@ -1226,6 +1227,52 @@
           <div class="settings-field">
             <label for="threeKaleidoscopeFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeKaleidoscopeFallEaseValue">55</span>%</label>
             <input id="threeKaleidoscopeFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeGlitchSpectrumConfigPanel" aria-labelledby="sec-three-glitch-display" hidden>
+        <h2 id="sec-three-glitch-display" class="settings-card__title">故障频谱配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-glitch" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeGlitchBaseColor" class="settings-label">基底颜色</label>
+            <input id="threeGlitchBaseColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchIntensityRange" class="settings-label">故障强度 <span class="settings-value" id="threeGlitchIntensityValue">60</span>%</label>
+            <input id="threeGlitchIntensityRange" type="range" min="0" max="100" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchRgbSplitRange" class="settings-label">RGB 分离 <span class="settings-value" id="threeGlitchRgbSplitValue">4</span> px</label>
+            <input id="threeGlitchRgbSplitRange" type="range" min="0" max="12" step="1" value="4" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchScanlineOpacityRange" class="settings-label">扫描线透明度 <span class="settings-value" id="threeGlitchScanlineOpacityValue">25</span>%</label>
+            <input id="threeGlitchScanlineOpacityRange" type="range" min="0" max="100" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchTriggerThresholdRange" class="settings-label">触发阈值 <span class="settings-value" id="threeGlitchTriggerThresholdValue">55</span>%</label>
+            <input id="threeGlitchTriggerThresholdRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchCooldownRange" class="settings-label">冷却时间 <span class="settings-value" id="threeGlitchCooldownValue">120</span> ms</label>
+            <input id="threeGlitchCooldownRange" type="range" min="30" max="2000" step="10" value="120" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchGainRange" class="settings-label">增益 <span class="settings-value" id="threeGlitchGainValue">60</span>%</label>
+            <input id="threeGlitchGainRange" type="range" min="10" max="150" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeGlitchSmoothValue">12</span>%</label>
+            <input id="threeGlitchSmoothRange" type="range" min="0" max="400" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeGlitchSoftClipValue">8</span>%</label>
+            <input id="threeGlitchSoftClipRange" type="range" min="0" max="100" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlitchFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGlitchFallEaseValue">40</span>%</label>
+            <input id="threeGlitchFallEaseRange" type="range" min="0" max="100" step="1" value="40" />
           </div>
         </div>
       </section>

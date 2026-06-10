@@ -1,4 +1,14 @@
-import { EffectComposer, RenderPass, EffectPass, BloomEffect } from "postprocessing";
+import * as THREE from "three";
+import {
+  EffectComposer,
+  RenderPass,
+  EffectPass,
+  BloomEffect,
+  GlitchEffect,
+  GlitchMode,
+  ScanlineEffect,
+  BlendFunction,
+} from "postprocessing";
 
 /**
  * 创建基础 EffectComposer（RenderPass only）。
@@ -29,6 +39,38 @@ export function createBloomComposer(renderer, scene, camera, options = {}) {
   });
   composer.addPass(new EffectPass(camera, bloom));
   return composer;
+}
+
+/**
+ * 故障频谱后处理链：RenderPass → Glitch + Scanline。
+ * @param {import('three').WebGLRenderer} renderer
+ * @param {import('three').Scene} scene
+ * @param {import('three').Camera} camera
+ * @param {{ rgbSplitPx?: number }} [options]
+ */
+export function createGlitchSpectrumComposer(renderer, scene, camera, options = {}) {
+  const rgbSplitPx = Math.max(0, Math.min(12, Math.round(Number(options.rgbSplitPx) || 0)));
+  const chromaticAberrationOffset = rgbSplitPx > 0 ? new THREE.Vector2(0, 0) : null;
+
+  const composer = createBasicComposer(renderer, scene, camera);
+  const glitchEffect = new GlitchEffect({
+    chromaticAberrationOffset,
+    delay: new THREE.Vector2(90, 180),
+    duration: new THREE.Vector2(0.05, 0.14),
+    strength: new THREE.Vector2(0.15, 0.85),
+    columns: 0.06,
+    ratio: 0.78,
+  });
+  glitchEffect.mode = GlitchMode.SPORADIC;
+
+  const scanlineEffect = new ScanlineEffect({
+    blendFunction: BlendFunction.OVERLAY,
+    density: 1.35,
+    scrollSpeed: 0.06,
+  });
+
+  composer.addPass(new EffectPass(camera, glitchEffect, scanlineEffect));
+  return { composer, glitchEffect, scanlineEffect, chromaticAberrationOffset };
 }
 
 /**
