@@ -289,6 +289,17 @@ export const STORAGE_KEYS = {
   threePearlChainBloom: "wavedance.threePearlChainBloomEnabled",
   threePearlChainBloomStrength: "wavedance.threePearlChainBloomStrength",
   threePearlChainShape: "wavedance.threePearlChainShapeConfig",
+  threeCrystalGemColorCore: "wavedance.threeCrystalGemColorCore",
+  threeCrystalGemColorEdge: "wavedance.threeCrystalGemColorEdge",
+  threeCrystalGemColorHighlight: "wavedance.threeCrystalGemColorHighlight",
+  threeCrystalGemGemCount: "wavedance.threeCrystalGemGemCount",
+  threeCrystalGemFacetSharpness: "wavedance.threeCrystalGemFacetSharpness",
+  threeCrystalGemRotationSpeedDeg: "wavedance.threeCrystalGemRotationSpeedDeg",
+  threeCrystalGemChromatic: "wavedance.threeCrystalGemChromaticEnabled",
+  threeCrystalGemChromaticOffset: "wavedance.threeCrystalGemChromaticOffset",
+  threeCrystalGemBloom: "wavedance.threeCrystalGemBloomEnabled",
+  threeCrystalGemBloomStrength: "wavedance.threeCrystalGemBloomStrength",
+  threeCrystalGemShape: "wavedance.threeCrystalGemShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -326,6 +337,7 @@ export const DISPLAY_MODES = {
   threeLavaLamp: "threeLavaLamp",
   threeOilMarble: "threeOilMarble",
   threePearlChain: "threePearlChain",
+  threeCrystalGem: "threeCrystalGem",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -345,6 +357,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeLavaLamp,
   DISPLAY_MODES.threeOilMarble,
   DISPLAY_MODES.threePearlChain,
+  DISPLAY_MODES.threeCrystalGem,
 ];
 
 /** @param {string} mode */
@@ -873,6 +886,24 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 55,
     },
   },
+  threeCrystalGem: {
+    colorCore: "#8f7cff",
+    colorEdge: "#ec4899",
+    colorHighlight: "#ffffff",
+    gemCount: 1,
+    facetSharpness: 65,
+    rotationSpeedDeg: 5,
+    chromaticEnabled: true,
+    chromaticOffset: 0.003,
+    bloomEnabled: true,
+    bloomStrength: 1.0,
+    shape: {
+      gainPercent: 62,
+      smoothPercent: 18,
+      softClipPercent: 12,
+      fallEasePercent: 52,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -908,6 +939,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeLavaLamp) return DISPLAY_MODES.threeLavaLamp;
   if (s === DISPLAY_MODES.threeOilMarble) return DISPLAY_MODES.threeOilMarble;
   if (s === DISPLAY_MODES.threePearlChain) return DISPLAY_MODES.threePearlChain;
+  if (s === DISPLAY_MODES.threeCrystalGem) return DISPLAY_MODES.threeCrystalGem;
   return DISPLAY_MODES.line;
 }
 
@@ -1304,6 +1336,17 @@ export function windowStorageKeys(windowLabel) {
     threePearlChainBloom: `${pre}.threePearlChainBloomEnabled`,
     threePearlChainBloomStrength: `${pre}.threePearlChainBloomStrength`,
     threePearlChainShape: `${pre}.threePearlChainShapeConfig`,
+    threeCrystalGemColorCore: `${pre}.threeCrystalGemColorCore`,
+    threeCrystalGemColorEdge: `${pre}.threeCrystalGemColorEdge`,
+    threeCrystalGemColorHighlight: `${pre}.threeCrystalGemColorHighlight`,
+    threeCrystalGemGemCount: `${pre}.threeCrystalGemGemCount`,
+    threeCrystalGemFacetSharpness: `${pre}.threeCrystalGemFacetSharpness`,
+    threeCrystalGemRotationSpeedDeg: `${pre}.threeCrystalGemRotationSpeedDeg`,
+    threeCrystalGemChromatic: `${pre}.threeCrystalGemChromaticEnabled`,
+    threeCrystalGemChromaticOffset: `${pre}.threeCrystalGemChromaticOffset`,
+    threeCrystalGemBloom: `${pre}.threeCrystalGemBloomEnabled`,
+    threeCrystalGemBloomStrength: `${pre}.threeCrystalGemBloomStrength`,
+    threeCrystalGemShape: `${pre}.threeCrystalGemShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

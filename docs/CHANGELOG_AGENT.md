@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 33：宝石晶体 Three Crystal Gem（F）
+
+- 新建 `frontend/src/renderers/three/crystalGemRenderer.js`：octahedron/roundBox 混合 SDF 多面体 raymarch，1~3 颗宝石慢自转，核心/边缘/高光三色分层（深度 + fresnel + spec），可选 `createChromaticComposer` 色散 + Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeCrystalGem`、`DEFAULT_CONFIG.threeCrystalGem` 及 storage keys。
+- `main.js`：监听 `waveform-three-crystal-gem-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「晶体光学 3D → 宝石晶体」配置面板（核心/边缘/高光色、宝石数量、棱面锐度、自转、色散开关/偏移、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 32：珍珠链 Three Pearl Chain（E）
 
 - 新建 `frontend/src/renderers/three/pearlChainRenderer.js`：5~10 颗珍珠沿 sin 参数 3D 曲线分布，smin 轻融合，三色链式渐变，bass 驱动半径，链整体 sway；`registerModes.js` 注册。

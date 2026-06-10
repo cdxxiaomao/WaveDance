@@ -114,6 +114,9 @@
                 <option value="threeOilMarble">油彩大理石</option>
                 <option value="threePearlChain">珍珠链</option>
               </optgroup>
+              <optgroup label="晶体光学 3D">
+                <option value="threeCrystalGem">宝石晶体</option>
+              </optgroup>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -1826,6 +1829,70 @@
           <div class="settings-field">
             <label for="threePearlChainFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePearlChainFallEaseValue">55</span>%</label>
             <input id="threePearlChainFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeCrystalGemConfigPanel" aria-labelledby="sec-three-crystal-gem-display" hidden>
+        <h2 id="sec-three-crystal-gem-display" class="settings-card__title">宝石晶体配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-crystal-gem" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeCrystalGemColorCore" class="settings-label">核心色</label>
+            <input id="threeCrystalGemColorCore" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeCrystalGemColorEdge" class="settings-label">边缘色</label>
+            <input id="threeCrystalGemColorEdge" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeCrystalGemColorHighlight" class="settings-label">高光色</label>
+            <input id="threeCrystalGemColorHighlight" type="color" value="#ffffff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemGemCountRange" class="settings-label">宝石数量 <span class="settings-value" id="threeCrystalGemGemCountValue">1</span></label>
+            <input id="threeCrystalGemGemCountRange" type="range" min="1" max="3" step="1" value="1" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemFacetSharpnessRange" class="settings-label">棱面锐度 <span class="settings-value" id="threeCrystalGemFacetSharpnessValue">65</span>%</label>
+            <input id="threeCrystalGemFacetSharpnessRange" type="range" min="0" max="100" step="1" value="65" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemRotationSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeCrystalGemRotationSpeedValue">5</span>°/s</label>
+            <input id="threeCrystalGemRotationSpeedRange" type="range" min="0" max="30" step="1" value="5" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeCrystalGemChromaticToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>色散（Chromatic）</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeCrystalGemChromaticOffsetRange" class="settings-label">色散偏移 <span class="settings-value" id="threeCrystalGemChromaticOffsetValue">0.003</span></label>
+            <input id="threeCrystalGemChromaticOffsetRange" type="range" min="0" max="10" step="1" value="3" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeCrystalGemBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>启用 Bloom</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeCrystalGemBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeCrystalGemBloomStrengthValue">1.0</span></label>
+            <input id="threeCrystalGemBloomStrengthRange" type="range" min="0" max="20" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemGainRange" class="settings-label">增益 <span class="settings-value" id="threeCrystalGemGainValue">62</span>%</label>
+            <input id="threeCrystalGemGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeCrystalGemSmoothValue">18</span>%</label>
+            <input id="threeCrystalGemSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeCrystalGemSoftClipValue">12</span>%</label>
+            <input id="threeCrystalGemSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCrystalGemFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeCrystalGemFallEaseValue">52</span>%</label>
+            <input id="threeCrystalGemFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

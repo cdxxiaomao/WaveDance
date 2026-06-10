@@ -70,6 +70,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeLavaLamp]: "threeLavaLampConfigPanel",
   [DISPLAY_MODES.threeOilMarble]: "threeOilMarbleConfigPanel",
   [DISPLAY_MODES.threePearlChain]: "threePearlChainConfigPanel",
+  [DISPLAY_MODES.threeCrystalGem]: "threeCrystalGemConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -714,6 +715,29 @@ const threePearlChainSoftClipRange = document.querySelector("#threePearlChainSof
 const threePearlChainSoftClipValue = document.querySelector("#threePearlChainSoftClipValue");
 const threePearlChainFallEaseRange = document.querySelector("#threePearlChainFallEaseRange");
 const threePearlChainFallEaseValue = document.querySelector("#threePearlChainFallEaseValue");
+const threeCrystalGemColorCore = document.querySelector("#threeCrystalGemColorCore");
+const threeCrystalGemColorEdge = document.querySelector("#threeCrystalGemColorEdge");
+const threeCrystalGemColorHighlight = document.querySelector("#threeCrystalGemColorHighlight");
+const threeCrystalGemGemCountRange = document.querySelector("#threeCrystalGemGemCountRange");
+const threeCrystalGemGemCountValue = document.querySelector("#threeCrystalGemGemCountValue");
+const threeCrystalGemFacetSharpnessRange = document.querySelector("#threeCrystalGemFacetSharpnessRange");
+const threeCrystalGemFacetSharpnessValue = document.querySelector("#threeCrystalGemFacetSharpnessValue");
+const threeCrystalGemRotationSpeedRange = document.querySelector("#threeCrystalGemRotationSpeedRange");
+const threeCrystalGemRotationSpeedValue = document.querySelector("#threeCrystalGemRotationSpeedValue");
+const threeCrystalGemChromaticToggle = document.querySelector("#threeCrystalGemChromaticToggle");
+const threeCrystalGemChromaticOffsetRange = document.querySelector("#threeCrystalGemChromaticOffsetRange");
+const threeCrystalGemChromaticOffsetValue = document.querySelector("#threeCrystalGemChromaticOffsetValue");
+const threeCrystalGemBloomToggle = document.querySelector("#threeCrystalGemBloomToggle");
+const threeCrystalGemBloomStrengthRange = document.querySelector("#threeCrystalGemBloomStrengthRange");
+const threeCrystalGemBloomStrengthValue = document.querySelector("#threeCrystalGemBloomStrengthValue");
+const threeCrystalGemGainRange = document.querySelector("#threeCrystalGemGainRange");
+const threeCrystalGemGainValue = document.querySelector("#threeCrystalGemGainValue");
+const threeCrystalGemSmoothRange = document.querySelector("#threeCrystalGemSmoothRange");
+const threeCrystalGemSmoothValue = document.querySelector("#threeCrystalGemSmoothValue");
+const threeCrystalGemSoftClipRange = document.querySelector("#threeCrystalGemSoftClipRange");
+const threeCrystalGemSoftClipValue = document.querySelector("#threeCrystalGemSoftClipValue");
+const threeCrystalGemFallEaseRange = document.querySelector("#threeCrystalGemFallEaseRange");
+const threeCrystalGemFallEaseValue = document.querySelector("#threeCrystalGemFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3590,6 +3614,140 @@ function applyThreePearlChainFormFromStorage(v) {
   }
 }
 
+function readThreeCrystalGemShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeCrystalGemShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeCrystalGemGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeCrystalGemSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeCrystalGemSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeCrystalGemFallEaseRange?.value, 0, 100),
+  };
+  if (threeCrystalGemGainValue) threeCrystalGemGainValue.textContent = String(config.gainPercent);
+  if (threeCrystalGemSmoothValue) threeCrystalGemSmoothValue.textContent = String(config.smoothPercent);
+  if (threeCrystalGemSoftClipValue) threeCrystalGemSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeCrystalGemFallEaseValue) threeCrystalGemFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeCrystalGemShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-crystal-gem-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新宝石晶体形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeCrystalGemFormFromStorage(v) {
+  const sg = readThreeCrystalGemShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeCrystalGem.shape };
+  if (threeCrystalGemGainRange) threeCrystalGemGainRange.value = String(sg.gainPercent);
+  if (threeCrystalGemSmoothRange) threeCrystalGemSmoothRange.value = String(sg.smoothPercent);
+  if (threeCrystalGemSoftClipRange) threeCrystalGemSoftClipRange.value = String(sg.softClipPercent);
+  if (threeCrystalGemFallEaseRange) threeCrystalGemFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeCrystalGemGainValue) threeCrystalGemGainValue.textContent = String(sg.gainPercent);
+  if (threeCrystalGemSmoothValue) threeCrystalGemSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeCrystalGemSoftClipValue) threeCrystalGemSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeCrystalGemFallEaseValue) threeCrystalGemFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const colorKeys = [
+    ["threeCrystalGemColorCore", threeCrystalGemColorCore, "colorCore"],
+    ["threeCrystalGemColorEdge", threeCrystalGemColorEdge, "colorEdge"],
+    ["threeCrystalGemColorHighlight", threeCrystalGemColorHighlight, "colorHighlight"],
+  ];
+  for (const [storageKey, el, defaultKey] of colorKeys) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (el && saved && /^#[0-9A-Fa-f]{6}$/.test(saved)) {
+      el.value = saved.toLowerCase();
+    } else if (el) {
+      el.value = DEFAULT_CONFIG.threeCrystalGem[defaultKey];
+    }
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeCrystalGemGemCount");
+  if (threeCrystalGemGemCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 1, 3)
+        : DEFAULT_CONFIG.threeCrystalGem.gemCount;
+    threeCrystalGemGemCountRange.value = String(count);
+    if (threeCrystalGemGemCountValue) threeCrystalGemGemCountValue.textContent = String(count);
+  }
+
+  const savedFacet = readWindowStorageString(window.localStorage, v, "threeCrystalGemFacetSharpness");
+  if (threeCrystalGemFacetSharpnessRange) {
+    const facet =
+      savedFacet != null && savedFacet !== ""
+        ? clampInt(savedFacet, 0, 100)
+        : DEFAULT_CONFIG.threeCrystalGem.facetSharpness;
+    threeCrystalGemFacetSharpnessRange.value = String(facet);
+    if (threeCrystalGemFacetSharpnessValue) threeCrystalGemFacetSharpnessValue.textContent = String(facet);
+  }
+
+  const savedRot = readWindowStorageString(window.localStorage, v, "threeCrystalGemRotationSpeedDeg");
+  if (threeCrystalGemRotationSpeedRange) {
+    const rot =
+      savedRot != null && savedRot !== ""
+        ? clampInt(savedRot, 0, 30)
+        : DEFAULT_CONFIG.threeCrystalGem.rotationSpeedDeg;
+    threeCrystalGemRotationSpeedRange.value = String(rot);
+    if (threeCrystalGemRotationSpeedValue) threeCrystalGemRotationSpeedValue.textContent = String(rot);
+  }
+
+  if (threeCrystalGemChromaticToggle) {
+    threeCrystalGemChromaticToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeCrystalGemChromatic"),
+      DEFAULT_CONFIG.threeCrystalGem.chromaticEnabled,
+    );
+  }
+
+  const savedChromaticOffset = readWindowStorageString(window.localStorage, v, "threeCrystalGemChromaticOffset");
+  if (threeCrystalGemChromaticOffsetRange) {
+    const offset =
+      savedChromaticOffset != null && savedChromaticOffset !== ""
+        ? Math.min(0.01, Math.max(0, Number(savedChromaticOffset)))
+        : DEFAULT_CONFIG.threeCrystalGem.chromaticOffset;
+    threeCrystalGemChromaticOffsetRange.value = String(Math.round(offset * 1000));
+    if (threeCrystalGemChromaticOffsetValue) {
+      threeCrystalGemChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+  }
+
+  if (threeCrystalGemBloomToggle) {
+    threeCrystalGemBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeCrystalGemBloom"),
+      DEFAULT_CONFIG.threeCrystalGem.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeCrystalGemBloomStrength");
+  if (threeCrystalGemBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeCrystalGem.bloomStrength;
+    threeCrystalGemBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeCrystalGemBloomStrengthValue) {
+      threeCrystalGemBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -4663,6 +4821,7 @@ async function init() {
     applyThreeLavaLampFormFromStorage(v);
     applyThreeOilMarbleFormFromStorage(v);
     applyThreePearlChainFormFromStorage(v);
+    applyThreeCrystalGemFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -7909,6 +8068,165 @@ async function init() {
   });
   threePearlChainFallEaseRange?.addEventListener("input", () => {
     void syncThreePearlChainShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeCrystalGemColorCore?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemColorCore",
+        threeCrystalGemColorCore.value,
+      );
+      await emitVisual("waveform-three-crystal-gem-color-core", threeCrystalGemColorCore.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心色失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemColorEdge?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemColorEdge",
+        threeCrystalGemColorEdge.value,
+      );
+      await emitVisual("waveform-three-crystal-gem-color-edge", threeCrystalGemColorEdge.value);
+    } catch (err) {
+      statusEl.textContent = `更新边缘色失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemColorHighlight?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemColorHighlight",
+        threeCrystalGemColorHighlight.value,
+      );
+      await emitVisual("waveform-three-crystal-gem-color-highlight", threeCrystalGemColorHighlight.value);
+    } catch (err) {
+      statusEl.textContent = `更新高光色失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemGemCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 1, 3);
+    if (threeCrystalGemGemCountValue) threeCrystalGemGemCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemGemCount",
+        String(count),
+      );
+      await emitVisual("waveform-three-crystal-gem-gem-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新宝石数量失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemFacetSharpnessRange?.addEventListener("input", async (event) => {
+    const facet = clampInt(event.target.value, 0, 100);
+    if (threeCrystalGemFacetSharpnessValue) threeCrystalGemFacetSharpnessValue.textContent = String(facet);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemFacetSharpness",
+        String(facet),
+      );
+      await emitVisual("waveform-three-crystal-gem-facet-sharpness", facet);
+    } catch (err) {
+      statusEl.textContent = `更新棱面锐度失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemRotationSpeedRange?.addEventListener("input", async (event) => {
+    const rot = clampInt(event.target.value, 0, 30);
+    if (threeCrystalGemRotationSpeedValue) threeCrystalGemRotationSpeedValue.textContent = String(rot);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemRotationSpeedDeg",
+        String(rot),
+      );
+      await emitVisual("waveform-three-crystal-gem-rotation-speed", rot);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemChromaticToggle?.addEventListener("change", async () => {
+    const enabled = threeCrystalGemChromaticToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemChromatic",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-crystal-gem-chromatic-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新色散开关失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemChromaticOffsetRange?.addEventListener("input", async (event) => {
+    const offset = Math.min(0.01, Math.max(0, Number(event.target.value) / 1000));
+    if (threeCrystalGemChromaticOffsetValue) {
+      threeCrystalGemChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemChromaticOffset",
+        String(offset),
+      );
+      await emitVisual("waveform-three-crystal-gem-chromatic-offset", offset);
+    } catch (err) {
+      statusEl.textContent = `更新色散偏移失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemBloomToggle?.addEventListener("change", async () => {
+    const enabled = threeCrystalGemBloomToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-crystal-gem-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeCrystalGemBloomStrengthValue) {
+      threeCrystalGemBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCrystalGemBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-crystal-gem-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeCrystalGemGainRange?.addEventListener("input", () => {
+    void syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCrystalGemSmoothRange?.addEventListener("input", () => {
+    void syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCrystalGemSoftClipRange?.addEventListener("input", () => {
+    void syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCrystalGemFallEaseRange?.addEventListener("input", () => {
+    void syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {

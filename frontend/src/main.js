@@ -111,6 +111,7 @@ const threeNoiseLandscapeShapeConfig = { ...DEFAULT_CONFIG.threeNoiseLandscape.s
 const threeLavaLampShapeConfig = { ...DEFAULT_CONFIG.threeLavaLamp.shape };
 const threeOilMarbleShapeConfig = { ...DEFAULT_CONFIG.threeOilMarble.shape };
 const threePearlChainShapeConfig = { ...DEFAULT_CONFIG.threePearlChain.shape };
+const threeCrystalGemShapeConfig = { ...DEFAULT_CONFIG.threeCrystalGem.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -358,6 +359,14 @@ function applyThreePearlChainShapeConfig(payload) {
   threePearlChainShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeCrystalGemShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeCrystalGemShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeCrystalGemShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeCrystalGemShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeCrystalGemShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -428,6 +437,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeOilMarbleRaw) applyThreeOilMarbleShapeConfig(JSON.parse(threeOilMarbleRaw));
     const threePearlChainRaw = readWindowStorageString(window.localStorage, windowLabel, "threePearlChainShape");
     if (threePearlChainRaw) applyThreePearlChainShapeConfig(JSON.parse(threePearlChainRaw));
+    const threeCrystalGemRaw = readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemShape");
+    if (threeCrystalGemRaw) applyThreeCrystalGemShapeConfig(JSON.parse(threeCrystalGemRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -746,6 +757,16 @@ let threePearlChainSwaySpeed = DEFAULT_CONFIG.threePearlChain.swaySpeed;
 let threePearlChainMergeStrength = DEFAULT_CONFIG.threePearlChain.mergeStrength;
 let threePearlChainBloomEnabled = DEFAULT_CONFIG.threePearlChain.bloomEnabled;
 let threePearlChainBloomStrength = DEFAULT_CONFIG.threePearlChain.bloomStrength;
+let threeCrystalGemColorCoreHex = DEFAULT_CONFIG.threeCrystalGem.colorCore;
+let threeCrystalGemColorEdgeHex = DEFAULT_CONFIG.threeCrystalGem.colorEdge;
+let threeCrystalGemColorHighlightHex = DEFAULT_CONFIG.threeCrystalGem.colorHighlight;
+let threeCrystalGemGemCount = DEFAULT_CONFIG.threeCrystalGem.gemCount;
+let threeCrystalGemFacetSharpness = DEFAULT_CONFIG.threeCrystalGem.facetSharpness;
+let threeCrystalGemRotationSpeedDeg = DEFAULT_CONFIG.threeCrystalGem.rotationSpeedDeg;
+let threeCrystalGemChromaticEnabled = DEFAULT_CONFIG.threeCrystalGem.chromaticEnabled;
+let threeCrystalGemChromaticOffset = DEFAULT_CONFIG.threeCrystalGem.chromaticOffset;
+let threeCrystalGemBloomEnabled = DEFAULT_CONFIG.threeCrystalGem.bloomEnabled;
+let threeCrystalGemBloomStrength = DEFAULT_CONFIG.threeCrystalGem.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1900,6 +1921,55 @@ function applyThreePearlChainBloomStrength(value) {
     : DEFAULT_CONFIG.threePearlChain.bloomStrength;
 }
 
+function applyThreeCrystalGemColorCoreHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeCrystalGem.colorCore;
+  threeCrystalGemColorCoreHex = safe;
+}
+
+function applyThreeCrystalGemColorEdgeHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeCrystalGem.colorEdge;
+  threeCrystalGemColorEdgeHex = safe;
+}
+
+function applyThreeCrystalGemColorHighlightHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeCrystalGem.colorHighlight;
+  threeCrystalGemColorHighlightHex = safe;
+}
+
+function applyThreeCrystalGemGemCount(value) {
+  threeCrystalGemGemCount = clampInt(value, 1, 3);
+}
+
+function applyThreeCrystalGemFacetSharpness(value) {
+  threeCrystalGemFacetSharpness = clampInt(value, 0, 100);
+}
+
+function applyThreeCrystalGemRotationSpeedDeg(value) {
+  threeCrystalGemRotationSpeedDeg = clampInt(value, 0, 30);
+}
+
+function applyThreeCrystalGemChromaticEnabled(value) {
+  threeCrystalGemChromaticEnabled = parseBoolean(value, DEFAULT_CONFIG.threeCrystalGem.chromaticEnabled);
+}
+
+function applyThreeCrystalGemChromaticOffset(value) {
+  const n = Number(value);
+  threeCrystalGemChromaticOffset = Number.isFinite(n)
+    ? Math.min(0.01, Math.max(0, n))
+    : DEFAULT_CONFIG.threeCrystalGem.chromaticOffset;
+}
+
+function applyThreeCrystalGemBloomEnabled(value) {
+  threeCrystalGemBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeCrystalGem.bloomEnabled);
+}
+
+function applyThreeCrystalGemBloomStrength(value) {
+  const n = Number(value);
+  threeCrystalGemBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeCrystalGem.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2298,6 +2368,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeLavaLamp) return threeLavaLampShapeConfig;
   if (mode === DISPLAY_MODES.threeOilMarble) return threeOilMarbleShapeConfig;
   if (mode === DISPLAY_MODES.threePearlChain) return threePearlChainShapeConfig;
+  if (mode === DISPLAY_MODES.threeCrystalGem) return threeCrystalGemShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2707,6 +2778,21 @@ function getStyleConfigForMode(mode) {
       mergeStrength: threePearlChainMergeStrength,
       bloomEnabled: threePearlChainBloomEnabled,
       bloomStrength: threePearlChainBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeCrystalGem) {
+    return {
+      colorCore: threeCrystalGemColorCoreHex,
+      colorEdge: threeCrystalGemColorEdgeHex,
+      colorHighlight: threeCrystalGemColorHighlightHex,
+      gemCount: threeCrystalGemGemCount,
+      facetSharpness: threeCrystalGemFacetSharpness,
+      rotationSpeedDeg: threeCrystalGemRotationSpeedDeg,
+      chromaticEnabled: threeCrystalGemChromaticEnabled,
+      chromaticOffset: threeCrystalGemChromaticOffset,
+      bloomEnabled: threeCrystalGemBloomEnabled,
+      bloomStrength: threeCrystalGemBloomStrength,
       freqReversed,
     };
   }
@@ -4920,6 +5006,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-crystal-gem-color-core",
+    (event) => {
+      applyThreeCrystalGemColorCoreHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-color-edge",
+    (event) => {
+      applyThreeCrystalGemColorEdgeHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-color-highlight",
+    (event) => {
+      applyThreeCrystalGemColorHighlightHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-gem-count",
+    (event) => {
+      applyThreeCrystalGemGemCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-facet-sharpness",
+    (event) => {
+      applyThreeCrystalGemFacetSharpness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-rotation-speed",
+    (event) => {
+      applyThreeCrystalGemRotationSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-chromatic-enabled",
+    (event) => {
+      applyThreeCrystalGemChromaticEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-chromatic-offset",
+    (event) => {
+      applyThreeCrystalGemChromaticOffset(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-bloom-enabled",
+    (event) => {
+      applyThreeCrystalGemBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-bloom-strength",
+    (event) => {
+      applyThreeCrystalGemBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-crystal-gem-shape-config",
+    (event) => {
+      applyThreeCrystalGemShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -5983,6 +6146,52 @@ async function init() {
     );
     if (savedPearlChainBloomStrength != null && savedPearlChainBloomStrength !== "") {
       applyThreePearlChainBloomStrength(savedPearlChainBloomStrength);
+    }
+    applyThreeCrystalGemColorCoreHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemColorCore") ??
+        DEFAULT_CONFIG.threeCrystalGem.colorCore,
+    );
+    applyThreeCrystalGemColorEdgeHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemColorEdge") ??
+        DEFAULT_CONFIG.threeCrystalGem.colorEdge,
+    );
+    applyThreeCrystalGemColorHighlightHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemColorHighlight") ??
+        DEFAULT_CONFIG.threeCrystalGem.colorHighlight,
+    );
+    applyThreeCrystalGemGemCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemGemCount") ??
+        DEFAULT_CONFIG.threeCrystalGem.gemCount,
+    );
+    applyThreeCrystalGemFacetSharpness(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemFacetSharpness") ??
+        DEFAULT_CONFIG.threeCrystalGem.facetSharpness,
+    );
+    applyThreeCrystalGemRotationSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemRotationSpeedDeg") ??
+        DEFAULT_CONFIG.threeCrystalGem.rotationSpeedDeg,
+    );
+    applyThreeCrystalGemChromaticEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemChromatic"),
+    );
+    const savedCrystalGemChromaticOffset = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeCrystalGemChromaticOffset",
+    );
+    if (savedCrystalGemChromaticOffset != null && savedCrystalGemChromaticOffset !== "") {
+      applyThreeCrystalGemChromaticOffset(savedCrystalGemChromaticOffset);
+    }
+    applyThreeCrystalGemBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeCrystalGemBloom"),
+    );
+    const savedCrystalGemBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeCrystalGemBloomStrength",
+    );
+    if (savedCrystalGemBloomStrength != null && savedCrystalGemBloomStrength !== "") {
+      applyThreeCrystalGemBloomStrength(savedCrystalGemBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

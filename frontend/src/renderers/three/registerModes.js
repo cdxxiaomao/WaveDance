@@ -15,6 +15,7 @@ import { createNoiseLandscapeRenderer } from "./noiseLandscapeRenderer.js";
 import { createLavaLampRenderer } from "./lavaLampRenderer.js";
 import { createOilMarbleRenderer } from "./oilMarbleRenderer.js";
 import { createPearlChainRenderer } from "./pearlChainRenderer.js";
+import { createCrystalGemRenderer } from "./crystalGemRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
@@ -31,3 +32,4 @@ registerThreeMode(DISPLAY_MODES.threeNoiseLandscape, createNoiseLandscapeRendere
 registerThreeMode(DISPLAY_MODES.threeLavaLamp, createLavaLampRenderer);
 registerThreeMode(DISPLAY_MODES.threeOilMarble, createOilMarbleRenderer);
 registerThreeMode(DISPLAY_MODES.threePearlChain, createPearlChainRenderer);
+registerThreeMode(DISPLAY_MODES.threeCrystalGem, createCrystalGemRenderer);

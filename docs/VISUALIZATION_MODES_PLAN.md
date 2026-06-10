@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~32 已全部完成；Phase 33~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~33 已全部完成；Phase 34~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1653,14 +1653,14 @@ threeCrystalGem: {
 
 #### 33.2 新建 `three/crystalGemRenderer.js`
 
-- [ ] SDF：`octahedron` / `roundBox` 组合；`facetSharpness` 控制 `max(abs)` 棱感
-- [ ] 三色 mix：core 在内部，edge 在 fresnel，highlight 在 spec
-- [ ] 可选 `createChromaticComposer`
+- [x] SDF：`octahedron` / `roundBox` 组合；`facetSharpness` 控制 `max(abs)` 棱感
+- [x] 三色 mix：core 在内部，edge 在 fresnel，highlight 在 spec
+- [x] 可选 `createChromaticComposer`
 
 #### 33.3 验收标准
 
-- [ ] 棱面 3D 感明显，非 smooth blob
-- [ ] chromatic 开关有效
+- [x] 棱面 3D 感明显，非 smooth blob
+- [x] chromatic 开关有效
 
 ---
 
@@ -2042,14 +2042,14 @@ threeKnotOrganic: {
 | 30 | 熔岩灯 Three Lava Lamp（E） | `[x]` 已完成 | 2026-06-10 |
 | 31 | 油彩大理石 Three Oil Marble（E） | `[x]` 已完成 | 2026-06-10 |
 | 32 | 珍珠链 Three Pearl Chain（E） | `[x]` 已完成 | 2026-06-10 |
-| 33 | 宝石晶体 Three Crystal Gem（F） | `[ ]` 未开始 | |
+| 33 | 宝石晶体 Three Crystal Gem（F） | `[x]` 已完成 | 2026-06-10 |
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[ ]` 未开始 | |
 | 35 | 全息棱镜 Three Holo Prism（F） | `[ ]` 未开始 | |
 | 36 | 星云团 Three Nebula Volume（G） | `[ ]` 未开始 | |
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 33（宝石晶体）
+**当前建议下一步**：Phase 34（玻璃球栈）
 
 ---
 
