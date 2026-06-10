@@ -8,6 +8,13 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 17：粒子银河 Three Particle Galaxy（A/D）
+
+- 新建 `frontend/src/renderers/three/particleGalaxyRenderer.js`：盘状螺旋银河点云（bass 向心收拢、treble 噪声扩散），可选 Bloom；超 15000 粒子时降 DPR 并限 30fps 位置更新。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeParticleGalaxy` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-galaxy-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 粒子银河」、`#threeParticleGalaxyConfigPanel`（颜色/数量/半径/旋臂/低频收拢/高频扩散/自转/Bloom/形状四件套）。
+
 ### 可视化模式扩展 — Phase 16：等离子场 Three Plasma Field（A/D）
 
 - 新建 `frontend/src/renderers/three/plasmaFieldRenderer.js`：全屏 ShaderMaterial 等离子（simplex noise + bass/mid/treble 驱动），可选 Bloom 后处理；`registerModes.js` 注册至 `threeModeRegistry`。

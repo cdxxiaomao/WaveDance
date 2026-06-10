@@ -55,6 +55,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.terrain3d]: "terrain3dConfigPanel",
   [DISPLAY_MODES.helix3d]: "helix3dConfigPanel",
   [DISPLAY_MODES.threePlasmaField]: "threePlasmaFieldConfigPanel",
+  [DISPLAY_MODES.threeParticleGalaxy]: "threeParticleGalaxyConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -390,6 +391,29 @@ const threePlasmaSoftClipRange = document.querySelector("#threePlasmaSoftClipRan
 const threePlasmaSoftClipValue = document.querySelector("#threePlasmaSoftClipValue");
 const threePlasmaFallEaseRange = document.querySelector("#threePlasmaFallEaseRange");
 const threePlasmaFallEaseValue = document.querySelector("#threePlasmaFallEaseValue");
+const threeGalaxyColor = document.querySelector("#threeGalaxyColor");
+const threeGalaxyCountRange = document.querySelector("#threeGalaxyCountRange");
+const threeGalaxyCountValue = document.querySelector("#threeGalaxyCountValue");
+const threeGalaxyRadiusRange = document.querySelector("#threeGalaxyRadiusRange");
+const threeGalaxyRadiusValue = document.querySelector("#threeGalaxyRadiusValue");
+const threeGalaxyArmsSelect = document.querySelector("#threeGalaxyArmsSelect");
+const threeGalaxyBassPullRange = document.querySelector("#threeGalaxyBassPullRange");
+const threeGalaxyBassPullValue = document.querySelector("#threeGalaxyBassPullValue");
+const threeGalaxyTrebleSpreadRange = document.querySelector("#threeGalaxyTrebleSpreadRange");
+const threeGalaxyTrebleSpreadValue = document.querySelector("#threeGalaxyTrebleSpreadValue");
+const threeGalaxyAutoRotateSpeedRange = document.querySelector("#threeGalaxyAutoRotateSpeedRange");
+const threeGalaxyAutoRotateSpeedValue = document.querySelector("#threeGalaxyAutoRotateSpeedValue");
+const threeGalaxyBloomToggle = document.querySelector("#threeGalaxyBloomToggle");
+const threeGalaxyBloomStrengthRange = document.querySelector("#threeGalaxyBloomStrengthRange");
+const threeGalaxyBloomStrengthValue = document.querySelector("#threeGalaxyBloomStrengthValue");
+const threeGalaxyGainRange = document.querySelector("#threeGalaxyGainRange");
+const threeGalaxyGainValue = document.querySelector("#threeGalaxyGainValue");
+const threeGalaxySmoothRange = document.querySelector("#threeGalaxySmoothRange");
+const threeGalaxySmoothValue = document.querySelector("#threeGalaxySmoothValue");
+const threeGalaxySoftClipRange = document.querySelector("#threeGalaxySoftClipRange");
+const threeGalaxySoftClipValue = document.querySelector("#threeGalaxySoftClipValue");
+const threeGalaxyFallEaseRange = document.querySelector("#threeGalaxyFallEaseRange");
+const threeGalaxyFallEaseValue = document.querySelector("#threeGalaxyFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1883,6 +1907,140 @@ function applyThreePlasmaFormFromStorage(v) {
   }
 }
 
+function readThreeGalaxyShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeGalaxyGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeGalaxySmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeGalaxySoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeGalaxyFallEaseRange?.value, 0, 100),
+  };
+  if (threeGalaxyGainValue) threeGalaxyGainValue.textContent = String(config.gainPercent);
+  if (threeGalaxySmoothValue) threeGalaxySmoothValue.textContent = String(config.smoothPercent);
+  if (threeGalaxySoftClipValue) threeGalaxySoftClipValue.textContent = String(config.softClipPercent);
+  if (threeGalaxyFallEaseValue) threeGalaxyFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-galaxy-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyThreeGalaxyFormFromStorage(v) {
+  const sg = readThreeGalaxyShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeParticleGalaxy.shape };
+  if (threeGalaxyGainRange) threeGalaxyGainRange.value = String(sg.gainPercent);
+  if (threeGalaxySmoothRange) threeGalaxySmoothRange.value = String(sg.smoothPercent);
+  if (threeGalaxySoftClipRange) threeGalaxySoftClipRange.value = String(sg.softClipPercent);
+  if (threeGalaxyFallEaseRange) threeGalaxyFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeGalaxyGainValue) threeGalaxyGainValue.textContent = String(sg.gainPercent);
+  if (threeGalaxySmoothValue) threeGalaxySmoothValue.textContent = String(sg.smoothPercent);
+  if (threeGalaxySoftClipValue) threeGalaxySoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeGalaxyFallEaseValue) threeGalaxyFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColor = readWindowStorageString(window.localStorage, v, "threeGalaxyColor");
+  if (threeGalaxyColor && savedColor && /^#[0-9A-Fa-f]{6}$/.test(savedColor)) {
+    threeGalaxyColor.value = savedColor.toLowerCase();
+  } else if (threeGalaxyColor) {
+    threeGalaxyColor.value = DEFAULT_CONFIG.threeParticleGalaxy.particleColor;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeGalaxyCount");
+  if (threeGalaxyCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2000, 20000)
+        : DEFAULT_CONFIG.threeParticleGalaxy.particleCount;
+    threeGalaxyCountRange.value = String(count);
+    if (threeGalaxyCountValue) threeGalaxyCountValue.textContent = String(count);
+  }
+
+  const savedRadius = readWindowStorageString(window.localStorage, v, "threeGalaxyRadius");
+  if (threeGalaxyRadiusRange) {
+    const radius =
+      savedRadius != null && savedRadius !== ""
+        ? Math.min(2.5, Math.max(0.5, Number(savedRadius)))
+        : DEFAULT_CONFIG.threeParticleGalaxy.galaxyRadius;
+    threeGalaxyRadiusRange.value = String(Math.round(radius * 10));
+    if (threeGalaxyRadiusValue) threeGalaxyRadiusValue.textContent = radius.toFixed(1);
+  }
+
+  const savedArms = readWindowStorageString(window.localStorage, v, "threeGalaxyArms");
+  if (threeGalaxyArmsSelect) {
+    threeGalaxyArmsSelect.value = String(
+      savedArms != null && savedArms !== ""
+        ? clampInt(savedArms, 1, 4)
+        : DEFAULT_CONFIG.threeParticleGalaxy.spiralArms,
+    );
+  }
+
+  const savedBassPull = readWindowStorageString(window.localStorage, v, "threeGalaxyBassPull");
+  if (threeGalaxyBassPullRange) {
+    const bassPull =
+      savedBassPull != null && savedBassPull !== ""
+        ? clampInt(savedBassPull, 0, 100)
+        : DEFAULT_CONFIG.threeParticleGalaxy.bassPullStrength;
+    threeGalaxyBassPullRange.value = String(bassPull);
+    if (threeGalaxyBassPullValue) threeGalaxyBassPullValue.textContent = String(bassPull);
+  }
+
+  const savedTrebleSpread = readWindowStorageString(window.localStorage, v, "threeGalaxyTrebleSpread");
+  if (threeGalaxyTrebleSpreadRange) {
+    const trebleSpread =
+      savedTrebleSpread != null && savedTrebleSpread !== ""
+        ? clampInt(savedTrebleSpread, 0, 100)
+        : DEFAULT_CONFIG.threeParticleGalaxy.trebleSpreadStrength;
+    threeGalaxyTrebleSpreadRange.value = String(trebleSpread);
+    if (threeGalaxyTrebleSpreadValue) threeGalaxyTrebleSpreadValue.textContent = String(trebleSpread);
+  }
+
+  const savedAutoRotate = readWindowStorageString(window.localStorage, v, "threeGalaxyAutoRotateSpeed");
+  if (threeGalaxyAutoRotateSpeedRange) {
+    const autoRotate =
+      savedAutoRotate != null && savedAutoRotate !== ""
+        ? Math.min(20, Math.max(0, Number(savedAutoRotate)))
+        : DEFAULT_CONFIG.threeParticleGalaxy.autoRotateSpeedDeg;
+    threeGalaxyAutoRotateSpeedRange.value = String(autoRotate);
+    if (threeGalaxyAutoRotateSpeedValue) threeGalaxyAutoRotateSpeedValue.textContent = String(autoRotate);
+  }
+
+  if (threeGalaxyBloomToggle) {
+    threeGalaxyBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeGalaxyBloom"),
+      DEFAULT_CONFIG.threeParticleGalaxy.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeGalaxyBloomStrength");
+  if (threeGalaxyBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeParticleGalaxy.bloomStrength;
+    threeGalaxyBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeGalaxyBloomStrengthValue) threeGalaxyBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -2505,6 +2663,7 @@ async function init() {
     applyTerrain3dFormFromStorage(v);
     applyHelix3dFormFromStorage(v);
     applyThreePlasmaFormFromStorage(v);
+    applyThreeGalaxyFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -4329,6 +4488,120 @@ async function init() {
   });
   threePlasmaFallEaseRange?.addEventListener("input", () => {
     void syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeGalaxyColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyColor", threeGalaxyColor.value);
+      await emitVisual("waveform-three-galaxy-color", threeGalaxyColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新粒子颜色失败：${String(err)}`;
+    }
+  });
+  threeGalaxyCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2000, 20000);
+    if (threeGalaxyCountValue) threeGalaxyCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyCount", String(count));
+      await emitVisual("waveform-three-galaxy-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新粒子数量失败：${String(err)}`;
+    }
+  });
+  threeGalaxyRadiusRange?.addEventListener("input", async (event) => {
+    const radius = Math.min(2.5, Math.max(0.5, Number(event.target.value) / 10));
+    if (threeGalaxyRadiusValue) threeGalaxyRadiusValue.textContent = radius.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyRadius", String(radius));
+      await emitVisual("waveform-three-galaxy-radius", radius);
+    } catch (err) {
+      statusEl.textContent = `更新银河半径失败：${String(err)}`;
+    }
+  });
+  threeGalaxyArmsSelect?.addEventListener("change", async (event) => {
+    const arms = clampInt(event.target.value, 1, 4);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyArms", String(arms));
+      await emitVisual("waveform-three-galaxy-arms", arms);
+    } catch (err) {
+      statusEl.textContent = `更新旋臂数量失败：${String(err)}`;
+    }
+  });
+  threeGalaxyBassPullRange?.addEventListener("input", async (event) => {
+    const bassPull = clampInt(event.target.value, 0, 100);
+    if (threeGalaxyBassPullValue) threeGalaxyBassPullValue.textContent = String(bassPull);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyBassPull", String(bassPull));
+      await emitVisual("waveform-three-galaxy-bass-pull", bassPull);
+    } catch (err) {
+      statusEl.textContent = `更新低频收拢失败：${String(err)}`;
+    }
+  });
+  threeGalaxyTrebleSpreadRange?.addEventListener("input", async (event) => {
+    const trebleSpread = clampInt(event.target.value, 0, 100);
+    if (threeGalaxyTrebleSpreadValue) threeGalaxyTrebleSpreadValue.textContent = String(trebleSpread);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGalaxyTrebleSpread",
+        String(trebleSpread),
+      );
+      await emitVisual("waveform-three-galaxy-treble-spread", trebleSpread);
+    } catch (err) {
+      statusEl.textContent = `更新高频扩散失败：${String(err)}`;
+    }
+  });
+  threeGalaxyAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(20, Math.max(0, Number(event.target.value)));
+    if (threeGalaxyAutoRotateSpeedValue) threeGalaxyAutoRotateSpeedValue.textContent = String(speed);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGalaxyAutoRotateSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-galaxy-auto-rotate-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeGalaxyBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeGalaxyBloom", String(enabled));
+      await emitVisual("waveform-three-galaxy-bloom", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeGalaxyBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeGalaxyBloomStrengthValue) threeGalaxyBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGalaxyBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-galaxy-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeGalaxyGainRange?.addEventListener("input", () => {
+    void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGalaxySmoothRange?.addEventListener("input", () => {
+    void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGalaxySoftClipRange?.addEventListener("input", () => {
+    void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGalaxyFallEaseRange?.addEventListener("input", () => {
+    void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

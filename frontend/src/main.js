@@ -96,6 +96,7 @@ const ring3dShapeConfig = { ...DEFAULT_CONFIG.ring3d.shape };
 const terrain3dShapeConfig = { ...DEFAULT_CONFIG.terrain3d.shape };
 const helix3dShapeConfig = { ...DEFAULT_CONFIG.helix3d.shape };
 const threePlasmaShapeConfig = { ...DEFAULT_CONFIG.threePlasmaField.shape };
+const threeGalaxyShapeConfig = { ...DEFAULT_CONFIG.threeParticleGalaxy.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -231,6 +232,14 @@ function applyThreePlasmaShapeConfig(payload) {
   threePlasmaShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeGalaxyShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeGalaxyShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeGalaxyShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeGalaxyShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeGalaxyShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -265,6 +274,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (helix3dRaw) applyHelix3dShapeConfig(JSON.parse(helix3dRaw));
     const threePlasmaRaw = readWindowStorageString(window.localStorage, windowLabel, "threePlasmaShape");
     if (threePlasmaRaw) applyThreePlasmaShapeConfig(JSON.parse(threePlasmaRaw));
+    const threeGalaxyRaw = readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyShape");
+    if (threeGalaxyRaw) applyThreeGalaxyShapeConfig(JSON.parse(threeGalaxyRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -460,6 +471,15 @@ let threePlasmaNoiseScale = DEFAULT_CONFIG.threePlasmaField.noiseScale;
 let threePlasmaReactiveness = DEFAULT_CONFIG.threePlasmaField.reactiveness;
 let threePlasmaBloomEnabled = DEFAULT_CONFIG.threePlasmaField.bloomEnabled;
 let threePlasmaBloomStrength = DEFAULT_CONFIG.threePlasmaField.bloomStrength;
+let threeGalaxyColorHex = DEFAULT_CONFIG.threeParticleGalaxy.particleColor;
+let threeGalaxyParticleCount = DEFAULT_CONFIG.threeParticleGalaxy.particleCount;
+let threeGalaxyRadius = DEFAULT_CONFIG.threeParticleGalaxy.galaxyRadius;
+let threeGalaxySpiralArms = DEFAULT_CONFIG.threeParticleGalaxy.spiralArms;
+let threeGalaxyBassPullStrength = DEFAULT_CONFIG.threeParticleGalaxy.bassPullStrength;
+let threeGalaxyTrebleSpreadStrength = DEFAULT_CONFIG.threeParticleGalaxy.trebleSpreadStrength;
+let threeGalaxyBloomEnabled = DEFAULT_CONFIG.threeParticleGalaxy.bloomEnabled;
+let threeGalaxyBloomStrength = DEFAULT_CONFIG.threeParticleGalaxy.bloomStrength;
+let threeGalaxyAutoRotateSpeedDeg = DEFAULT_CONFIG.threeParticleGalaxy.autoRotateSpeedDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1139,6 +1159,51 @@ function applyThreePlasmaBloomStrength(value) {
   threePlasmaBloomStrength = Math.min(2, Math.max(0, n));
 }
 
+function applyThreeGalaxyColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw)
+    ? raw.toLowerCase()
+    : DEFAULT_CONFIG.threeParticleGalaxy.particleColor;
+  threeGalaxyColorHex = safe;
+}
+
+function applyThreeGalaxyParticleCount(value) {
+  threeGalaxyParticleCount = clampInt(value, 2000, 20000);
+}
+
+function applyThreeGalaxyRadius(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeGalaxyRadius = Math.min(2.5, Math.max(0.5, n));
+}
+
+function applyThreeGalaxySpiralArms(value) {
+  threeGalaxySpiralArms = clampInt(value, 1, 4);
+}
+
+function applyThreeGalaxyBassPullStrength(value) {
+  threeGalaxyBassPullStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeGalaxyTrebleSpreadStrength(value) {
+  threeGalaxyTrebleSpreadStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeGalaxyBloomEnabled(value) {
+  threeGalaxyBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeParticleGalaxy.bloomEnabled);
+}
+
+function applyThreeGalaxyBloomStrength(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeGalaxyBloomStrength = Math.min(2, Math.max(0, n));
+}
+
+function applyThreeGalaxyAutoRotateSpeedDeg(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeGalaxyAutoRotateSpeedDeg = Math.min(20, Math.max(0, n));
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1354,6 +1419,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.terrain3d) return terrain3dShapeConfig;
   if (mode === DISPLAY_MODES.helix3d) return helix3dShapeConfig;
   if (mode === DISPLAY_MODES.threePlasmaField) return threePlasmaShapeConfig;
+  if (mode === DISPLAY_MODES.threeParticleGalaxy) return threeGalaxyShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1569,6 +1635,20 @@ function getStyleConfigForMode(mode) {
       reactiveness: threePlasmaReactiveness,
       bloomEnabled: threePlasmaBloomEnabled,
       bloomStrength: threePlasmaBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeParticleGalaxy) {
+    return {
+      particleColor: threeGalaxyColorHex,
+      particleCount: threeGalaxyParticleCount,
+      galaxyRadius: threeGalaxyRadius,
+      spiralArms: threeGalaxySpiralArms,
+      bassPullStrength: threeGalaxyBassPullStrength,
+      trebleSpreadStrength: threeGalaxyTrebleSpreadStrength,
+      bloomEnabled: threeGalaxyBloomEnabled,
+      bloomStrength: threeGalaxyBloomStrength,
+      autoRotateSpeedDeg: threeGalaxyAutoRotateSpeedDeg,
       freqReversed,
     };
   }
@@ -2823,6 +2903,76 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-galaxy-color",
+    (event) => {
+      applyThreeGalaxyColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-count",
+    (event) => {
+      applyThreeGalaxyParticleCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-radius",
+    (event) => {
+      applyThreeGalaxyRadius(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-arms",
+    (event) => {
+      applyThreeGalaxySpiralArms(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-bass-pull",
+    (event) => {
+      applyThreeGalaxyBassPullStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-treble-spread",
+    (event) => {
+      applyThreeGalaxyTrebleSpreadStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-bloom",
+    (event) => {
+      applyThreeGalaxyBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-bloom-strength",
+    (event) => {
+      applyThreeGalaxyBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-auto-rotate-speed",
+    (event) => {
+      applyThreeGalaxyAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-galaxy-shape-config",
+    (event) => {
+      applyThreeGalaxyShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -3318,6 +3468,51 @@ async function init() {
     );
     if (savedPlasmaBloomStrength != null && savedPlasmaBloomStrength !== "") {
       applyThreePlasmaBloomStrength(savedPlasmaBloomStrength);
+    }
+    applyThreeGalaxyColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyColor") ??
+        DEFAULT_CONFIG.threeParticleGalaxy.particleColor,
+    );
+    const savedGalaxyCount = readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyCount");
+    if (savedGalaxyCount != null && savedGalaxyCount !== "") {
+      applyThreeGalaxyParticleCount(savedGalaxyCount);
+    }
+    const savedGalaxyRadius = readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyRadius");
+    if (savedGalaxyRadius != null && savedGalaxyRadius !== "") {
+      applyThreeGalaxyRadius(savedGalaxyRadius);
+    }
+    const savedGalaxyArms = readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyArms");
+    if (savedGalaxyArms != null && savedGalaxyArms !== "") {
+      applyThreeGalaxySpiralArms(savedGalaxyArms);
+    }
+    const savedGalaxyBassPull = readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyBassPull");
+    if (savedGalaxyBassPull != null && savedGalaxyBassPull !== "") {
+      applyThreeGalaxyBassPullStrength(savedGalaxyBassPull);
+    }
+    const savedGalaxyTrebleSpread = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeGalaxyTrebleSpread",
+    );
+    if (savedGalaxyTrebleSpread != null && savedGalaxyTrebleSpread !== "") {
+      applyThreeGalaxyTrebleSpreadStrength(savedGalaxyTrebleSpread);
+    }
+    applyThreeGalaxyBloomEnabled(readWindowStorageString(window.localStorage, windowLabel, "threeGalaxyBloom"));
+    const savedGalaxyBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeGalaxyBloomStrength",
+    );
+    if (savedGalaxyBloomStrength != null && savedGalaxyBloomStrength !== "") {
+      applyThreeGalaxyBloomStrength(savedGalaxyBloomStrength);
+    }
+    const savedGalaxyAutoRotate = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeGalaxyAutoRotateSpeed",
+    );
+    if (savedGalaxyAutoRotate != null && savedGalaxyAutoRotate !== "") {
+      applyThreeGalaxyAutoRotateSpeedDeg(savedGalaxyAutoRotate);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

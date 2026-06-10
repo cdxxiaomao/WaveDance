@@ -97,6 +97,7 @@
               <option value="helix3d">3D 螺旋频谱</option>
               <optgroup label="Three 高阶">
                 <option value="threePlasmaField">等离子场</option>
+                <option value="threeParticleGalaxy">粒子银河</option>
               </optgroup>
             </select>
           </div>
@@ -1041,6 +1042,70 @@
           <div class="settings-field">
             <label for="threePlasmaFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePlasmaFallEaseValue">50</span>%</label>
             <input id="threePlasmaFallEaseRange" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeParticleGalaxyConfigPanel" aria-labelledby="sec-three-galaxy-display" hidden>
+        <h2 id="sec-three-galaxy-display" class="settings-card__title">粒子银河配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-galaxy" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeGalaxyColor" class="settings-label">粒子颜色</label>
+            <input id="threeGalaxyColor" type="color" value="#c4b5fd" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyCountRange" class="settings-label">粒子数量 <span class="settings-value" id="threeGalaxyCountValue">12000</span></label>
+            <input id="threeGalaxyCountRange" type="range" min="2000" max="20000" step="500" value="12000" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyRadiusRange" class="settings-label">银河半径 <span class="settings-value" id="threeGalaxyRadiusValue">1.2</span></label>
+            <input id="threeGalaxyRadiusRange" type="range" min="5" max="25" step="1" value="12" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeGalaxyArmsSelect" class="settings-label">旋臂数量</label>
+            <select id="threeGalaxyArmsSelect" class="settings-select">
+              <option value="1">1 条</option>
+              <option value="2" selected>2 条</option>
+              <option value="3">3 条</option>
+              <option value="4">4 条</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyBassPullRange" class="settings-label">低频收拢 <span class="settings-value" id="threeGalaxyBassPullValue">65</span>%</label>
+            <input id="threeGalaxyBassPullRange" type="range" min="0" max="100" step="1" value="65" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyTrebleSpreadRange" class="settings-label">高频扩散 <span class="settings-value" id="threeGalaxyTrebleSpreadValue">55</span>%</label>
+            <input id="threeGalaxyTrebleSpreadRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyAutoRotateSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeGalaxyAutoRotateSpeedValue">4</span>°/s</label>
+            <input id="threeGalaxyAutoRotateSpeedRange" type="range" min="0" max="20" step="1" value="4" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeGalaxyBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeGalaxyBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeGalaxyBloomStrengthValue">1.2</span></label>
+            <input id="threeGalaxyBloomStrengthRange" type="range" min="0" max="20" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyGainRange" class="settings-label">增益 <span class="settings-value" id="threeGalaxyGainValue">60</span>%</label>
+            <input id="threeGalaxyGainRange" type="range" min="10" max="150" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxySmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeGalaxySmoothValue">20</span>%</label>
+            <input id="threeGalaxySmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxySoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeGalaxySoftClipValue">12</span>%</label>
+            <input id="threeGalaxySoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGalaxyFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGalaxyFallEaseValue">55</span>%</label>
+            <input id="threeGalaxyFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>

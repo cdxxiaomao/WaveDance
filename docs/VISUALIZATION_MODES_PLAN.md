@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~16 已全部完成；Phase 17~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~17 已全部完成；Phase 18~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1026,16 +1026,16 @@ threeParticleGalaxy: {
 
 #### 17.2 新建 `renderers/three/particleGalaxyRenderer.js`
 
-- [ ] `THREE.Points` + `BufferGeometry`（position、初始 angle/radius attribute）
-- [ ] 每帧 CPU 或 shader 更新：bass → 向心、treble → 噪声扩散
-- [ ] `PointsMaterial`：`size`、`transparent`、`blending: AdditiveBlending`
-- [ ] 性能：`particleCount` 超 15000 时降 DPR 或限 30fps 更新
+- [x] `THREE.Points` + `BufferGeometry`（position、初始 angle/radius attribute）
+- [x] 每帧 CPU 或 shader 更新：bass → 向心、treble → 噪声扩散
+- [x] `PointsMaterial`：`size`、`transparent`、`blending: AdditiveBlending`
+- [x] 性能：`particleCount` 超 15000 时降 DPR 或限 30fps 更新
 
 #### 17.3 验收标准
 
-- [ ] 强 bass 时粒子明显向中心聚拢
-- [ ] 256 分桶 + 12000 粒子 macOS 浮窗 fps ≥ 30
-- [ ] 与 dotRing / ring3d 视觉完全不同
+- [x] 强 bass 时粒子明显向中心聚拢
+- [x] 256 分桶 + 12000 粒子 macOS 浮窗 fps ≥ 30
+- [x] 与 dotRing / ring3d 视觉完全不同
 
 ---
 
@@ -1573,7 +1573,7 @@ threeNoiseLandscape: {
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
 | 15 | Three.js 公共基础设施 | `[x]` 已完成 | 2026-06-10 |
 | 16 | 等离子场 Three Plasma Field（A/D） | `[x]` 已完成 | 2026-06-10 |
-| 17 | 粒子银河 Three Particle Galaxy（A/D） | `[ ]` 未开始 | |
+| 17 | 粒子银河 Three Particle Galaxy（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[ ]` 未开始 | |
 | 19 | 能量球 Three Energy Sphere（A） | `[ ]` 未开始 | |
 | 20 | 万花筒 Three Kaleidoscope（B） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 17（粒子银河 Three Particle Galaxy，方案 D）
+**当前建议下一步**：Phase 18（能量隧道 Three Bloom Tunnel，方案 D）
 
 ---
 
