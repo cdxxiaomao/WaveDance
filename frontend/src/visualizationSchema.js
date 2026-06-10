@@ -300,6 +300,21 @@ export const STORAGE_KEYS = {
   threeCrystalGemBloom: "wavedance.threeCrystalGemBloomEnabled",
   threeCrystalGemBloomStrength: "wavedance.threeCrystalGemBloomStrength",
   threeCrystalGemShape: "wavedance.threeCrystalGemShapeConfig",
+  threeGlassOrbsColor1: "wavedance.threeGlassOrbsColor1",
+  threeGlassOrbsColor2: "wavedance.threeGlassOrbsColor2",
+  threeGlassOrbsColor3: "wavedance.threeGlassOrbsColor3",
+  threeGlassOrbsColor4: "wavedance.threeGlassOrbsColor4",
+  threeGlassOrbsColor5: "wavedance.threeGlassOrbsColor5",
+  threeGlassOrbsOrbCount: "wavedance.threeGlassOrbsOrbCount",
+  threeGlassOrbsStackSpacing: "wavedance.threeGlassOrbsStackSpacing",
+  threeGlassOrbsTransmission: "wavedance.threeGlassOrbsTransmission",
+  threeGlassOrbsRefractionStrength: "wavedance.threeGlassOrbsRefractionStrength",
+  threeGlassOrbsBreatheWithPeak: "wavedance.threeGlassOrbsBreatheWithPeak",
+  threeGlassOrbsChromatic: "wavedance.threeGlassOrbsChromaticEnabled",
+  threeGlassOrbsChromaticOffset: "wavedance.threeGlassOrbsChromaticOffset",
+  threeGlassOrbsBloom: "wavedance.threeGlassOrbsBloomEnabled",
+  threeGlassOrbsBloomStrength: "wavedance.threeGlassOrbsBloomStrength",
+  threeGlassOrbsShape: "wavedance.threeGlassOrbsShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -338,6 +353,7 @@ export const DISPLAY_MODES = {
   threeOilMarble: "threeOilMarble",
   threePearlChain: "threePearlChain",
   threeCrystalGem: "threeCrystalGem",
+  threeGlassOrbs: "threeGlassOrbs",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -358,6 +374,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeOilMarble,
   DISPLAY_MODES.threePearlChain,
   DISPLAY_MODES.threeCrystalGem,
+  DISPLAY_MODES.threeGlassOrbs,
 ];
 
 /** @param {string} mode */
@@ -904,6 +921,28 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 52,
     },
   },
+  threeGlassOrbs: {
+    color1: "#8f7cff",
+    color2: "#ec4899",
+    color3: "#3b82f6",
+    color4: "#14b8a6",
+    color5: "#f59e0b",
+    orbCount: 4,
+    stackSpacing: 0.38,
+    transmission: 72,
+    refractionStrength: 55,
+    breatheWithPeak: true,
+    chromaticEnabled: true,
+    chromaticOffset: 0.004,
+    bloomEnabled: true,
+    bloomStrength: 0.95,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 20,
+      softClipPercent: 10,
+      fallEasePercent: 50,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -940,6 +979,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeOilMarble) return DISPLAY_MODES.threeOilMarble;
   if (s === DISPLAY_MODES.threePearlChain) return DISPLAY_MODES.threePearlChain;
   if (s === DISPLAY_MODES.threeCrystalGem) return DISPLAY_MODES.threeCrystalGem;
+  if (s === DISPLAY_MODES.threeGlassOrbs) return DISPLAY_MODES.threeGlassOrbs;
   return DISPLAY_MODES.line;
 }
 
@@ -1347,6 +1387,21 @@ export function windowStorageKeys(windowLabel) {
     threeCrystalGemBloom: `${pre}.threeCrystalGemBloomEnabled`,
     threeCrystalGemBloomStrength: `${pre}.threeCrystalGemBloomStrength`,
     threeCrystalGemShape: `${pre}.threeCrystalGemShapeConfig`,
+    threeGlassOrbsColor1: `${pre}.threeGlassOrbsColor1`,
+    threeGlassOrbsColor2: `${pre}.threeGlassOrbsColor2`,
+    threeGlassOrbsColor3: `${pre}.threeGlassOrbsColor3`,
+    threeGlassOrbsColor4: `${pre}.threeGlassOrbsColor4`,
+    threeGlassOrbsColor5: `${pre}.threeGlassOrbsColor5`,
+    threeGlassOrbsOrbCount: `${pre}.threeGlassOrbsOrbCount`,
+    threeGlassOrbsStackSpacing: `${pre}.threeGlassOrbsStackSpacing`,
+    threeGlassOrbsTransmission: `${pre}.threeGlassOrbsTransmission`,
+    threeGlassOrbsRefractionStrength: `${pre}.threeGlassOrbsRefractionStrength`,
+    threeGlassOrbsBreatheWithPeak: `${pre}.threeGlassOrbsBreatheWithPeak`,
+    threeGlassOrbsChromatic: `${pre}.threeGlassOrbsChromaticEnabled`,
+    threeGlassOrbsChromaticOffset: `${pre}.threeGlassOrbsChromaticOffset`,
+    threeGlassOrbsBloom: `${pre}.threeGlassOrbsBloomEnabled`,
+    threeGlassOrbsBloomStrength: `${pre}.threeGlassOrbsBloomStrength`,
+    threeGlassOrbsShape: `${pre}.threeGlassOrbsShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

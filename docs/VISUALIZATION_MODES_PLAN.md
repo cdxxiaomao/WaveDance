@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~33 已全部完成；Phase 34~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~34 已全部完成；Phase 35~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1690,14 +1690,14 @@ threeGlassOrbs: {
 
 #### 34.2 新建 `three/glassOrbsRenderer.js`
 
-- [ ] raymarch 多 sphere；hit 后假折射：`p + rd * refraction * noise`
-- [ ] 每球独立 `orbColors[i]`；球间 fresnel 混色
-- [ ] peak → 整体 scale 呼吸
+- [x] raymarch 多 sphere；hit 后假折射：`p + rd * refraction * noise`
+- [x] 每球独立 `orbColors[i]`；球间 fresnel 混色
+- [x] peak → 整体 scale 呼吸
 
 #### 34.3 验收标准
 
-- [ ] 多球可辨；transmission 低时更实，高时更透
-- [ ] 透明浮层 alpha 正确，无黑底
+- [x] 多球可辨；transmission 低时更实，高时更透
+- [x] 透明浮层 alpha 正确，无黑底
 
 ---
 
@@ -2043,13 +2043,13 @@ threeKnotOrganic: {
 | 31 | 油彩大理石 Three Oil Marble（E） | `[x]` 已完成 | 2026-06-10 |
 | 32 | 珍珠链 Three Pearl Chain（E） | `[x]` 已完成 | 2026-06-10 |
 | 33 | 宝石晶体 Three Crystal Gem（F） | `[x]` 已完成 | 2026-06-10 |
-| 34 | 玻璃球栈 Three Glass Orbs（F） | `[ ]` 未开始 | |
+| 34 | 玻璃球栈 Three Glass Orbs（F） | `[x]` 已完成 | 2026-06-10 |
 | 35 | 全息棱镜 Three Holo Prism（F） | `[ ]` 未开始 | |
 | 36 | 星云团 Three Nebula Volume（G） | `[ ]` 未开始 | |
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 34（玻璃球栈）
+**当前建议下一步**：Phase 35（全息棱镜）
 
 ---
 

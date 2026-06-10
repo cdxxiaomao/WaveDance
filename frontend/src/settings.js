@@ -71,6 +71,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeOilMarble]: "threeOilMarbleConfigPanel",
   [DISPLAY_MODES.threePearlChain]: "threePearlChainConfigPanel",
   [DISPLAY_MODES.threeCrystalGem]: "threeCrystalGemConfigPanel",
+  [DISPLAY_MODES.threeGlassOrbs]: "threeGlassOrbsConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -738,6 +739,36 @@ const threeCrystalGemSoftClipRange = document.querySelector("#threeCrystalGemSof
 const threeCrystalGemSoftClipValue = document.querySelector("#threeCrystalGemSoftClipValue");
 const threeCrystalGemFallEaseRange = document.querySelector("#threeCrystalGemFallEaseRange");
 const threeCrystalGemFallEaseValue = document.querySelector("#threeCrystalGemFallEaseValue");
+const threeGlassOrbsColor1 = document.querySelector("#threeGlassOrbsColor1");
+const threeGlassOrbsColor2 = document.querySelector("#threeGlassOrbsColor2");
+const threeGlassOrbsColor3 = document.querySelector("#threeGlassOrbsColor3");
+const threeGlassOrbsColor4 = document.querySelector("#threeGlassOrbsColor4");
+const threeGlassOrbsColor5 = document.querySelector("#threeGlassOrbsColor5");
+const threeGlassOrbsColor4Field = document.querySelector("#threeGlassOrbsColor4Field");
+const threeGlassOrbsColor5Field = document.querySelector("#threeGlassOrbsColor5Field");
+const threeGlassOrbsOrbCountRange = document.querySelector("#threeGlassOrbsOrbCountRange");
+const threeGlassOrbsOrbCountValue = document.querySelector("#threeGlassOrbsOrbCountValue");
+const threeGlassOrbsStackSpacingRange = document.querySelector("#threeGlassOrbsStackSpacingRange");
+const threeGlassOrbsStackSpacingValue = document.querySelector("#threeGlassOrbsStackSpacingValue");
+const threeGlassOrbsTransmissionRange = document.querySelector("#threeGlassOrbsTransmissionRange");
+const threeGlassOrbsTransmissionValue = document.querySelector("#threeGlassOrbsTransmissionValue");
+const threeGlassOrbsRefractionStrengthRange = document.querySelector("#threeGlassOrbsRefractionStrengthRange");
+const threeGlassOrbsRefractionStrengthValue = document.querySelector("#threeGlassOrbsRefractionStrengthValue");
+const threeGlassOrbsBreatheWithPeakToggle = document.querySelector("#threeGlassOrbsBreatheWithPeakToggle");
+const threeGlassOrbsChromaticToggle = document.querySelector("#threeGlassOrbsChromaticToggle");
+const threeGlassOrbsChromaticOffsetRange = document.querySelector("#threeGlassOrbsChromaticOffsetRange");
+const threeGlassOrbsChromaticOffsetValue = document.querySelector("#threeGlassOrbsChromaticOffsetValue");
+const threeGlassOrbsBloomToggle = document.querySelector("#threeGlassOrbsBloomToggle");
+const threeGlassOrbsBloomStrengthRange = document.querySelector("#threeGlassOrbsBloomStrengthRange");
+const threeGlassOrbsBloomStrengthValue = document.querySelector("#threeGlassOrbsBloomStrengthValue");
+const threeGlassOrbsGainRange = document.querySelector("#threeGlassOrbsGainRange");
+const threeGlassOrbsGainValue = document.querySelector("#threeGlassOrbsGainValue");
+const threeGlassOrbsSmoothRange = document.querySelector("#threeGlassOrbsSmoothRange");
+const threeGlassOrbsSmoothValue = document.querySelector("#threeGlassOrbsSmoothValue");
+const threeGlassOrbsSoftClipRange = document.querySelector("#threeGlassOrbsSoftClipRange");
+const threeGlassOrbsSoftClipValue = document.querySelector("#threeGlassOrbsSoftClipValue");
+const threeGlassOrbsFallEaseRange = document.querySelector("#threeGlassOrbsFallEaseRange");
+const threeGlassOrbsFallEaseValue = document.querySelector("#threeGlassOrbsFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3748,6 +3779,170 @@ function applyThreeCrystalGemFormFromStorage(v) {
   }
 }
 
+function syncThreeGlassOrbsColorFieldVisibility(count) {
+  if (threeGlassOrbsColor4Field) {
+    threeGlassOrbsColor4Field.hidden = count < 4;
+  }
+  if (threeGlassOrbsColor5Field) {
+    threeGlassOrbsColor5Field.hidden = count < 5;
+  }
+}
+
+function readThreeGlassOrbsShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeGlassOrbsShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeGlassOrbsGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeGlassOrbsSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeGlassOrbsSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeGlassOrbsFallEaseRange?.value, 0, 100),
+  };
+  if (threeGlassOrbsGainValue) threeGlassOrbsGainValue.textContent = String(config.gainPercent);
+  if (threeGlassOrbsSmoothValue) threeGlassOrbsSmoothValue.textContent = String(config.smoothPercent);
+  if (threeGlassOrbsSoftClipValue) threeGlassOrbsSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeGlassOrbsFallEaseValue) threeGlassOrbsFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeGlassOrbsShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-glass-orbs-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新玻璃球栈形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeGlassOrbsFormFromStorage(v) {
+  const sg = readThreeGlassOrbsShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeGlassOrbs.shape };
+  if (threeGlassOrbsGainRange) threeGlassOrbsGainRange.value = String(sg.gainPercent);
+  if (threeGlassOrbsSmoothRange) threeGlassOrbsSmoothRange.value = String(sg.smoothPercent);
+  if (threeGlassOrbsSoftClipRange) threeGlassOrbsSoftClipRange.value = String(sg.softClipPercent);
+  if (threeGlassOrbsFallEaseRange) threeGlassOrbsFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeGlassOrbsGainValue) threeGlassOrbsGainValue.textContent = String(sg.gainPercent);
+  if (threeGlassOrbsSmoothValue) threeGlassOrbsSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeGlassOrbsSoftClipValue) threeGlassOrbsSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeGlassOrbsFallEaseValue) threeGlassOrbsFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  for (const [storageKey, el, defaultKey] of [
+    ["threeGlassOrbsColor1", threeGlassOrbsColor1, "color1"],
+    ["threeGlassOrbsColor2", threeGlassOrbsColor2, "color2"],
+    ["threeGlassOrbsColor3", threeGlassOrbsColor3, "color3"],
+    ["threeGlassOrbsColor4", threeGlassOrbsColor4, "color4"],
+    ["threeGlassOrbsColor5", threeGlassOrbsColor5, "color5"],
+  ]) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (el && saved && /^#[0-9A-Fa-f]{6}$/.test(saved)) {
+      el.value = saved.toLowerCase();
+    } else if (el) {
+      el.value = DEFAULT_CONFIG.threeGlassOrbs[defaultKey];
+    }
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeGlassOrbsOrbCount");
+  if (threeGlassOrbsOrbCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 5)
+        : DEFAULT_CONFIG.threeGlassOrbs.orbCount;
+    threeGlassOrbsOrbCountRange.value = String(count);
+    if (threeGlassOrbsOrbCountValue) threeGlassOrbsOrbCountValue.textContent = String(count);
+    syncThreeGlassOrbsColorFieldVisibility(count);
+  }
+
+  const savedSpacing = readWindowStorageString(window.localStorage, v, "threeGlassOrbsStackSpacing");
+  if (threeGlassOrbsStackSpacingRange) {
+    const spacing =
+      savedSpacing != null && savedSpacing !== ""
+        ? Math.min(0.6, Math.max(0.2, Number(savedSpacing)))
+        : DEFAULT_CONFIG.threeGlassOrbs.stackSpacing;
+    threeGlassOrbsStackSpacingRange.value = String(Math.round(spacing * 100));
+    if (threeGlassOrbsStackSpacingValue) threeGlassOrbsStackSpacingValue.textContent = spacing.toFixed(2);
+  }
+
+  const savedTransmission = readWindowStorageString(window.localStorage, v, "threeGlassOrbsTransmission");
+  if (threeGlassOrbsTransmissionRange) {
+    const transmission =
+      savedTransmission != null && savedTransmission !== ""
+        ? clampInt(savedTransmission, 0, 100)
+        : DEFAULT_CONFIG.threeGlassOrbs.transmission;
+    threeGlassOrbsTransmissionRange.value = String(transmission);
+    if (threeGlassOrbsTransmissionValue) threeGlassOrbsTransmissionValue.textContent = String(transmission);
+  }
+
+  const savedRefraction = readWindowStorageString(window.localStorage, v, "threeGlassOrbsRefractionStrength");
+  if (threeGlassOrbsRefractionStrengthRange) {
+    const refraction =
+      savedRefraction != null && savedRefraction !== ""
+        ? clampInt(savedRefraction, 0, 100)
+        : DEFAULT_CONFIG.threeGlassOrbs.refractionStrength;
+    threeGlassOrbsRefractionStrengthRange.value = String(refraction);
+    if (threeGlassOrbsRefractionStrengthValue) {
+      threeGlassOrbsRefractionStrengthValue.textContent = String(refraction);
+    }
+  }
+
+  if (threeGlassOrbsBreatheWithPeakToggle) {
+    threeGlassOrbsBreatheWithPeakToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeGlassOrbsBreatheWithPeak"),
+      DEFAULT_CONFIG.threeGlassOrbs.breatheWithPeak,
+    );
+  }
+
+  if (threeGlassOrbsChromaticToggle) {
+    threeGlassOrbsChromaticToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeGlassOrbsChromatic"),
+      DEFAULT_CONFIG.threeGlassOrbs.chromaticEnabled,
+    );
+  }
+
+  const savedChromaticOffset = readWindowStorageString(window.localStorage, v, "threeGlassOrbsChromaticOffset");
+  if (threeGlassOrbsChromaticOffsetRange) {
+    const offset =
+      savedChromaticOffset != null && savedChromaticOffset !== ""
+        ? Math.min(0.01, Math.max(0, Number(savedChromaticOffset)))
+        : DEFAULT_CONFIG.threeGlassOrbs.chromaticOffset;
+    threeGlassOrbsChromaticOffsetRange.value = String(Math.round(offset * 1000));
+    if (threeGlassOrbsChromaticOffsetValue) {
+      threeGlassOrbsChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+  }
+
+  if (threeGlassOrbsBloomToggle) {
+    threeGlassOrbsBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeGlassOrbsBloom"),
+      DEFAULT_CONFIG.threeGlassOrbs.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeGlassOrbsBloomStrength");
+  if (threeGlassOrbsBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeGlassOrbs.bloomStrength;
+    threeGlassOrbsBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeGlassOrbsBloomStrengthValue) {
+      threeGlassOrbsBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -4822,6 +5017,7 @@ async function init() {
     applyThreeOilMarbleFormFromStorage(v);
     applyThreePearlChainFormFromStorage(v);
     applyThreeCrystalGemFormFromStorage(v);
+    applyThreeGlassOrbsFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -8227,6 +8423,223 @@ async function init() {
   });
   threeCrystalGemFallEaseRange?.addEventListener("input", () => {
     void syncThreeCrystalGemShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeGlassOrbsColor1?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsColor1",
+        threeGlassOrbsColor1.value,
+      );
+      await emitVisual("waveform-three-glass-orbs-color1", threeGlassOrbsColor1.value);
+    } catch (err) {
+      statusEl.textContent = `更新球色 1 失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsColor2?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsColor2",
+        threeGlassOrbsColor2.value,
+      );
+      await emitVisual("waveform-three-glass-orbs-color2", threeGlassOrbsColor2.value);
+    } catch (err) {
+      statusEl.textContent = `更新球色 2 失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsColor3?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsColor3",
+        threeGlassOrbsColor3.value,
+      );
+      await emitVisual("waveform-three-glass-orbs-color3", threeGlassOrbsColor3.value);
+    } catch (err) {
+      statusEl.textContent = `更新球色 3 失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsColor4?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsColor4",
+        threeGlassOrbsColor4.value,
+      );
+      await emitVisual("waveform-three-glass-orbs-color4", threeGlassOrbsColor4.value);
+    } catch (err) {
+      statusEl.textContent = `更新球色 4 失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsColor5?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsColor5",
+        threeGlassOrbsColor5.value,
+      );
+      await emitVisual("waveform-three-glass-orbs-color5", threeGlassOrbsColor5.value);
+    } catch (err) {
+      statusEl.textContent = `更新球色 5 失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsOrbCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2, 5);
+    if (threeGlassOrbsOrbCountValue) threeGlassOrbsOrbCountValue.textContent = String(count);
+    syncThreeGlassOrbsColorFieldVisibility(count);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsOrbCount",
+        String(count),
+      );
+      await emitVisual("waveform-three-glass-orbs-orb-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新球体数量失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsStackSpacingRange?.addEventListener("input", async (event) => {
+    const spacing = Math.min(0.6, Math.max(0.2, Number(event.target.value) / 100));
+    if (threeGlassOrbsStackSpacingValue) threeGlassOrbsStackSpacingValue.textContent = spacing.toFixed(2);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsStackSpacing",
+        String(spacing),
+      );
+      await emitVisual("waveform-three-glass-orbs-stack-spacing", spacing);
+    } catch (err) {
+      statusEl.textContent = `更新叠放间距失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsTransmissionRange?.addEventListener("input", async (event) => {
+    const transmission = clampInt(event.target.value, 0, 100);
+    if (threeGlassOrbsTransmissionValue) threeGlassOrbsTransmissionValue.textContent = String(transmission);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsTransmission",
+        String(transmission),
+      );
+      await emitVisual("waveform-three-glass-orbs-transmission", transmission);
+    } catch (err) {
+      statusEl.textContent = `更新透明感失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsRefractionStrengthRange?.addEventListener("input", async (event) => {
+    const refraction = clampInt(event.target.value, 0, 100);
+    if (threeGlassOrbsRefractionStrengthValue) {
+      threeGlassOrbsRefractionStrengthValue.textContent = String(refraction);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsRefractionStrength",
+        String(refraction),
+      );
+      await emitVisual("waveform-three-glass-orbs-refraction-strength", refraction);
+    } catch (err) {
+      statusEl.textContent = `更新折射强度失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsBreatheWithPeakToggle?.addEventListener("change", async () => {
+    const enabled = threeGlassOrbsBreatheWithPeakToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsBreatheWithPeak",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-glass-orbs-breathe-with-peak", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新峰值呼吸失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsChromaticToggle?.addEventListener("change", async () => {
+    const enabled = threeGlassOrbsChromaticToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsChromatic",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-glass-orbs-chromatic-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新色散开关失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsChromaticOffsetRange?.addEventListener("input", async (event) => {
+    const offset = Math.min(0.01, Math.max(0, Number(event.target.value) / 1000));
+    if (threeGlassOrbsChromaticOffsetValue) {
+      threeGlassOrbsChromaticOffsetValue.textContent = offset.toFixed(3);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsChromaticOffset",
+        String(offset),
+      );
+      await emitVisual("waveform-three-glass-orbs-chromatic-offset", offset);
+    } catch (err) {
+      statusEl.textContent = `更新色散偏移失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsBloomToggle?.addEventListener("change", async () => {
+    const enabled = threeGlassOrbsBloomToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-glass-orbs-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeGlassOrbsBloomStrengthValue) {
+      threeGlassOrbsBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeGlassOrbsBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-glass-orbs-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeGlassOrbsGainRange?.addEventListener("input", () => {
+    void syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlassOrbsSmoothRange?.addEventListener("input", () => {
+    void syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlassOrbsSoftClipRange?.addEventListener("input", () => {
+    void syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeGlassOrbsFallEaseRange?.addEventListener("input", () => {
+    void syncThreeGlassOrbsShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {

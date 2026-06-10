@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 34：玻璃球栈 Three Glass Orbs（F）
+
+- 新建 `frontend/src/renderers/three/glassOrbsRenderer.js`：2~5 颗透明玻璃球竖向叠放 raymarch，每球独立五色，hit 后 snoise 假折射 + fresnel 球间混色，transmission 控制透明感，peak 驱动整体呼吸缩放，可选 Chromatic + Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeGlassOrbs`、`DEFAULT_CONFIG.threeGlassOrbs` 及 storage keys。
+- `main.js`：监听 `waveform-three-glass-orbs-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「晶体光学 3D → 玻璃球栈」配置面板（五色 picker 按球数显示、叠放间距、透明感、折射、峰值呼吸、色散、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 33：宝石晶体 Three Crystal Gem（F）
 
 - 新建 `frontend/src/renderers/three/crystalGemRenderer.js`：octahedron/roundBox 混合 SDF 多面体 raymarch，1~3 颗宝石慢自转，核心/边缘/高光三色分层（深度 + fresnel + spec），可选 `createChromaticComposer` 色散 + Bloom；`registerModes.js` 注册。

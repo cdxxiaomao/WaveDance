@@ -116,6 +116,7 @@
               </optgroup>
               <optgroup label="晶体光学 3D">
                 <option value="threeCrystalGem">宝石晶体</option>
+                <option value="threeGlassOrbs">玻璃球栈</option>
               </optgroup>
             </select>
           </div>
@@ -1829,6 +1830,87 @@
           <div class="settings-field">
             <label for="threePearlChainFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePearlChainFallEaseValue">55</span>%</label>
             <input id="threePearlChainFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeGlassOrbsConfigPanel" aria-labelledby="sec-three-glass-orbs-display" hidden>
+        <h2 id="sec-three-glass-orbs-display" class="settings-card__title">玻璃球栈配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-glass-orbs" data-no-drag>
+          <div class="settings-field settings-field--row" id="threeGlassOrbsColor1Field">
+            <label for="threeGlassOrbsColor1" class="settings-label">球色 1（底）</label>
+            <input id="threeGlassOrbsColor1" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row" id="threeGlassOrbsColor2Field">
+            <label for="threeGlassOrbsColor2" class="settings-label">球色 2</label>
+            <input id="threeGlassOrbsColor2" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row" id="threeGlassOrbsColor3Field">
+            <label for="threeGlassOrbsColor3" class="settings-label">球色 3</label>
+            <input id="threeGlassOrbsColor3" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row" id="threeGlassOrbsColor4Field">
+            <label for="threeGlassOrbsColor4" class="settings-label">球色 4</label>
+            <input id="threeGlassOrbsColor4" type="color" value="#14b8a6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row" id="threeGlassOrbsColor5Field">
+            <label for="threeGlassOrbsColor5" class="settings-label">球色 5（顶）</label>
+            <input id="threeGlassOrbsColor5" type="color" value="#f59e0b" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsOrbCountRange" class="settings-label">球体数量 <span class="settings-value" id="threeGlassOrbsOrbCountValue">4</span></label>
+            <input id="threeGlassOrbsOrbCountRange" type="range" min="2" max="5" step="1" value="4" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsStackSpacingRange" class="settings-label">叠放间距 <span class="settings-value" id="threeGlassOrbsStackSpacingValue">0.38</span></label>
+            <input id="threeGlassOrbsStackSpacingRange" type="range" min="20" max="60" step="1" value="38" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsTransmissionRange" class="settings-label">透明感 <span class="settings-value" id="threeGlassOrbsTransmissionValue">72</span>%</label>
+            <input id="threeGlassOrbsTransmissionRange" type="range" min="0" max="100" step="1" value="72" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsRefractionStrengthRange" class="settings-label">折射强度 <span class="settings-value" id="threeGlassOrbsRefractionStrengthValue">55</span>%</label>
+            <input id="threeGlassOrbsRefractionStrengthRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeGlassOrbsBreatheWithPeakToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>峰值呼吸缩放</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeGlassOrbsChromaticToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>色散（Chromatic）</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeGlassOrbsChromaticOffsetRange" class="settings-label">色散偏移 <span class="settings-value" id="threeGlassOrbsChromaticOffsetValue">0.004</span></label>
+            <input id="threeGlassOrbsChromaticOffsetRange" type="range" min="0" max="10" step="1" value="4" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeGlassOrbsBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>启用 Bloom</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeGlassOrbsBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeGlassOrbsBloomStrengthValue">0.9</span></label>
+            <input id="threeGlassOrbsBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsGainRange" class="settings-label">增益 <span class="settings-value" id="threeGlassOrbsGainValue">55</span>%</label>
+            <input id="threeGlassOrbsGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeGlassOrbsSmoothValue">20</span>%</label>
+            <input id="threeGlassOrbsSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeGlassOrbsSoftClipValue">10</span>%</label>
+            <input id="threeGlassOrbsSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeGlassOrbsFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGlassOrbsFallEaseValue">50</span>%</label>
+            <input id="threeGlassOrbsFallEaseRange" type="range" min="0" max="100" step="1" value="50" />
           </div>
         </div>
       </section>
