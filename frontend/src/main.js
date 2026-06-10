@@ -17,10 +17,13 @@ import { createIsometricSkylineRenderer } from "./renderers/isometricSkylineRend
 import { createRing3dRenderer } from "./renderers/ring3dRenderer.js";
 import { createTerrain3dRenderer } from "./renderers/terrain3dRenderer.js";
 import { createHelix3dRenderer } from "./renderers/helix3dRenderer.js";
+import { createThreeBridge } from "./renderers/three/threeBridge.js";
+import "./renderers/three/registerModes.js";
 import {
   clampInt,
   DEFAULT_CONFIG,
   DISPLAY_MODES,
+  isThreeDisplayMode,
   normalizeDisplayMode,
   normalizeDepthLayersRenderStyle,
   normalizeHelix3dExtrudeMode,
@@ -34,50 +37,48 @@ import {
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
 
 const canvas = document.querySelector("#waveCanvas");
+const threeCanvas = document.querySelector("#waveCanvasThree");
 const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const resizeHandles = Array.from(document.querySelectorAll("[data-resize-dir]"));
 
-const gl = canvas.getContext("webgl");
-if (!gl) {
-  throw new Error("当前环境不支持 WebGL");
+/** @param {WebGLRenderingContext} webgl */
+function createVanillaRenderers(webgl) {
+  return {
+    [DISPLAY_MODES.line]: createLineRenderer(webgl),
+    [DISPLAY_MODES.bar]: createBarRenderer(webgl),
+    [DISPLAY_MODES.area]: createAreaRenderer(webgl),
+    [DISPLAY_MODES.gradientBar]: createGradientBarRenderer(webgl),
+    [DISPLAY_MODES.glowLine]: createGlowLineRenderer(webgl),
+    [DISPLAY_MODES.glowCircle]: createGlowCircleRenderer(webgl),
+    [DISPLAY_MODES.radial]: createRadialRenderer(webgl),
+    [DISPLAY_MODES.waterfall]: createWaterfallRenderer(webgl),
+    [DISPLAY_MODES.dotRing]: createDotRingRenderer(webgl),
+    [DISPLAY_MODES.oscilloscope]: createOscilloscopeRenderer(webgl),
+    [DISPLAY_MODES.obliqueBar]: createObliqueBarRenderer(webgl),
+    [DISPLAY_MODES.depthLayers]: createDepthLayersRenderer(webgl),
+    [DISPLAY_MODES.isometricSkyline]: createIsometricSkylineRenderer(webgl),
+    [DISPLAY_MODES.ring3d]: createRing3dRenderer(webgl),
+    [DISPLAY_MODES.terrain3d]: createTerrain3dRenderer(webgl),
+    [DISPLAY_MODES.helix3d]: createHelix3dRenderer(webgl),
+  };
 }
 
-const lineRenderer = createLineRenderer(gl);
-const barRenderer = createBarRenderer(gl);
-const areaRenderer = createAreaRenderer(gl);
-const gradientBarRenderer = createGradientBarRenderer(gl);
-const glowLineRenderer = createGlowLineRenderer(gl);
-const glowCircleRenderer = createGlowCircleRenderer(gl);
-const radialRenderer = createRadialRenderer(gl);
-const waterfallRenderer = createWaterfallRenderer(gl);
-const dotRingRenderer = createDotRingRenderer(gl);
-const oscilloscopeRenderer = createOscilloscopeRenderer(gl);
-const obliqueBarRenderer = createObliqueBarRenderer(gl);
-const depthLayersRenderer = createDepthLayersRenderer(gl);
-const isometricSkylineRenderer = createIsometricSkylineRenderer(gl);
-const ring3dRenderer = createRing3dRenderer(gl);
-const terrain3dRenderer = createTerrain3dRenderer(gl);
-const helix3dRenderer = createHelix3dRenderer(gl);
+function acquireVanillaGl() {
+  const webgl = canvas.getContext("webgl");
+  if (!webgl) {
+    throw new Error("当前环境不支持 WebGL");
+  }
+  return webgl;
+}
 
-const RENDERERS = {
-  [DISPLAY_MODES.line]: lineRenderer,
-  [DISPLAY_MODES.bar]: barRenderer,
-  [DISPLAY_MODES.area]: areaRenderer,
-  [DISPLAY_MODES.gradientBar]: gradientBarRenderer,
-  [DISPLAY_MODES.glowLine]: glowLineRenderer,
-  [DISPLAY_MODES.glowCircle]: glowCircleRenderer,
-  [DISPLAY_MODES.radial]: radialRenderer,
-  [DISPLAY_MODES.waterfall]: waterfallRenderer,
-  [DISPLAY_MODES.dotRing]: dotRingRenderer,
-  [DISPLAY_MODES.oscilloscope]: oscilloscopeRenderer,
-  [DISPLAY_MODES.obliqueBar]: obliqueBarRenderer,
-  [DISPLAY_MODES.depthLayers]: depthLayersRenderer,
-  [DISPLAY_MODES.isometricSkyline]: isometricSkylineRenderer,
-  [DISPLAY_MODES.ring3d]: ring3dRenderer,
-  [DISPLAY_MODES.terrain3d]: terrain3dRenderer,
-  [DISPLAY_MODES.helix3d]: helix3dRenderer,
-};
+let gl = acquireVanillaGl();
+let RENDERERS = createVanillaRenderers(gl);
+const threeBridge = createThreeBridge();
+/** @type {"vanilla" | "three"} */
+let renderBackend = "vanilla";
+/** Three 初始化失败的模式 id，避免每帧反复 lose/restore 上下文 */
+let threeInitBlockedMode = null;
 
 const waveShapeConfig = { ...DEFAULT_CONFIG.line.shape };
 const barShapeConfig = { ...DEFAULT_CONFIG.bar.shape };
@@ -94,6 +95,7 @@ const isometricSkylineShapeConfig = { ...DEFAULT_CONFIG.isometricSkyline.shape }
 const ring3dShapeConfig = { ...DEFAULT_CONFIG.ring3d.shape };
 const terrain3dShapeConfig = { ...DEFAULT_CONFIG.terrain3d.shape };
 const helix3dShapeConfig = { ...DEFAULT_CONFIG.helix3d.shape };
+const threePlasmaShapeConfig = { ...DEFAULT_CONFIG.threePlasmaField.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -221,6 +223,14 @@ function applyHelix3dShapeConfig(payload) {
   helix3dShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreePlasmaShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threePlasmaShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threePlasmaShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threePlasmaShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threePlasmaShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -253,6 +263,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (terrain3dRaw) applyTerrain3dShapeConfig(JSON.parse(terrain3dRaw));
     const helix3dRaw = readWindowStorageString(window.localStorage, windowLabel, "helix3dShape");
     if (helix3dRaw) applyHelix3dShapeConfig(JSON.parse(helix3dRaw));
+    const threePlasmaRaw = readWindowStorageString(window.localStorage, windowLabel, "threePlasmaShape");
+    if (threePlasmaRaw) applyThreePlasmaShapeConfig(JSON.parse(threePlasmaRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -440,6 +452,14 @@ let helix3dAutoRotateEnabled = DEFAULT_CONFIG.helix3d.autoRotateEnabled;
 let helix3dAutoRotateSpeedDeg = DEFAULT_CONFIG.helix3d.autoRotateSpeedDeg;
 let helix3dCameraDistance = DEFAULT_CONFIG.helix3d.cameraDistance;
 let helix3dCameraFovDeg = DEFAULT_CONFIG.helix3d.cameraFovDeg;
+
+let threePlasmaColorLowHex = DEFAULT_CONFIG.threePlasmaField.colorLow;
+let threePlasmaColorHighHex = DEFAULT_CONFIG.threePlasmaField.colorHigh;
+let threePlasmaSpeed = DEFAULT_CONFIG.threePlasmaField.speed;
+let threePlasmaNoiseScale = DEFAULT_CONFIG.threePlasmaField.noiseScale;
+let threePlasmaReactiveness = DEFAULT_CONFIG.threePlasmaField.reactiveness;
+let threePlasmaBloomEnabled = DEFAULT_CONFIG.threePlasmaField.bloomEnabled;
+let threePlasmaBloomStrength = DEFAULT_CONFIG.threePlasmaField.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1083,6 +1103,42 @@ function applyHelix3dCameraFovDeg(value) {
   helix3dCameraFovDeg = clampInt(value, 30, 75);
 }
 
+function applyThreePlasmaColorLowHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePlasmaField.colorLow;
+  threePlasmaColorLowHex = safe;
+}
+
+function applyThreePlasmaColorHighHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threePlasmaField.colorHigh;
+  threePlasmaColorHighHex = safe;
+}
+
+function applyThreePlasmaSpeed(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threePlasmaSpeed = Math.min(3, Math.max(0.2, n));
+}
+
+function applyThreePlasmaNoiseScale(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threePlasmaNoiseScale = Math.min(6, Math.max(0.5, n));
+}
+
+function applyThreePlasmaReactiveness(value) {
+  threePlasmaReactiveness = clampInt(value, 0, 100);
+}
+
+function applyThreePlasmaBloomEnabled(value) {
+  threePlasmaBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threePlasmaField.bloomEnabled);
+}
+
+function applyThreePlasmaBloomStrength(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threePlasmaBloomStrength = Math.min(2, Math.max(0, n));
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1150,15 +1206,136 @@ function loadMainBackgroundStyleFromStorage(windowLabel) {
   }
 }
 
+function clearVanillaCanvas() {
+  if (!gl || gl.isContextLost()) return;
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+function setVanillaCanvasVisible(visible) {
+  canvas.classList.toggle("is-hidden", !visible);
+  if (!visible) {
+    clearVanillaCanvas();
+  }
+}
+
+function setThreeCanvasVisible(visible) {
+  if (!threeCanvas) return;
+  threeCanvas.hidden = !visible;
+  threeCanvas.classList.toggle("is-visible", visible);
+  if (!visible && threeBridge.isActive()) {
+    threeBridge.clear();
+  }
+}
+
+function activateThreeOverlay() {
+  setVanillaCanvasVisible(false);
+  setThreeCanvasVisible(true);
+}
+
+function deactivateThreeOverlay() {
+  setThreeCanvasVisible(false);
+  setVanillaCanvasVisible(true);
+  if (renderBackend === "three") {
+    renderBackend = "vanilla";
+  }
+}
+
+function isThreeMode(mode) {
+  return isThreeDisplayMode(mode);
+}
+
+function syncRenderBackend(mode) {
+  const wantThree = isThreeMode(mode);
+
+  if (!wantThree) {
+    threeInitBlockedMode = null;
+    deactivateThreeOverlay();
+    return;
+  }
+
+  if (threeInitBlockedMode === mode) {
+    return;
+  }
+
+  if (renderBackend !== "three") {
+    if (!threeCanvas) {
+      console.error("[WaveDance] 缺少 #waveCanvasThree，无法启用 Three 模式");
+      threeInitBlockedMode = mode;
+      return;
+    }
+    try {
+      activateThreeOverlay();
+      if (!threeBridge.isActive()) {
+        threeBridge.init(threeCanvas);
+      }
+      threeBridge.setMode(mode);
+      renderBackend = "three";
+      threeInitBlockedMode = null;
+    } catch (err) {
+      console.error("[WaveDance] Three 初始化失败，回退 vanilla", err);
+      threeBridge.dispose();
+      deactivateThreeOverlay();
+      threeInitBlockedMode = mode;
+    }
+    return;
+  }
+
+  if (threeBridge.getActiveMode() !== mode) {
+    threeBridge.setMode(mode);
+  }
+  activateThreeOverlay();
+}
+
 function resizeCanvas() {
+  const cssWidth = Math.max(1, canvas.clientWidth);
+  const cssHeight = Math.max(1, canvas.clientHeight);
+
+  if (renderBackend === "three" && threeCanvas) {
+    threeBridge.resize(
+      Math.max(1, threeCanvas.clientWidth || cssWidth),
+      Math.max(1, threeCanvas.clientHeight || cssHeight),
+    );
+  }
+
   const dpr = window.devicePixelRatio || 1;
-  const width = Math.floor(canvas.clientWidth * dpr);
-  const height = Math.floor(canvas.clientHeight * dpr);
+  const width = Math.floor(cssWidth * dpr);
+  const height = Math.floor(cssHeight * dpr);
   if (canvas.width !== width || canvas.height !== height) {
     canvas.width = width;
     canvas.height = height;
   }
-  gl.viewport(0, 0, canvas.width, canvas.height);
+  if (gl && !gl.isContextLost()) {
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+}
+
+function renderVanillaFrame() {
+  if (!gl || gl.isContextLost()) return;
+  gl.clearColor(0.0, 0.0, 0.0, 0.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  const renderer = RENDERERS[displayMode] ?? RENDERERS[DISPLAY_MODES.line];
+  const renderData =
+    displayMode === DISPLAY_MODES.oscilloscope ? latestTimeSamples : latestPoints;
+  const frameMeta = { peak: latestPeak, rms: latestRms };
+  renderer.render(renderData, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode), frameMeta);
+}
+
+function renderThreeFrame() {
+  if (renderBackend !== "three") return;
+  try {
+    const renderData =
+      displayMode === DISPLAY_MODES.oscilloscope ? latestTimeSamples : latestPoints;
+    const frameMeta = { peak: latestPeak, rms: latestRms };
+    threeBridge.render(
+      renderData,
+      getShapeConfigForMode(displayMode),
+      getStyleConfigForMode(displayMode),
+      frameMeta,
+    );
+  } catch (err) {
+    console.error("[WaveDance] Three 渲染失败", err);
+  }
 }
 
 function getShapeConfigForMode(mode) {
@@ -1176,6 +1353,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.ring3d) return ring3dShapeConfig;
   if (mode === DISPLAY_MODES.terrain3d) return terrain3dShapeConfig;
   if (mode === DISPLAY_MODES.helix3d) return helix3dShapeConfig;
+  if (mode === DISPLAY_MODES.threePlasmaField) return threePlasmaShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1382,6 +1560,18 @@ function getStyleConfigForMode(mode) {
       freqReversed,
     };
   }
+  if (mode === DISPLAY_MODES.threePlasmaField) {
+    return {
+      colorLow: threePlasmaColorLowHex,
+      colorHigh: threePlasmaColorHighHex,
+      speed: threePlasmaSpeed,
+      noiseScale: threePlasmaNoiseScale,
+      reactiveness: threePlasmaReactiveness,
+      bloomEnabled: threePlasmaBloomEnabled,
+      bloomStrength: threePlasmaBloomStrength,
+      freqReversed,
+    };
+  }
   return {
     color: waveformLineRgb,
     lineWidthPx: waveformLineWidthPx,
@@ -1390,14 +1580,13 @@ function getStyleConfigForMode(mode) {
 }
 
 function renderWaveform() {
+  syncRenderBackend(displayMode);
   resizeCanvas();
-  gl.clearColor(0.0, 0.0, 0.0, 0.0);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  const renderer = RENDERERS[displayMode] ?? lineRenderer;
-  const renderData =
-    displayMode === DISPLAY_MODES.oscilloscope ? latestTimeSamples : latestPoints;
-  const frameMeta = { peak: latestPeak, rms: latestRms };
-  renderer.render(renderData, getShapeConfigForMode(displayMode), getStyleConfigForMode(displayMode), frameMeta);
+  if (isThreeMode(displayMode) && renderBackend === "three") {
+    renderThreeFrame();
+  } else {
+    renderVanillaFrame();
+  }
 
   requestAnimationFrame(renderWaveform);
 }
@@ -2578,9 +2767,67 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-plasma-color-low",
+    (event) => {
+      applyThreePlasmaColorLowHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-color-high",
+    (event) => {
+      applyThreePlasmaColorHighHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-speed",
+    (event) => {
+      applyThreePlasmaSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-noise-scale",
+    (event) => {
+      applyThreePlasmaNoiseScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-reactiveness",
+    (event) => {
+      applyThreePlasmaReactiveness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-bloom",
+    (event) => {
+      applyThreePlasmaBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-bloom-strength",
+    (event) => {
+      applyThreePlasmaBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-plasma-shape-config",
+    (event) => {
+      applyThreePlasmaShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
+      threeInitBlockedMode = null;
+      syncRenderBackend(displayMode);
     },
     { target: thisWebviewTarget },
   );
@@ -3042,6 +3289,35 @@ async function init() {
     const savedHelix3dCameraFov = readWindowStorageString(window.localStorage, windowLabel, "helix3dCameraFov");
     if (savedHelix3dCameraFov != null && savedHelix3dCameraFov !== "") {
       applyHelix3dCameraFovDeg(savedHelix3dCameraFov);
+    }
+    applyThreePlasmaColorLowHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePlasmaColorLow") ??
+        DEFAULT_CONFIG.threePlasmaField.colorLow,
+    );
+    applyThreePlasmaColorHighHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threePlasmaColorHigh") ??
+        DEFAULT_CONFIG.threePlasmaField.colorHigh,
+    );
+    const savedPlasmaSpeed = readWindowStorageString(window.localStorage, windowLabel, "threePlasmaSpeed");
+    if (savedPlasmaSpeed != null && savedPlasmaSpeed !== "") {
+      applyThreePlasmaSpeed(savedPlasmaSpeed);
+    }
+    const savedPlasmaNoise = readWindowStorageString(window.localStorage, windowLabel, "threePlasmaNoiseScale");
+    if (savedPlasmaNoise != null && savedPlasmaNoise !== "") {
+      applyThreePlasmaNoiseScale(savedPlasmaNoise);
+    }
+    const savedPlasmaReact = readWindowStorageString(window.localStorage, windowLabel, "threePlasmaReactiveness");
+    if (savedPlasmaReact != null && savedPlasmaReact !== "") {
+      applyThreePlasmaReactiveness(savedPlasmaReact);
+    }
+    applyThreePlasmaBloomEnabled(readWindowStorageString(window.localStorage, windowLabel, "threePlasmaBloom"));
+    const savedPlasmaBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threePlasmaBloomStrength",
+    );
+    if (savedPlasmaBloomStrength != null && savedPlasmaBloomStrength !== "") {
+      applyThreePlasmaBloomStrength(savedPlasmaBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

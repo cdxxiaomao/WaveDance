@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~14 已全部完成；Phase 15~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~16 已全部完成；Phase 17~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -940,19 +940,19 @@ cd frontend && npm install three postprocessing
 
 #### 15.3 任务清单
 
-- [ ] **15.3.1** `package.json` 加入 `three`、`postprocessing`
-- [ ] **15.3.2** `threeContext.js`：alpha 透明、pixelRatio 限制 `Math.min(devicePixelRatio, 2)`
-- [ ] **15.3.3** `threeBridge.js`：切换 displayMode 时 `dispose()` 旧 Three renderer，vanilla 模式不初始化 Three
-- [ ] **15.3.4** `main.js`：增加 `isThreeMode()`、`renderThreeFrame()` 分支；vanilla 与 Three **互斥**（同帧只走一条路径）
-- [ ] **15.3.5** `visualizationSchema.js`：增加 `THREE_DISPLAY_MODES` 常量数组 + `isThreeDisplayMode(mode)`  helper（先注册 enum，无具体 panel）
-- [ ] **15.3.6** `settings.html`：展示模式下拉预留 `<optgroup label="Three 高阶">`（Phase 16 起逐步填 option）
-- [ ] **15.3.7** 回归：任意 vanilla 模式渲染与 Phase 15 前一致
+- [x] **15.3.1** `package.json` 加入 `three`、`postprocessing`
+- [x] **15.3.2** `threeContext.js`：alpha 透明、pixelRatio 限制 `Math.min(devicePixelRatio, 2)`
+- [x] **15.3.3** `threeBridge.js`：切换 displayMode 时 `dispose()` 旧 Three renderer，vanilla 模式不初始化 Three
+- [x] **15.3.4** `main.js`：增加 `isThreeMode()`、`renderThreeFrame()` 分支；vanilla 与 Three **互斥**（同帧只走一条路径）
+- [x] **15.3.5** `visualizationSchema.js`：增加 `THREE_DISPLAY_MODES` 常量数组 + `isThreeDisplayMode(mode)`  helper（先注册 enum，无具体 panel）
+- [x] **15.3.6** `settings.html`：展示模式下拉预留 `<optgroup label="Three 高阶">`（Phase 16 起逐步填 option）
+- [x] **15.3.7** 回归：任意 vanilla 模式渲染与 Phase 15 前一致
 
 #### 15.4 验收标准
 
-- [ ] `cargo tauri dev` 启动无报错；现有模式全部正常
-- [ ] 切换到未实现的 Three 模式时有 graceful fallback（console warn + 保持上一帧或 line 模式）
-- [ ] resize / 多频谱窗独立切换模式不 leak（dispose 后 GPU 内存不持续增长）
+- [x] `cargo tauri dev` 启动无报错；现有模式全部正常
+- [x] 切换到未实现的 Three 模式时有 graceful fallback（console warn + 保持上一帧或 line 模式）
+- [x] resize / 多频谱窗独立切换模式不 leak（dispose 后 GPU 内存不持续增长）
 
 ---
 
@@ -980,23 +980,23 @@ threePlasmaField: {
 
 #### 16.2 新建 `renderers/three/plasmaFieldRenderer.js`
 
-- [ ] fullscreen `PlaneGeometry` + 自定义 fragment shader（simplex noise + 频谱 uniform）
-- [ ] uniform：`u_time`、`u_bass`、`u_mid`、`u_treble`、`u_colorLow`、`u_colorHigh`
-- [ ] 可选 Bloom：`postProcessing.js` 包裹
-- [ ] `dispose()`：geometry、material、composer
+- [x] fullscreen `PlaneGeometry` + 自定义 fragment shader（simplex noise + 频谱 uniform）
+- [x] uniform：`u_time`、`u_bass`、`u_mid`、`u_treble`、`u_colorLow`、`u_colorHigh`
+- [x] 可选 Bloom：`postProcessing.js` 包裹
+- [x] `dispose()`：geometry、material、composer
 
 #### 16.3 集成
 
-- [ ] `DISPLAY_MODES.threePlasmaField`、`DEFAULT_CONFIG`、`STORAGE_KEYS`、`windowStorageKeys`
-- [ ] `settings.html`：`#threePlasmaFieldConfigPanel` + optgroup option
-- [ ] `settings.js`：panel 显隐、emit/sync
-- [ ] 事件前缀：`waveform-three-plasma-*`
+- [x] `DISPLAY_MODES.threePlasmaField`、`DEFAULT_CONFIG`、`STORAGE_KEYS`、`windowStorageKeys`
+- [x] `settings.html`：`#threePlasmaFieldConfigPanel` + optgroup option
+- [x] `settings.js`：panel 显隐、emit/sync
+- [x] 事件前缀：`waveform-three-plasma-*`
 
 #### 16.4 验收标准
 
-- [ ] 透明桌面背景上 plasma 流动，不填黑底
-- [ ] 播放音乐时配色/扰动明显随频谱变化
-- [ ] bloom 可关；关闭后仍可见
+- [x] 透明桌面背景上 plasma 流动，不填黑底
+- [x] 播放音乐时配色/扰动明显随频谱变化
+- [x] bloom 可关；关闭后仍可见
 
 ---
 
@@ -1571,8 +1571,8 @@ threeNoiseLandscape: {
 | 12 | 3D 旋转圆环 Ring3D（真 3D + gl3d.js） | `[x]` 已完成 | 2026-06-09 |
 | 13 | 3D 频谱地形 Terrain3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
 | 14 | 3D 螺旋 Helix3D（真 3D） | `[x]` 已完成 | 2026-06-09 |
-| 15 | Three.js 公共基础设施 | `[ ]` 未开始 | |
-| 16 | 等离子场 Three Plasma Field（A/D） | `[ ]` 未开始 | |
+| 15 | Three.js 公共基础设施 | `[x]` 已完成 | 2026-06-10 |
+| 16 | 等离子场 Three Plasma Field（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 17 | 粒子银河 Three Particle Galaxy（A/D） | `[ ]` 未开始 | |
 | 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[ ]` 未开始 | |
 | 19 | 能量球 Three Energy Sphere（A） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 15（Three.js 公共基础设施）→ Phase 16（等离子场，方案 D 首个效果）
+**当前建议下一步**：Phase 17（粒子银河 Three Particle Galaxy，方案 D）
 
 ---
 

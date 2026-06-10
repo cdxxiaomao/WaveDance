@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
-    "@uimaxbai/am-lyrics": "^1.5.4"
+    "@uimaxbai/am-lyrics": "^1.5.4",
+    "postprocessing": "^6.39.1",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "vite": "^5.4.10"

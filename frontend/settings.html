@@ -95,6 +95,9 @@
               <option value="ring3d">3D 旋转圆环</option>
               <option value="terrain3d">3D 频谱地形</option>
               <option value="helix3d">3D 螺旋频谱</option>
+              <optgroup label="Three 高阶">
+                <option value="threePlasmaField">等离子场</option>
+              </optgroup>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -987,6 +990,57 @@
           <div class="settings-field">
             <label for="helix3dFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="helix3dFallEaseValue">55</span>%</label>
             <input id="helix3dFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threePlasmaFieldConfigPanel" aria-labelledby="sec-three-plasma-display" hidden>
+        <h2 id="sec-three-plasma-display" class="settings-card__title">等离子场配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-plasma" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threePlasmaColorLow" class="settings-label">低能量色</label>
+            <input id="threePlasmaColorLow" type="color" value="#1a0533" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threePlasmaColorHigh" class="settings-label">高能量色</label>
+            <input id="threePlasmaColorHigh" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaSpeedRange" class="settings-label">动画速度 <span class="settings-value" id="threePlasmaSpeedValue">1.0</span></label>
+            <input id="threePlasmaSpeedRange" type="range" min="2" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaNoiseScaleRange" class="settings-label">噪声频率 <span class="settings-value" id="threePlasmaNoiseScaleValue">2.5</span></label>
+            <input id="threePlasmaNoiseScaleRange" type="range" min="5" max="60" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaReactivenessRange" class="settings-label">频谱驱动 <span class="settings-value" id="threePlasmaReactivenessValue">70</span>%</label>
+            <input id="threePlasmaReactivenessRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threePlasmaBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threePlasmaBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threePlasmaBloomStrengthValue">0.8</span></label>
+            <input id="threePlasmaBloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaGainRange" class="settings-label">增益 <span class="settings-value" id="threePlasmaGainValue">55</span>%</label>
+            <input id="threePlasmaGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threePlasmaSmoothValue">16</span>%</label>
+            <input id="threePlasmaSmoothRange" type="range" min="0" max="400" step="1" value="16" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threePlasmaSoftClipValue">10</span>%</label>
+            <input id="threePlasmaSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threePlasmaFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePlasmaFallEaseValue">50</span>%</label>
+            <input id="threePlasmaFallEaseRange" type="range" min="0" max="100" step="1" value="50" />
           </div>
         </div>
       </section>

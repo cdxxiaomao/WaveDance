@@ -1,0 +1,113 @@
+import { createThreeContext } from "./threeContext.js";
+import { createThreeModeRenderer, hasThreeMode } from "./threeModeRegistry.js";
+import { buildSpectrumUniforms, disposeSpectrumUniformsCache } from "./spectrumUniforms.js";
+import { processSpectrumPoints } from "../shapePipeline.js";
+import { DEFAULT_CONFIG } from "../../visualizationSchema.js";
+
+/**
+ * Three.js 渲染桥接层：管理 context、模式切换与 dispose。
+ * @returns {{
+ *   init: (canvas: HTMLCanvasElement) => void,
+ *   setMode: (modeId: string) => void,
+ *   render: (points: number[], shapeConfig: object, styleConfig: object, frameMeta: object) => void,
+ *   resize: (width: number, height: number) => void,
+ *   dispose: () => void,
+ *   isActive: () => boolean,
+ *   getActiveMode: () => string | null,
+ * }}
+ */
+export function createThreeBridge() {
+  /** @type {import('./threeContext.js').ThreeContext | null} */
+  let ctx = null;
+  /** @type {{ render: Function, dispose: Function } | null} */
+  let activeRenderer = null;
+  /** @type {string | null} */
+  let activeModeId = null;
+  const easedState = [];
+  const warnedModes = new Set();
+
+  function init(canvas) {
+    if (ctx) return;
+    ctx = createThreeContext(canvas);
+    const w = Math.max(1, canvas.clientWidth || canvas.parentElement?.clientWidth || 1);
+    const h = Math.max(1, canvas.clientHeight || canvas.parentElement?.clientHeight || 1);
+    ctx.resize(w, h);
+  }
+
+  function setMode(modeId) {
+    const next = String(modeId ?? "");
+    if (next === activeModeId) return;
+
+    if (activeRenderer) {
+      activeRenderer.dispose();
+      activeRenderer = null;
+    }
+    activeModeId = next;
+
+    if (!hasThreeMode(next)) {
+      if (!warnedModes.has(next)) {
+        console.warn(`[WaveDance] Three 模式「${next}」尚未实现，保持上一帧或空白`);
+        warnedModes.add(next);
+      }
+      return;
+    }
+
+    if (!ctx) {
+      console.warn("[WaveDance] threeBridge 未初始化，无法创建 Three renderer");
+      return;
+    }
+
+    activeRenderer = createThreeModeRenderer(next, ctx);
+  }
+
+  function render(points, shapeConfig, styleConfig, frameMeta) {
+    if (!ctx) return;
+
+    if (!activeRenderer) {
+      ctx.renderer.setClearColor(0x000000, 0);
+      ctx.renderer.clear();
+      return;
+    }
+
+    const shape = shapeConfig ?? DEFAULT_CONFIG.line.shape;
+    const processed = processSpectrumPoints(points, shape, easedState);
+    const spectrum = buildSpectrumUniforms(processed);
+
+    activeRenderer.render(points, shapeConfig, styleConfig, frameMeta, spectrum, processed);
+  }
+
+  function resize(width, height) {
+    ctx?.resize(width, height);
+  }
+
+  function clear() {
+    if (!ctx) return;
+    ctx.renderer.setClearColor(0x000000, 0);
+    ctx.renderer.clear(true, true, true);
+  }
+
+  function dispose() {
+    if (activeRenderer) {
+      activeRenderer.dispose();
+      activeRenderer = null;
+    }
+    if (ctx) {
+      ctx.dispose();
+      ctx = null;
+    }
+    disposeSpectrumUniformsCache();
+    activeModeId = null;
+    easedState.length = 0;
+    warnedModes.clear();
+  }
+
+  function isActive() {
+    return ctx !== null;
+  }
+
+  function getActiveMode() {
+    return activeModeId;
+  }
+
+  return { init, setMode, render, resize, clear, dispose, isActive, getActiveMode };
+}

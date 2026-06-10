@@ -54,6 +54,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.ring3d]: "ring3dConfigPanel",
   [DISPLAY_MODES.terrain3d]: "terrain3dConfigPanel",
   [DISPLAY_MODES.helix3d]: "helix3dConfigPanel",
+  [DISPLAY_MODES.threePlasmaField]: "threePlasmaFieldConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -369,6 +370,26 @@ const helix3dSoftClipRange = document.querySelector("#helix3dSoftClipRange");
 const helix3dSoftClipValue = document.querySelector("#helix3dSoftClipValue");
 const helix3dFallEaseRange = document.querySelector("#helix3dFallEaseRange");
 const helix3dFallEaseValue = document.querySelector("#helix3dFallEaseValue");
+
+const threePlasmaColorLow = document.querySelector("#threePlasmaColorLow");
+const threePlasmaColorHigh = document.querySelector("#threePlasmaColorHigh");
+const threePlasmaSpeedRange = document.querySelector("#threePlasmaSpeedRange");
+const threePlasmaSpeedValue = document.querySelector("#threePlasmaSpeedValue");
+const threePlasmaNoiseScaleRange = document.querySelector("#threePlasmaNoiseScaleRange");
+const threePlasmaNoiseScaleValue = document.querySelector("#threePlasmaNoiseScaleValue");
+const threePlasmaReactivenessRange = document.querySelector("#threePlasmaReactivenessRange");
+const threePlasmaReactivenessValue = document.querySelector("#threePlasmaReactivenessValue");
+const threePlasmaBloomToggle = document.querySelector("#threePlasmaBloomToggle");
+const threePlasmaBloomStrengthRange = document.querySelector("#threePlasmaBloomStrengthRange");
+const threePlasmaBloomStrengthValue = document.querySelector("#threePlasmaBloomStrengthValue");
+const threePlasmaGainRange = document.querySelector("#threePlasmaGainRange");
+const threePlasmaGainValue = document.querySelector("#threePlasmaGainValue");
+const threePlasmaSmoothRange = document.querySelector("#threePlasmaSmoothRange");
+const threePlasmaSmoothValue = document.querySelector("#threePlasmaSmoothValue");
+const threePlasmaSoftClipRange = document.querySelector("#threePlasmaSoftClipRange");
+const threePlasmaSoftClipValue = document.querySelector("#threePlasmaSoftClipValue");
+const threePlasmaFallEaseRange = document.querySelector("#threePlasmaFallEaseRange");
+const threePlasmaFallEaseValue = document.querySelector("#threePlasmaFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -1750,6 +1771,118 @@ async function syncHelix3dShapeConfig(visualTargetLabel, emitVisual) {
   }
 }
 
+function readThreePlasmaShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threePlasmaGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threePlasmaSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threePlasmaSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threePlasmaFallEaseRange?.value, 0, 100),
+  };
+  if (threePlasmaGainValue) threePlasmaGainValue.textContent = String(config.gainPercent);
+  if (threePlasmaSmoothValue) threePlasmaSmoothValue.textContent = String(config.smoothPercent);
+  if (threePlasmaSoftClipValue) threePlasmaSoftClipValue.textContent = String(config.softClipPercent);
+  if (threePlasmaFallEaseValue) threePlasmaFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-plasma-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyThreePlasmaFormFromStorage(v) {
+  const sg = readThreePlasmaShapeConfig(v) ?? { ...DEFAULT_CONFIG.threePlasmaField.shape };
+  if (threePlasmaGainRange) threePlasmaGainRange.value = String(sg.gainPercent);
+  if (threePlasmaSmoothRange) threePlasmaSmoothRange.value = String(sg.smoothPercent);
+  if (threePlasmaSoftClipRange) threePlasmaSoftClipRange.value = String(sg.softClipPercent);
+  if (threePlasmaFallEaseRange) threePlasmaFallEaseRange.value = String(sg.fallEasePercent);
+  if (threePlasmaGainValue) threePlasmaGainValue.textContent = String(sg.gainPercent);
+  if (threePlasmaSmoothValue) threePlasmaSmoothValue.textContent = String(sg.smoothPercent);
+  if (threePlasmaSoftClipValue) threePlasmaSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threePlasmaFallEaseValue) threePlasmaFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedColorLow = readWindowStorageString(window.localStorage, v, "threePlasmaColorLow");
+  if (threePlasmaColorLow && savedColorLow && /^#[0-9A-Fa-f]{6}$/.test(savedColorLow)) {
+    threePlasmaColorLow.value = savedColorLow.toLowerCase();
+  } else if (threePlasmaColorLow) {
+    threePlasmaColorLow.value = DEFAULT_CONFIG.threePlasmaField.colorLow;
+  }
+
+  const savedColorHigh = readWindowStorageString(window.localStorage, v, "threePlasmaColorHigh");
+  if (threePlasmaColorHigh && savedColorHigh && /^#[0-9A-Fa-f]{6}$/.test(savedColorHigh)) {
+    threePlasmaColorHigh.value = savedColorHigh.toLowerCase();
+  } else if (threePlasmaColorHigh) {
+    threePlasmaColorHigh.value = DEFAULT_CONFIG.threePlasmaField.colorHigh;
+  }
+
+  const savedSpeed = readWindowStorageString(window.localStorage, v, "threePlasmaSpeed");
+  if (threePlasmaSpeedRange) {
+    const speed =
+      savedSpeed != null && savedSpeed !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedSpeed)))
+        : DEFAULT_CONFIG.threePlasmaField.speed;
+    threePlasmaSpeedRange.value = String(Math.round(speed * 10));
+    if (threePlasmaSpeedValue) threePlasmaSpeedValue.textContent = speed.toFixed(1);
+  }
+
+  const savedNoiseScale = readWindowStorageString(window.localStorage, v, "threePlasmaNoiseScale");
+  if (threePlasmaNoiseScaleRange) {
+    const noiseScale =
+      savedNoiseScale != null && savedNoiseScale !== ""
+        ? Math.min(6, Math.max(0.5, Number(savedNoiseScale)))
+        : DEFAULT_CONFIG.threePlasmaField.noiseScale;
+    threePlasmaNoiseScaleRange.value = String(Math.round(noiseScale * 10));
+    if (threePlasmaNoiseScaleValue) threePlasmaNoiseScaleValue.textContent = noiseScale.toFixed(1);
+  }
+
+  const savedReactiveness = readWindowStorageString(window.localStorage, v, "threePlasmaReactiveness");
+  if (threePlasmaReactivenessRange) {
+    const reactiveness =
+      savedReactiveness != null && savedReactiveness !== ""
+        ? clampInt(savedReactiveness, 0, 100)
+        : DEFAULT_CONFIG.threePlasmaField.reactiveness;
+    threePlasmaReactivenessRange.value = String(reactiveness);
+    if (threePlasmaReactivenessValue) threePlasmaReactivenessValue.textContent = String(reactiveness);
+  }
+
+  if (threePlasmaBloomToggle) {
+    threePlasmaBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threePlasmaBloom"),
+      DEFAULT_CONFIG.threePlasmaField.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threePlasmaBloomStrength");
+  if (threePlasmaBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threePlasmaField.bloomStrength;
+    threePlasmaBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threePlasmaBloomStrengthValue) threePlasmaBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -2371,6 +2504,7 @@ async function init() {
     applyRing3dFormFromStorage(v);
     applyTerrain3dFormFromStorage(v);
     applyHelix3dFormFromStorage(v);
+    applyThreePlasmaFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -4117,6 +4251,84 @@ async function init() {
   });
   helix3dFallEaseRange?.addEventListener("input", () => {
     void syncHelix3dShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threePlasmaColorLow?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaColorLow", threePlasmaColorLow.value);
+      await emitVisual("waveform-three-plasma-color-low", threePlasmaColorLow.value);
+    } catch (err) {
+      statusEl.textContent = `更新低能量色失败：${String(err)}`;
+    }
+  });
+  threePlasmaColorHigh?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaColorHigh", threePlasmaColorHigh.value);
+      await emitVisual("waveform-three-plasma-color-high", threePlasmaColorHigh.value);
+    } catch (err) {
+      statusEl.textContent = `更新高能量色失败：${String(err)}`;
+    }
+  });
+  threePlasmaSpeedRange?.addEventListener("input", async (event) => {
+    const speed = clampInt(event.target.value, 2, 30) / 10;
+    if (threePlasmaSpeedValue) threePlasmaSpeedValue.textContent = speed.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaSpeed", String(speed));
+      await emitVisual("waveform-three-plasma-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新动画速度失败：${String(err)}`;
+    }
+  });
+  threePlasmaNoiseScaleRange?.addEventListener("input", async (event) => {
+    const noiseScale = clampInt(event.target.value, 5, 60) / 10;
+    if (threePlasmaNoiseScaleValue) threePlasmaNoiseScaleValue.textContent = noiseScale.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaNoiseScale", String(noiseScale));
+      await emitVisual("waveform-three-plasma-noise-scale", noiseScale);
+    } catch (err) {
+      statusEl.textContent = `更新噪声频率失败：${String(err)}`;
+    }
+  });
+  threePlasmaReactivenessRange?.addEventListener("input", async (event) => {
+    const reactiveness = clampInt(event.target.value, 0, 100);
+    if (threePlasmaReactivenessValue) threePlasmaReactivenessValue.textContent = String(reactiveness);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaReactiveness", String(reactiveness));
+      await emitVisual("waveform-three-plasma-reactiveness", reactiveness);
+    } catch (err) {
+      statusEl.textContent = `更新频谱驱动失败：${String(err)}`;
+    }
+  });
+  threePlasmaBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaBloom", String(enabled));
+      await emitVisual("waveform-three-plasma-bloom", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threePlasmaBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = clampInt(event.target.value, 0, 20) / 10;
+    if (threePlasmaBloomStrengthValue) threePlasmaBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threePlasmaBloomStrength", String(bloomStrength));
+      await emitVisual("waveform-three-plasma-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threePlasmaGainRange?.addEventListener("input", () => {
+    void syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePlasmaSmoothRange?.addEventListener("input", () => {
+    void syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePlasmaSoftClipRange?.addEventListener("input", () => {
+    void syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threePlasmaFallEaseRange?.addEventListener("input", () => {
+    void syncThreePlasmaShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

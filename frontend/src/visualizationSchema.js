@@ -144,6 +144,14 @@ export const STORAGE_KEYS = {
   helix3dCameraDistance: "wavedance.helix3dCameraDistance",
   helix3dCameraFov: "wavedance.helix3dCameraFovDeg",
   helix3dShape: "wavedance.helix3dShapeConfig",
+  threePlasmaColorLow: "wavedance.threePlasmaColorLow",
+  threePlasmaColorHigh: "wavedance.threePlasmaColorHigh",
+  threePlasmaSpeed: "wavedance.threePlasmaSpeed",
+  threePlasmaNoiseScale: "wavedance.threePlasmaNoiseScale",
+  threePlasmaReactiveness: "wavedance.threePlasmaReactiveness",
+  threePlasmaBloom: "wavedance.threePlasmaBloomEnabled",
+  threePlasmaBloomStrength: "wavedance.threePlasmaBloomStrength",
+  threePlasmaShape: "wavedance.threePlasmaShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -166,7 +174,40 @@ export const DISPLAY_MODES = {
   ring3d: "ring3d",
   terrain3d: "terrain3d",
   helix3d: "helix3d",
+  threePlasmaField: "threePlasmaField",
+  threeParticleGalaxy: "threeParticleGalaxy",
+  threeBloomTunnel: "threeBloomTunnel",
+  threeEnergySphere: "threeEnergySphere",
+  threeKaleidoscope: "threeKaleidoscope",
+  threeGlitchSpectrum: "threeGlitchSpectrum",
+  threePhosphorTrail: "threePhosphorTrail",
+  threeScanGrid: "threeScanGrid",
+  threeLiquidBlob: "threeLiquidBlob",
+  threeAuroraRibbon: "threeAuroraRibbon",
+  threeBreathingRings: "threeBreathingRings",
+  threeNoiseLandscape: "threeNoiseLandscape",
 };
+
+/** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
+export const THREE_DISPLAY_MODES = [
+  DISPLAY_MODES.threePlasmaField,
+  DISPLAY_MODES.threeParticleGalaxy,
+  DISPLAY_MODES.threeBloomTunnel,
+  DISPLAY_MODES.threeEnergySphere,
+  DISPLAY_MODES.threeKaleidoscope,
+  DISPLAY_MODES.threeGlitchSpectrum,
+  DISPLAY_MODES.threePhosphorTrail,
+  DISPLAY_MODES.threeScanGrid,
+  DISPLAY_MODES.threeLiquidBlob,
+  DISPLAY_MODES.threeAuroraRibbon,
+  DISPLAY_MODES.threeBreathingRings,
+  DISPLAY_MODES.threeNoiseLandscape,
+];
+
+/** @param {string} mode */
+export function isThreeDisplayMode(mode) {
+  return THREE_DISPLAY_MODES.includes(String(mode ?? "").trim());
+}
 
 export const PANEL_STYLES = {
   pro: "pro",
@@ -438,6 +479,21 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 55,
     },
   },
+  threePlasmaField: {
+    colorLow: "#1a0533",
+    colorHigh: "#8f7cff",
+    speed: 1.0,
+    noiseScale: 2.5,
+    reactiveness: 70,
+    bloomEnabled: true,
+    bloomStrength: 0.8,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 16,
+      softClipPercent: 10,
+      fallEasePercent: 50,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -458,6 +514,18 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.ring3d) return DISPLAY_MODES.ring3d;
   if (s === DISPLAY_MODES.terrain3d) return DISPLAY_MODES.terrain3d;
   if (s === DISPLAY_MODES.helix3d) return DISPLAY_MODES.helix3d;
+  if (s === DISPLAY_MODES.threePlasmaField) return DISPLAY_MODES.threePlasmaField;
+  if (s === DISPLAY_MODES.threeParticleGalaxy) return DISPLAY_MODES.threeParticleGalaxy;
+  if (s === DISPLAY_MODES.threeBloomTunnel) return DISPLAY_MODES.threeBloomTunnel;
+  if (s === DISPLAY_MODES.threeEnergySphere) return DISPLAY_MODES.threeEnergySphere;
+  if (s === DISPLAY_MODES.threeKaleidoscope) return DISPLAY_MODES.threeKaleidoscope;
+  if (s === DISPLAY_MODES.threeGlitchSpectrum) return DISPLAY_MODES.threeGlitchSpectrum;
+  if (s === DISPLAY_MODES.threePhosphorTrail) return DISPLAY_MODES.threePhosphorTrail;
+  if (s === DISPLAY_MODES.threeScanGrid) return DISPLAY_MODES.threeScanGrid;
+  if (s === DISPLAY_MODES.threeLiquidBlob) return DISPLAY_MODES.threeLiquidBlob;
+  if (s === DISPLAY_MODES.threeAuroraRibbon) return DISPLAY_MODES.threeAuroraRibbon;
+  if (s === DISPLAY_MODES.threeBreathingRings) return DISPLAY_MODES.threeBreathingRings;
+  if (s === DISPLAY_MODES.threeNoiseLandscape) return DISPLAY_MODES.threeNoiseLandscape;
   return DISPLAY_MODES.line;
 }
 
@@ -701,6 +769,14 @@ export function windowStorageKeys(windowLabel) {
     helix3dCameraDistance: `${pre}.helix3dCameraDistance`,
     helix3dCameraFov: `${pre}.helix3dCameraFovDeg`,
     helix3dShape: `${pre}.helix3dShapeConfig`,
+    threePlasmaColorLow: `${pre}.threePlasmaColorLow`,
+    threePlasmaColorHigh: `${pre}.threePlasmaColorHigh`,
+    threePlasmaSpeed: `${pre}.threePlasmaSpeed`,
+    threePlasmaNoiseScale: `${pre}.threePlasmaNoiseScale`,
+    threePlasmaReactiveness: `${pre}.threePlasmaReactiveness`,
+    threePlasmaBloom: `${pre}.threePlasmaBloomEnabled`,
+    threePlasmaBloomStrength: `${pre}.threePlasmaBloomStrength`,
+    threePlasmaShape: `${pre}.threePlasmaShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

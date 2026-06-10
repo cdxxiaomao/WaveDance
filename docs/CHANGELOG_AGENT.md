@@ -6,6 +6,25 @@
 
 > 说明：本文件用于保留历史实现轨迹与阶段性进度。`PROJECT_CONTEXT.md` 只保留当前执行上下文。
 
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 16：等离子场 Three Plasma Field（A/D）
+
+- 新建 `frontend/src/renderers/three/plasmaFieldRenderer.js`：全屏 ShaderMaterial 等离子（simplex noise + bass/mid/treble 驱动），可选 Bloom 后处理；`registerModes.js` 注册至 `threeModeRegistry`。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threePlasmaField` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-plasma-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 等离子场」、`#threePlasmaFieldConfigPanel`（双色/速度/噪声/频谱驱动/Bloom/形状四件套）。
+
+## 2026-06-10
+
+### 可视化模式扩展 — Phase 15：Three.js 公共基础设施
+
+- `frontend/package.json`：新增依赖 `three`、`postprocessing`（pnpm）。
+- 新建 `frontend/src/renderers/three/`：`threeContext.js`（WebGLRenderer/Scene/Camera + resize/dispose）、`threeBridge.js`（init/setMode/render 桥接）、`spectrumUniforms.js`（bass/mid/treble + 256 宽 spectrum 纹理 + 8 band 峰值）、`postProcessing.js`（EffectComposer + Bloom 工厂）、`threeModeRegistry.js`（lazy 模式注册表）。
+- `visualizationSchema.js`：注册 12 个 Three 模式 enum、`THREE_DISPLAY_MODES` 数组、`isThreeDisplayMode()`；`normalizeDisplayMode` 识别 Three 模式 id。
+- `main.js`：vanilla/Three 互斥渲染分支（`syncRenderBackend`、`renderVanillaFrame` / `renderThreeFrame`）；切换模式时 lose/recreate WebGL context；vanilla renderer 可重建。
+- `settings.html`：展示模式下拉预留 `<optgroup label="Three 高阶">`（Phase 16 起填 option）。
+
 ## 2026-04-14 ~ 2026-04-16
 
 ### 初始规划与架构
