@@ -103,6 +103,7 @@
                 <option value="threeKaleidoscope">万花筒</option>
                 <option value="threeGlitchSpectrum">故障频谱</option>
                 <option value="threePhosphorTrail">磷光余辉</option>
+                <option value="threeScanGrid">扫描网格</option>
               </optgroup>
             </select>
           </div>
@@ -1327,6 +1328,69 @@
           <div class="settings-field">
             <label for="threePhosphorFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threePhosphorFallEaseValue">60</span>%</label>
             <input id="threePhosphorFallEaseRange" type="range" min="0" max="100" step="1" value="60" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeScanGridConfigPanel" aria-labelledby="sec-three-scan-grid-display" hidden>
+        <h2 id="sec-three-scan-grid-display" class="settings-card__title">扫描网格配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-scan-grid" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeScanGridColor" class="settings-label">网格颜色</label>
+            <input id="threeScanGridColor" type="color" value="#4a4580" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeScanGridHighlightColor" class="settings-label">高亮颜色</label>
+            <input id="threeScanGridHighlightColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeScanGridScanBeamColor" class="settings-label">扫描光束色</label>
+            <input id="threeScanGridScanBeamColor" type="color" value="#ffffff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridRowsRange" class="settings-label">网格行数 <span class="settings-value" id="threeScanGridRowsValue">32</span></label>
+            <input id="threeScanGridRowsRange" type="range" min="12" max="48" step="4" value="32" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridColsRange" class="settings-label">网格列数 <span class="settings-value" id="threeScanGridColsValue">48</span></label>
+            <input id="threeScanGridColsRange" type="range" min="16" max="64" step="4" value="48" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridScanSpeedRange" class="settings-label">扫描速度 <span class="settings-value" id="threeScanGridScanSpeedValue">1.0</span></label>
+            <input id="threeScanGridScanSpeedRange" type="range" min="2" max="30" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridHighlightStrengthRange" class="settings-label">高亮强度 <span class="settings-value" id="threeScanGridHighlightStrengthValue">70</span>%</label>
+            <input id="threeScanGridHighlightStrengthRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridCameraPitchRange" class="settings-label">相机俯角 <span class="settings-value" id="threeScanGridCameraPitchValue">50</span>°</label>
+            <input id="threeScanGridCameraPitchRange" type="range" min="25" max="75" step="1" value="50" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeScanGridBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeScanGridBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeScanGridBloomStrengthValue">0.7</span></label>
+            <input id="threeScanGridBloomStrengthRange" type="range" min="0" max="20" step="1" value="7" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridGainRange" class="settings-label">增益 <span class="settings-value" id="threeScanGridGainValue">58</span>%</label>
+            <input id="threeScanGridGainRange" type="range" min="10" max="150" step="1" value="58" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeScanGridSmoothValue">14</span>%</label>
+            <input id="threeScanGridSmoothRange" type="range" min="0" max="400" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeScanGridSoftClipValue">10</span>%</label>
+            <input id="threeScanGridSoftClipRange" type="range" min="0" max="100" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeScanGridFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeScanGridFallEaseValue">48</span>%</label>
+            <input id="threeScanGridFallEaseRange" type="range" min="0" max="100" step="1" value="48" />
           </div>
         </div>
       </section>

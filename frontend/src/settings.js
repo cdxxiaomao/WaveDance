@@ -62,6 +62,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeKaleidoscope]: "threeKaleidoscopeConfigPanel",
   [DISPLAY_MODES.threeGlitchSpectrum]: "threeGlitchSpectrumConfigPanel",
   [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
+  [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -519,6 +520,30 @@ const threePhosphorSoftClipRange = document.querySelector("#threePhosphorSoftCli
 const threePhosphorSoftClipValue = document.querySelector("#threePhosphorSoftClipValue");
 const threePhosphorFallEaseRange = document.querySelector("#threePhosphorFallEaseRange");
 const threePhosphorFallEaseValue = document.querySelector("#threePhosphorFallEaseValue");
+const threeScanGridColor = document.querySelector("#threeScanGridColor");
+const threeScanGridHighlightColor = document.querySelector("#threeScanGridHighlightColor");
+const threeScanGridScanBeamColor = document.querySelector("#threeScanGridScanBeamColor");
+const threeScanGridRowsRange = document.querySelector("#threeScanGridRowsRange");
+const threeScanGridRowsValue = document.querySelector("#threeScanGridRowsValue");
+const threeScanGridColsRange = document.querySelector("#threeScanGridColsRange");
+const threeScanGridColsValue = document.querySelector("#threeScanGridColsValue");
+const threeScanGridScanSpeedRange = document.querySelector("#threeScanGridScanSpeedRange");
+const threeScanGridScanSpeedValue = document.querySelector("#threeScanGridScanSpeedValue");
+const threeScanGridHighlightStrengthRange = document.querySelector("#threeScanGridHighlightStrengthRange");
+const threeScanGridHighlightStrengthValue = document.querySelector("#threeScanGridHighlightStrengthValue");
+const threeScanGridCameraPitchRange = document.querySelector("#threeScanGridCameraPitchRange");
+const threeScanGridCameraPitchValue = document.querySelector("#threeScanGridCameraPitchValue");
+const threeScanGridBloomToggle = document.querySelector("#threeScanGridBloomToggle");
+const threeScanGridBloomStrengthRange = document.querySelector("#threeScanGridBloomStrengthRange");
+const threeScanGridBloomStrengthValue = document.querySelector("#threeScanGridBloomStrengthValue");
+const threeScanGridGainRange = document.querySelector("#threeScanGridGainRange");
+const threeScanGridGainValue = document.querySelector("#threeScanGridGainValue");
+const threeScanGridSmoothRange = document.querySelector("#threeScanGridSmoothRange");
+const threeScanGridSmoothValue = document.querySelector("#threeScanGridSmoothValue");
+const threeScanGridSoftClipRange = document.querySelector("#threeScanGridSoftClipRange");
+const threeScanGridSoftClipValue = document.querySelector("#threeScanGridSoftClipValue");
+const threeScanGridFallEaseRange = document.querySelector("#threeScanGridFallEaseRange");
+const threeScanGridFallEaseValue = document.querySelector("#threeScanGridFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2732,6 +2757,145 @@ function applyThreePhosphorFormFromStorage(v) {
   }
 }
 
+function readThreeScanGridShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeScanGridGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeScanGridSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeScanGridSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeScanGridFallEaseRange?.value, 0, 100),
+  };
+  if (threeScanGridGainValue) threeScanGridGainValue.textContent = String(config.gainPercent);
+  if (threeScanGridSmoothValue) threeScanGridSmoothValue.textContent = String(config.smoothPercent);
+  if (threeScanGridSoftClipValue) threeScanGridSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeScanGridFallEaseValue) threeScanGridFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-scan-grid-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新扫描网格形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeScanGridFormFromStorage(v) {
+  const sg = readThreeScanGridShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeScanGrid.shape };
+  if (threeScanGridGainRange) threeScanGridGainRange.value = String(sg.gainPercent);
+  if (threeScanGridSmoothRange) threeScanGridSmoothRange.value = String(sg.smoothPercent);
+  if (threeScanGridSoftClipRange) threeScanGridSoftClipRange.value = String(sg.softClipPercent);
+  if (threeScanGridFallEaseRange) threeScanGridFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeScanGridGainValue) threeScanGridGainValue.textContent = String(sg.gainPercent);
+  if (threeScanGridSmoothValue) threeScanGridSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeScanGridSoftClipValue) threeScanGridSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeScanGridFallEaseValue) threeScanGridFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedGridColor = readWindowStorageString(window.localStorage, v, "threeScanGridColor");
+  if (threeScanGridColor && savedGridColor && /^#[0-9A-Fa-f]{6}$/.test(savedGridColor)) {
+    threeScanGridColor.value = savedGridColor.toLowerCase();
+  } else if (threeScanGridColor) {
+    threeScanGridColor.value = DEFAULT_CONFIG.threeScanGrid.gridColor;
+  }
+
+  const savedHighlightColor = readWindowStorageString(window.localStorage, v, "threeScanGridHighlightColor");
+  if (threeScanGridHighlightColor && savedHighlightColor && /^#[0-9A-Fa-f]{6}$/.test(savedHighlightColor)) {
+    threeScanGridHighlightColor.value = savedHighlightColor.toLowerCase();
+  } else if (threeScanGridHighlightColor) {
+    threeScanGridHighlightColor.value = DEFAULT_CONFIG.threeScanGrid.highlightColor;
+  }
+
+  const savedBeamColor = readWindowStorageString(window.localStorage, v, "threeScanGridScanBeamColor");
+  if (threeScanGridScanBeamColor && savedBeamColor && /^#[0-9A-Fa-f]{6}$/.test(savedBeamColor)) {
+    threeScanGridScanBeamColor.value = savedBeamColor.toLowerCase();
+  } else if (threeScanGridScanBeamColor) {
+    threeScanGridScanBeamColor.value = DEFAULT_CONFIG.threeScanGrid.scanBeamColor;
+  }
+
+  const savedRows = readWindowStorageString(window.localStorage, v, "threeScanGridRows");
+  if (threeScanGridRowsRange) {
+    const rows =
+      savedRows != null && savedRows !== ""
+        ? clampInt(savedRows, 12, 48)
+        : DEFAULT_CONFIG.threeScanGrid.gridRows;
+    threeScanGridRowsRange.value = String(rows);
+    if (threeScanGridRowsValue) threeScanGridRowsValue.textContent = String(rows);
+  }
+
+  const savedCols = readWindowStorageString(window.localStorage, v, "threeScanGridCols");
+  if (threeScanGridColsRange) {
+    const cols =
+      savedCols != null && savedCols !== ""
+        ? clampInt(savedCols, 16, 64)
+        : DEFAULT_CONFIG.threeScanGrid.gridCols;
+    threeScanGridColsRange.value = String(cols);
+    if (threeScanGridColsValue) threeScanGridColsValue.textContent = String(cols);
+  }
+
+  const savedSpeed = readWindowStorageString(window.localStorage, v, "threeScanGridScanSpeed");
+  if (threeScanGridScanSpeedRange) {
+    const speed =
+      savedSpeed != null && savedSpeed !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedSpeed)))
+        : DEFAULT_CONFIG.threeScanGrid.scanSpeed;
+    threeScanGridScanSpeedRange.value = String(Math.round(speed * 10));
+    if (threeScanGridScanSpeedValue) threeScanGridScanSpeedValue.textContent = speed.toFixed(1);
+  }
+
+  const savedHighlightStrength = readWindowStorageString(window.localStorage, v, "threeScanGridHighlightStrength");
+  if (threeScanGridHighlightStrengthRange) {
+    const strength =
+      savedHighlightStrength != null && savedHighlightStrength !== ""
+        ? clampInt(savedHighlightStrength, 0, 100)
+        : DEFAULT_CONFIG.threeScanGrid.highlightStrength;
+    threeScanGridHighlightStrengthRange.value = String(strength);
+    if (threeScanGridHighlightStrengthValue) {
+      threeScanGridHighlightStrengthValue.textContent = String(strength);
+    }
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "threeScanGridCameraPitch");
+  if (threeScanGridCameraPitchRange) {
+    const pitch =
+      savedPitch != null && savedPitch !== ""
+        ? clampInt(savedPitch, 25, 75)
+        : DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg;
+    threeScanGridCameraPitchRange.value = String(pitch);
+    if (threeScanGridCameraPitchValue) threeScanGridCameraPitchValue.textContent = String(pitch);
+  }
+
+  if (threeScanGridBloomToggle) {
+    threeScanGridBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeScanGridBloom"),
+      DEFAULT_CONFIG.threeScanGrid.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeScanGridBloomStrength");
+  if (threeScanGridBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeScanGrid.bloomStrength;
+    threeScanGridBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeScanGridBloomStrengthValue) {
+      threeScanGridBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -3360,6 +3524,7 @@ async function init() {
     applyThreeKaleidoscopeFormFromStorage(v);
     applyThreeGlitchFormFromStorage(v);
     applyThreePhosphorFormFromStorage(v);
+    applyThreeScanGridFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -5901,6 +6066,141 @@ async function init() {
   });
   threePhosphorFallEaseRange?.addEventListener("input", () => {
     void syncThreePhosphorShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeScanGridColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeScanGridColor",
+        threeScanGridColor.value,
+      );
+      await emitVisual("waveform-three-scan-grid-color", threeScanGridColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新网格颜色失败：${String(err)}`;
+    }
+  });
+  threeScanGridHighlightColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeScanGridHighlightColor",
+        threeScanGridHighlightColor.value,
+      );
+      await emitVisual("waveform-three-scan-grid-highlight-color", threeScanGridHighlightColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新高亮颜色失败：${String(err)}`;
+    }
+  });
+  threeScanGridScanBeamColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeScanGridScanBeamColor",
+        threeScanGridScanBeamColor.value,
+      );
+      await emitVisual("waveform-three-scan-grid-scan-beam-color", threeScanGridScanBeamColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新扫描光束色失败：${String(err)}`;
+    }
+  });
+  threeScanGridRowsRange?.addEventListener("input", async (event) => {
+    const rows = clampInt(event.target.value, 12, 48);
+    if (threeScanGridRowsValue) threeScanGridRowsValue.textContent = String(rows);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridRows", String(rows));
+      await emitVisual("waveform-three-scan-grid-rows", rows);
+    } catch (err) {
+      statusEl.textContent = `更新网格行数失败：${String(err)}`;
+    }
+  });
+  threeScanGridColsRange?.addEventListener("input", async (event) => {
+    const cols = clampInt(event.target.value, 16, 64);
+    if (threeScanGridColsValue) threeScanGridColsValue.textContent = String(cols);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridCols", String(cols));
+      await emitVisual("waveform-three-scan-grid-cols", cols);
+    } catch (err) {
+      statusEl.textContent = `更新网格列数失败：${String(err)}`;
+    }
+  });
+  threeScanGridScanSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(3, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeScanGridScanSpeedValue) threeScanGridScanSpeedValue.textContent = speed.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridScanSpeed", String(speed));
+      await emitVisual("waveform-three-scan-grid-scan-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新扫描速度失败：${String(err)}`;
+    }
+  });
+  threeScanGridHighlightStrengthRange?.addEventListener("input", async (event) => {
+    const strength = clampInt(event.target.value, 0, 100);
+    if (threeScanGridHighlightStrengthValue) {
+      threeScanGridHighlightStrengthValue.textContent = String(strength);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeScanGridHighlightStrength",
+        String(strength),
+      );
+      await emitVisual("waveform-three-scan-grid-highlight-strength", strength);
+    } catch (err) {
+      statusEl.textContent = `更新高亮强度失败：${String(err)}`;
+    }
+  });
+  threeScanGridCameraPitchRange?.addEventListener("input", async (event) => {
+    const pitch = clampInt(event.target.value, 25, 75);
+    if (threeScanGridCameraPitchValue) threeScanGridCameraPitchValue.textContent = String(pitch);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridCameraPitch", String(pitch));
+      await emitVisual("waveform-three-scan-grid-camera-pitch", pitch);
+    } catch (err) {
+      statusEl.textContent = `更新相机俯角失败：${String(err)}`;
+    }
+  });
+  threeScanGridBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeScanGridBloom", String(enabled));
+      await emitVisual("waveform-three-scan-grid-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeScanGridBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeScanGridBloomStrengthValue) {
+      threeScanGridBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeScanGridBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-scan-grid-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeScanGridGainRange?.addEventListener("input", () => {
+    void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeScanGridSmoothRange?.addEventListener("input", () => {
+    void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeScanGridSoftClipRange?.addEventListener("input", () => {
+    void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeScanGridFallEaseRange?.addEventListener("input", () => {
+    void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {

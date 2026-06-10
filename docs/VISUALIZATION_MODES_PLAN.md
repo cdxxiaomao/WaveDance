@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~22 已全部完成；Phase 23~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~23 已全部完成；Phase 24~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1248,15 +1248,15 @@ threeScanGrid: {
 
 #### 23.2 新建 `renderers/three/scanGridRenderer.js`
 
-- [ ] `GridHelper` 或 custom `LineSegments` 地面网格
-- [ ] 竖条高度 = 频谱聚合；扫描线 uniform `u_scanY` 循环
-- [ ] 经过扫描线的格点 emissive 提高
+- [x] `GridHelper` 或 custom `LineSegments` 地面网格
+- [x] 竖条高度 = 频谱聚合；扫描线 uniform `u_scanY` 循环
+- [x] 经过扫描线的格点 emissive 提高
 
 #### 23.3 验收标准
 
-- [ ] 扫描光束连续循环
-- [ ] 频谱变化时格点高度实时更新
-- [ ] **方案 B（赛博故障）四模式全部可切换**
+- [x] 扫描光束连续循环
+- [x] 频谱变化时格点高度实时更新
+- [x] **方案 B（赛博故障）四模式全部可切换**
 
 ---
 
@@ -1579,14 +1579,14 @@ threeNoiseLandscape: {
 | 20 | 万花筒 Three Kaleidoscope（B） | `[x]` 已完成 | 2026-06-10 |
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[x]` 已完成 | 2026-06-10 |
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[x]` 已完成 | 2026-06-10 |
-| 23 | 扫描网格 Three Scan Grid（B） | `[ ]` 未开始 | |
+| 23 | 扫描网格 Three Scan Grid（B） | `[x]` 已完成 | 2026-06-10 |
 | 24 | 液态球体 Three Liquid Blob（C） | `[ ]` 未开始 | |
 | 25 | 极光飘带 Three Aurora Ribbon（C） | `[ ]` 未开始 | |
 | 26 | 呼吸光环 Three Breathing Rings（C） | `[ ]` 未开始 | |
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 23（扫描网格 Three Scan Grid，方案 B）
+**当前建议下一步**：Phase 24（液态球体 Three Liquid Blob，方案 C）
 
 ---
 

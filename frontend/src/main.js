@@ -103,6 +103,7 @@ const threeSphereShapeConfig = { ...DEFAULT_CONFIG.threeEnergySphere.shape };
 const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape };
 const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
 const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
+const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -286,6 +287,14 @@ function applyThreePhosphorShapeConfig(payload) {
   threePhosphorShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeScanGridShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeScanGridShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeScanGridShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeScanGridShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeScanGridShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -332,6 +341,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeGlitchRaw) applyThreeGlitchShapeConfig(JSON.parse(threeGlitchRaw));
     const threePhosphorRaw = readWindowStorageString(window.localStorage, windowLabel, "threePhosphorShape");
     if (threePhosphorRaw) applyThreePhosphorShapeConfig(JSON.parse(threePhosphorRaw));
+    const threeScanGridRaw = readWindowStorageString(window.localStorage, windowLabel, "threeScanGridShape");
+    if (threeScanGridRaw) applyThreeScanGridShapeConfig(JSON.parse(threeScanGridRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -574,6 +585,16 @@ let threePhosphorDecayPercent = DEFAULT_CONFIG.threePhosphorTrail.decayPercent;
 let threePhosphorBloomEnabled = DEFAULT_CONFIG.threePhosphorTrail.bloomEnabled;
 let threePhosphorBloomStrength = DEFAULT_CONFIG.threePhosphorTrail.bloomStrength;
 let threePhosphorMirrorEnabled = DEFAULT_CONFIG.threePhosphorTrail.mirrorEnabled;
+let threeScanGridColorHex = DEFAULT_CONFIG.threeScanGrid.gridColor;
+let threeScanGridHighlightColorHex = DEFAULT_CONFIG.threeScanGrid.highlightColor;
+let threeScanGridScanBeamColorHex = DEFAULT_CONFIG.threeScanGrid.scanBeamColor;
+let threeScanGridRows = DEFAULT_CONFIG.threeScanGrid.gridRows;
+let threeScanGridCols = DEFAULT_CONFIG.threeScanGrid.gridCols;
+let threeScanGridScanSpeed = DEFAULT_CONFIG.threeScanGrid.scanSpeed;
+let threeScanGridHighlightStrength = DEFAULT_CONFIG.threeScanGrid.highlightStrength;
+let threeScanGridBloomEnabled = DEFAULT_CONFIG.threeScanGrid.bloomEnabled;
+let threeScanGridBloomStrength = DEFAULT_CONFIG.threeScanGrid.bloomStrength;
+let threeScanGridCameraPitchDeg = DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1489,6 +1510,51 @@ function applyThreePhosphorMirrorEnabled(value) {
   threePhosphorMirrorEnabled = parseBoolean(value, DEFAULT_CONFIG.threePhosphorTrail.mirrorEnabled);
 }
 
+function applyThreeScanGridColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeScanGrid.gridColor;
+  threeScanGridColorHex = safe;
+}
+
+function applyThreeScanGridHighlightColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeScanGrid.highlightColor;
+  threeScanGridHighlightColorHex = safe;
+}
+
+function applyThreeScanGridScanBeamColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeScanGrid.scanBeamColor;
+  threeScanGridScanBeamColorHex = safe;
+}
+
+function applyThreeScanGridRows(value) {
+  threeScanGridRows = clampInt(value, 12, 48);
+}
+
+function applyThreeScanGridCols(value) {
+  threeScanGridCols = clampInt(value, 16, 64);
+}
+
+function applyThreeScanGridScanSpeed(value) {
+  const n = Number(value);
+  threeScanGridScanSpeed = Number.isFinite(n) ? Math.min(3, Math.max(0.2, n)) : DEFAULT_CONFIG.threeScanGrid.scanSpeed;
+}
+
+function applyThreeScanGridHighlightStrength(value) {
+  threeScanGridHighlightStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeScanGridBloomEnabled(value) {
+  threeScanGridBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeScanGrid.bloomEnabled);
+}
+
+function applyThreeScanGridBloomStrength(value) {
+  const n = Number(value);
+  threeScanGridBloomStrength = Number.isFinite(n) ? Math.min(2, Math.max(0, n)) : DEFAULT_CONFIG.threeScanGrid.bloomStrength;
+}
+
+function applyThreeScanGridCameraPitchDeg(value) {
+  threeScanGridCameraPitchDeg = clampInt(value, 25, 75);
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1710,6 +1776,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeKaleidoscope) return threeKaleidoscopeShapeConfig;
   if (mode === DISPLAY_MODES.threeGlitchSpectrum) return threeGlitchShapeConfig;
   if (mode === DISPLAY_MODES.threePhosphorTrail) return threePhosphorShapeConfig;
+  if (mode === DISPLAY_MODES.threeScanGrid) return threeScanGridShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2002,6 +2069,21 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threePhosphorBloomEnabled,
       bloomStrength: threePhosphorBloomStrength,
       mirrorEnabled: threePhosphorMirrorEnabled,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeScanGrid) {
+    return {
+      gridColor: threeScanGridColorHex,
+      highlightColor: threeScanGridHighlightColorHex,
+      scanBeamColor: threeScanGridScanBeamColorHex,
+      gridRows: threeScanGridRows,
+      gridCols: threeScanGridCols,
+      scanSpeed: threeScanGridScanSpeed,
+      highlightStrength: threeScanGridHighlightStrength,
+      bloomEnabled: threeScanGridBloomEnabled,
+      bloomStrength: threeScanGridBloomStrength,
+      cameraPitchDeg: threeScanGridCameraPitchDeg,
       freqReversed,
     };
   }
@@ -3627,6 +3709,83 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-scan-grid-color",
+    (event) => {
+      applyThreeScanGridColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-highlight-color",
+    (event) => {
+      applyThreeScanGridHighlightColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-scan-beam-color",
+    (event) => {
+      applyThreeScanGridScanBeamColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-rows",
+    (event) => {
+      applyThreeScanGridRows(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-cols",
+    (event) => {
+      applyThreeScanGridCols(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-scan-speed",
+    (event) => {
+      applyThreeScanGridScanSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-highlight-strength",
+    (event) => {
+      applyThreeScanGridHighlightStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-bloom-enabled",
+    (event) => {
+      applyThreeScanGridBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-bloom-strength",
+    (event) => {
+      applyThreeScanGridBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-camera-pitch",
+    (event) => {
+      applyThreeScanGridCameraPitchDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-scan-grid-shape-config",
+    (event) => {
+      applyThreeScanGridShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -4359,6 +4518,49 @@ async function init() {
     }
     applyThreePhosphorMirrorEnabled(
       readWindowStorageString(window.localStorage, windowLabel, "threePhosphorMirror"),
+    );
+    applyThreeScanGridColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridColor") ??
+        DEFAULT_CONFIG.threeScanGrid.gridColor,
+    );
+    applyThreeScanGridHighlightColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridHighlightColor") ??
+        DEFAULT_CONFIG.threeScanGrid.highlightColor,
+    );
+    applyThreeScanGridScanBeamColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridScanBeamColor") ??
+        DEFAULT_CONFIG.threeScanGrid.scanBeamColor,
+    );
+    applyThreeScanGridRows(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridRows") ??
+        DEFAULT_CONFIG.threeScanGrid.gridRows,
+    );
+    applyThreeScanGridCols(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridCols") ??
+        DEFAULT_CONFIG.threeScanGrid.gridCols,
+    );
+    applyThreeScanGridScanSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridScanSpeed") ??
+        DEFAULT_CONFIG.threeScanGrid.scanSpeed,
+    );
+    applyThreeScanGridHighlightStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridHighlightStrength") ??
+        DEFAULT_CONFIG.threeScanGrid.highlightStrength,
+    );
+    applyThreeScanGridBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridBloom"),
+    );
+    const savedScanGridBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeScanGridBloomStrength",
+    );
+    if (savedScanGridBloomStrength != null && savedScanGridBloomStrength !== "") {
+      applyThreeScanGridBloomStrength(savedScanGridBloomStrength);
+    }
+    applyThreeScanGridCameraPitchDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeScanGridCameraPitch") ??
+        DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg,
     );
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

@@ -12,6 +12,13 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 23：扫描网格 Three Scan Grid（B）
+
+- 新建 `frontend/src/renderers/three/scanGridRenderer.js`：3D 线框网格 + 频谱驱动竖条高度 + `u_scanZ` 扫描光束高亮 + 可选 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeScanGrid` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-scan-grid-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 扫描网格」、`#threeScanGridConfigPanel`（网格/高亮/光束色、行列数、扫描速度、高亮强度、相机俯角、Bloom、形状四件套）。
+
 ### 可视化模式扩展 — Phase 22：磷光余辉 Three Phosphor Trail（B）
 
 - 新建 `frontend/src/renderers/three/phosphorTrailRenderer.js`：全屏频谱线 shader + `EffectComposer`（自定义 `AfterimagePass` 磷光拖尾 + 可选 Bloom）；`registerModes.js` 注册。
