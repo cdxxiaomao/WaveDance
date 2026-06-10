@@ -98,6 +98,7 @@ const helix3dShapeConfig = { ...DEFAULT_CONFIG.helix3d.shape };
 const threePlasmaShapeConfig = { ...DEFAULT_CONFIG.threePlasmaField.shape };
 const threeGalaxyShapeConfig = { ...DEFAULT_CONFIG.threeParticleGalaxy.shape };
 const threeTunnelShapeConfig = { ...DEFAULT_CONFIG.threeBloomTunnel.shape };
+const threeSphereShapeConfig = { ...DEFAULT_CONFIG.threeEnergySphere.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -249,6 +250,14 @@ function applyThreeTunnelShapeConfig(payload) {
   threeTunnelShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeSphereShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeSphereShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeSphereShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeSphereShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeSphereShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -287,6 +296,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeGalaxyRaw) applyThreeGalaxyShapeConfig(JSON.parse(threeGalaxyRaw));
     const threeTunnelRaw = readWindowStorageString(window.localStorage, windowLabel, "threeTunnelShape");
     if (threeTunnelRaw) applyThreeTunnelShapeConfig(JSON.parse(threeTunnelRaw));
+    const threeSphereRaw = readWindowStorageString(window.localStorage, windowLabel, "threeSphereShape");
+    if (threeSphereRaw) applyThreeSphereShapeConfig(JSON.parse(threeSphereRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -500,6 +511,15 @@ let threeTunnelCorePulseStrength = DEFAULT_CONFIG.threeBloomTunnel.corePulseStre
 let threeTunnelBloomEnabled = DEFAULT_CONFIG.threeBloomTunnel.bloomEnabled;
 let threeTunnelBloomStrength = DEFAULT_CONFIG.threeBloomTunnel.bloomStrength;
 let threeTunnelFovDeg = DEFAULT_CONFIG.threeBloomTunnel.fovDeg;
+let threeSphereCoreColorHex = DEFAULT_CONFIG.threeEnergySphere.coreColor;
+let threeSphereHaloColorHex = DEFAULT_CONFIG.threeEnergySphere.haloColor;
+let threeSphereDeformStrength = DEFAULT_CONFIG.threeEnergySphere.deformStrength;
+let threeSphereNoiseSpeed = DEFAULT_CONFIG.threeEnergySphere.noiseSpeed;
+let threeSphereHaloParticleCount = DEFAULT_CONFIG.threeEnergySphere.haloParticleCount;
+let threeSphereWireframeOverlay = DEFAULT_CONFIG.threeEnergySphere.wireframeOverlay;
+let threeSphereBloomEnabled = DEFAULT_CONFIG.threeEnergySphere.bloomEnabled;
+let threeSphereBloomStrength = DEFAULT_CONFIG.threeEnergySphere.bloomStrength;
+let threeSphereAutoRotateSpeedDeg = DEFAULT_CONFIG.threeEnergySphere.autoRotateSpeedDeg;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1273,6 +1293,54 @@ function applyThreeTunnelFovDeg(value) {
   threeTunnelFovDeg = clampInt(value, 45, 85);
 }
 
+function applyThreeSphereCoreColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw)
+    ? raw.toLowerCase()
+    : DEFAULT_CONFIG.threeEnergySphere.coreColor;
+  threeSphereCoreColorHex = safe;
+}
+
+function applyThreeSphereHaloColorHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw)
+    ? raw.toLowerCase()
+    : DEFAULT_CONFIG.threeEnergySphere.haloColor;
+  threeSphereHaloColorHex = safe;
+}
+
+function applyThreeSphereDeformStrength(value) {
+  threeSphereDeformStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeSphereNoiseSpeed(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeSphereNoiseSpeed = Math.min(3, Math.max(0.2, n));
+}
+
+function applyThreeSphereHaloParticleCount(value) {
+  threeSphereHaloParticleCount = clampInt(value, 200, 3000);
+}
+
+function applyThreeSphereWireframeOverlay(value) {
+  threeSphereWireframeOverlay = parseBoolean(value, DEFAULT_CONFIG.threeEnergySphere.wireframeOverlay);
+}
+
+function applyThreeSphereBloomEnabled(value) {
+  threeSphereBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeEnergySphere.bloomEnabled);
+}
+
+function applyThreeSphereBloomStrength(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeSphereBloomStrength = Math.min(2, Math.max(0, n));
+}
+
+function applyThreeSphereAutoRotateSpeedDeg(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return;
+  threeSphereAutoRotateSpeedDeg = Math.min(20, Math.max(0, n));
+}
+
 function applyWaveformLineWidthPx(n) {
   const v = Math.round(Number(n));
   if (!Number.isFinite(v)) return;
@@ -1490,6 +1558,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threePlasmaField) return threePlasmaShapeConfig;
   if (mode === DISPLAY_MODES.threeParticleGalaxy) return threeGalaxyShapeConfig;
   if (mode === DISPLAY_MODES.threeBloomTunnel) return threeTunnelShapeConfig;
+  if (mode === DISPLAY_MODES.threeEnergySphere) return threeSphereShapeConfig;
   return waveShapeConfig;
 }
 
@@ -1733,6 +1802,20 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeTunnelBloomEnabled,
       bloomStrength: threeTunnelBloomStrength,
       fovDeg: threeTunnelFovDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeEnergySphere) {
+    return {
+      coreColor: threeSphereCoreColorHex,
+      haloColor: threeSphereHaloColorHex,
+      deformStrength: threeSphereDeformStrength,
+      noiseSpeed: threeSphereNoiseSpeed,
+      haloParticleCount: threeSphereHaloParticleCount,
+      wireframeOverlay: threeSphereWireframeOverlay,
+      bloomEnabled: threeSphereBloomEnabled,
+      bloomStrength: threeSphereBloomStrength,
+      autoRotateSpeedDeg: threeSphereAutoRotateSpeedDeg,
       freqReversed,
     };
   }
@@ -3127,6 +3210,76 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-sphere-core-color",
+    (event) => {
+      applyThreeSphereCoreColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-halo-color",
+    (event) => {
+      applyThreeSphereHaloColorHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-deform-strength",
+    (event) => {
+      applyThreeSphereDeformStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-noise-speed",
+    (event) => {
+      applyThreeSphereNoiseSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-halo-count",
+    (event) => {
+      applyThreeSphereHaloParticleCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-wireframe",
+    (event) => {
+      applyThreeSphereWireframeOverlay(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-bloom",
+    (event) => {
+      applyThreeSphereBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-bloom-strength",
+    (event) => {
+      applyThreeSphereBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-auto-rotate-speed",
+    (event) => {
+      applyThreeSphereAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sphere-shape-config",
+    (event) => {
+      applyThreeSphereShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -3712,6 +3865,60 @@ async function init() {
     const savedTunnelFov = readWindowStorageString(window.localStorage, windowLabel, "threeTunnelFov");
     if (savedTunnelFov != null && savedTunnelFov !== "") {
       applyThreeTunnelFovDeg(savedTunnelFov);
+    }
+    applyThreeSphereCoreColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSphereCoreColor") ??
+        DEFAULT_CONFIG.threeEnergySphere.coreColor,
+    );
+    applyThreeSphereHaloColorHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSphereHaloColor") ??
+        DEFAULT_CONFIG.threeEnergySphere.haloColor,
+    );
+    const savedSphereDeform = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSphereDeformStrength",
+    );
+    if (savedSphereDeform != null && savedSphereDeform !== "") {
+      applyThreeSphereDeformStrength(savedSphereDeform);
+    }
+    const savedSphereNoiseSpeed = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSphereNoiseSpeed",
+    );
+    if (savedSphereNoiseSpeed != null && savedSphereNoiseSpeed !== "") {
+      applyThreeSphereNoiseSpeed(savedSphereNoiseSpeed);
+    }
+    const savedSphereHaloCount = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSphereHaloCount",
+    );
+    if (savedSphereHaloCount != null && savedSphereHaloCount !== "") {
+      applyThreeSphereHaloParticleCount(savedSphereHaloCount);
+    }
+    applyThreeSphereWireframeOverlay(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSphereWireframe"),
+    );
+    applyThreeSphereBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSphereBloom"),
+    );
+    const savedSphereBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSphereBloomStrength",
+    );
+    if (savedSphereBloomStrength != null && savedSphereBloomStrength !== "") {
+      applyThreeSphereBloomStrength(savedSphereBloomStrength);
+    }
+    const savedSphereAutoRotate = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSphereAutoRotateSpeed",
+    );
+    if (savedSphereAutoRotate != null && savedSphereAutoRotate !== "") {
+      applyThreeSphereAutoRotateSpeedDeg(savedSphereAutoRotate);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

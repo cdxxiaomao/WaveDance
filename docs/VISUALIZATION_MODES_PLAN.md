@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~18 已全部完成；Phase 19~27 为 Three.js 高阶扩展（待实施）  
+> **状态**：Phase 0~19 已全部完成；Phase 20~27 为 Three.js 高阶扩展（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1104,15 +1104,15 @@ threeEnergySphere: {
 
 #### 19.2 新建 `renderers/three/energySphereRenderer.js`
 
-- [ ] `IcosahedronGeometry` 高分段；vertex shader 或 CPU 每帧更新 position（simplex noise × spectrum band）
-- [ ] 外层 `Points` halo 环绕
-- [ ] 整体 scale 轻量随 `peak` 呼吸
+- [x] `IcosahedronGeometry` 高分段；vertex shader 或 CPU 每帧更新 position（simplex noise × spectrum band）
+- [x] 外层 `Points` halo 环绕
+- [x] 整体 scale 轻量随 `peak` 呼吸
 
 #### 19.3 验收标准
 
-- [ ] 形变随音乐节奏，非随机抖动
-- [ ] wireframe 开关有效
-- [ ] **方案 A（霓虹宇宙）四模式全部可切换**
+- [x] 形变随音乐节奏，非随机抖动
+- [x] wireframe 开关有效
+- [x] **方案 A（霓虹宇宙）四模式全部可切换**
 
 ---
 
@@ -1575,7 +1575,7 @@ threeNoiseLandscape: {
 | 16 | 等离子场 Three Plasma Field（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 17 | 粒子银河 Three Particle Galaxy（A/D） | `[x]` 已完成 | 2026-06-10 |
 | 18 | 能量隧道 Three Bloom Tunnel（A/D） | `[x]` 已完成 | 2026-06-10 |
-| 19 | 能量球 Three Energy Sphere（A） | `[ ]` 未开始 | |
+| 19 | 能量球 Three Energy Sphere（A） | `[x]` 已完成 | 2026-06-10 |
 | 20 | 万花筒 Three Kaleidoscope（B） | `[ ]` 未开始 | |
 | 21 | 故障频谱 Three Glitch Spectrum（B） | `[ ]` 未开始 | |
 | 22 | 磷光余辉 Three Phosphor Trail（B） | `[ ]` 未开始 | |
@@ -1586,7 +1586,7 @@ threeNoiseLandscape: {
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[ ]` 未开始 | |
 | 28 | Three 模式文档与 README（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 19（能量球 Three Energy Sphere，方案 A）
+**当前建议下一步**：Phase 20（万花筒 Three Kaleidoscope，方案 B）
 
 ---
 

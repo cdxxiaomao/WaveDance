@@ -99,6 +99,7 @@
                 <option value="threePlasmaField">等离子场</option>
                 <option value="threeParticleGalaxy">粒子银河</option>
                 <option value="threeBloomTunnel">能量隧道</option>
+                <option value="threeEnergySphere">能量球</option>
               </optgroup>
             </select>
           </div>
@@ -1107,6 +1108,66 @@
           <div class="settings-field">
             <label for="threeGalaxyFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGalaxyFallEaseValue">55</span>%</label>
             <input id="threeGalaxyFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeEnergySphereConfigPanel" aria-labelledby="sec-three-sphere-display" hidden>
+        <h2 id="sec-three-sphere-display" class="settings-card__title">能量球配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-sphere" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeSphereCoreColor" class="settings-label">核心颜色</label>
+            <input id="threeSphereCoreColor" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeSphereHaloColor" class="settings-label">光晕颜色</label>
+            <input id="threeSphereHaloColor" type="color" value="#c4b5fd" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereDeformRange" class="settings-label">形变强度 <span class="settings-value" id="threeSphereDeformValue">75</span>%</label>
+            <input id="threeSphereDeformRange" type="range" min="0" max="100" step="1" value="75" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereNoiseSpeedRange" class="settings-label">噪声速度 <span class="settings-value" id="threeSphereNoiseSpeedValue">1.2</span></label>
+            <input id="threeSphereNoiseSpeedRange" type="range" min="2" max="30" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereHaloCountRange" class="settings-label">光晕粒子数 <span class="settings-value" id="threeSphereHaloCountValue">800</span></label>
+            <input id="threeSphereHaloCountRange" type="range" min="200" max="3000" step="100" value="800" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereAutoRotateSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeSphereAutoRotateSpeedValue">6</span>°/s</label>
+            <input id="threeSphereAutoRotateSpeedRange" type="range" min="0" max="20" step="1" value="6" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSphereWireframeToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>线框叠加</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSphereBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSphereBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeSphereBloomStrengthValue">1.0</span></label>
+            <input id="threeSphereBloomStrengthRange" type="range" min="0" max="20" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereGainRange" class="settings-label">增益 <span class="settings-value" id="threeSphereGainValue">62</span>%</label>
+            <input id="threeSphereGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeSphereSmoothValue">18</span>%</label>
+            <input id="threeSphereSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeSphereSoftClipValue">12</span>%</label>
+            <input id="threeSphereSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSphereFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeSphereFallEaseValue">52</span>%</label>
+            <input id="threeSphereFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

@@ -8,6 +8,13 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 19：能量球 Three Energy Sphere（A）
+
+- 新建 `frontend/src/renderers/three/energySphereRenderer.js`：高分段二十面体 CPU 顶点形变（频谱 band 采样 + 噪声调制）、外层粒子光晕、peak 呼吸缩放、可选线框叠加与 Bloom；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DEFAULT_CONFIG.threeEnergySphere` 及 storage keys / `windowStorageKeys`。
+- `main.js`：监听 `waveform-three-sphere-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：展示模式「Three 高阶 → 能量球」、`#threeEnergySphereConfigPanel`（核心/光晕色/形变/噪声/光晕粒子/自转/线框/Bloom/形状四件套）。
+
 ### 可视化模式扩展 — Phase 18：能量隧道 Three Bloom Tunnel（A/D）
 
 - 新建 `frontend/src/renderers/three/bloomTunnelRenderer.js`：第一人称隧道（两侧频谱能量墙 Shader + DataTexture 历史滚动、中心脉冲核心球体、能量驱动减速/加速），可选 Bloom；`registerModes.js` 注册。

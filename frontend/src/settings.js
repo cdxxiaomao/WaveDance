@@ -57,6 +57,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threePlasmaField]: "threePlasmaFieldConfigPanel",
   [DISPLAY_MODES.threeParticleGalaxy]: "threeParticleGalaxyConfigPanel",
   [DISPLAY_MODES.threeBloomTunnel]: "threeBloomTunnelConfigPanel",
+  [DISPLAY_MODES.threeEnergySphere]: "threeEnergySphereConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -437,6 +438,28 @@ const threeTunnelSoftClipRange = document.querySelector("#threeTunnelSoftClipRan
 const threeTunnelSoftClipValue = document.querySelector("#threeTunnelSoftClipValue");
 const threeTunnelFallEaseRange = document.querySelector("#threeTunnelFallEaseRange");
 const threeTunnelFallEaseValue = document.querySelector("#threeTunnelFallEaseValue");
+const threeSphereCoreColor = document.querySelector("#threeSphereCoreColor");
+const threeSphereHaloColor = document.querySelector("#threeSphereHaloColor");
+const threeSphereDeformRange = document.querySelector("#threeSphereDeformRange");
+const threeSphereDeformValue = document.querySelector("#threeSphereDeformValue");
+const threeSphereNoiseSpeedRange = document.querySelector("#threeSphereNoiseSpeedRange");
+const threeSphereNoiseSpeedValue = document.querySelector("#threeSphereNoiseSpeedValue");
+const threeSphereHaloCountRange = document.querySelector("#threeSphereHaloCountRange");
+const threeSphereHaloCountValue = document.querySelector("#threeSphereHaloCountValue");
+const threeSphereAutoRotateSpeedRange = document.querySelector("#threeSphereAutoRotateSpeedRange");
+const threeSphereAutoRotateSpeedValue = document.querySelector("#threeSphereAutoRotateSpeedValue");
+const threeSphereWireframeToggle = document.querySelector("#threeSphereWireframeToggle");
+const threeSphereBloomToggle = document.querySelector("#threeSphereBloomToggle");
+const threeSphereBloomStrengthRange = document.querySelector("#threeSphereBloomStrengthRange");
+const threeSphereBloomStrengthValue = document.querySelector("#threeSphereBloomStrengthValue");
+const threeSphereGainRange = document.querySelector("#threeSphereGainRange");
+const threeSphereGainValue = document.querySelector("#threeSphereGainValue");
+const threeSphereSmoothRange = document.querySelector("#threeSphereSmoothRange");
+const threeSphereSmoothValue = document.querySelector("#threeSphereSmoothValue");
+const threeSphereSoftClipRange = document.querySelector("#threeSphereSoftClipRange");
+const threeSphereSoftClipValue = document.querySelector("#threeSphereSoftClipValue");
+const threeSphereFallEaseRange = document.querySelector("#threeSphereFallEaseRange");
+const threeSphereFallEaseValue = document.querySelector("#threeSphereFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2193,6 +2216,135 @@ function applyThreeTunnelFormFromStorage(v) {
   }
 }
 
+function readThreeSphereShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeSphereShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeSphereShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeSphereGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeSphereSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeSphereSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeSphereFallEaseRange?.value, 0, 100),
+  };
+  if (threeSphereGainValue) threeSphereGainValue.textContent = String(config.gainPercent);
+  if (threeSphereSmoothValue) threeSphereSmoothValue.textContent = String(config.smoothPercent);
+  if (threeSphereSoftClipValue) threeSphereSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeSphereFallEaseValue) threeSphereFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSphereShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sphere-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyThreeSphereFormFromStorage(v) {
+  const sg = readThreeSphereShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeEnergySphere.shape };
+  if (threeSphereGainRange) threeSphereGainRange.value = String(sg.gainPercent);
+  if (threeSphereSmoothRange) threeSphereSmoothRange.value = String(sg.smoothPercent);
+  if (threeSphereSoftClipRange) threeSphereSoftClipRange.value = String(sg.softClipPercent);
+  if (threeSphereFallEaseRange) threeSphereFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeSphereGainValue) threeSphereGainValue.textContent = String(sg.gainPercent);
+  if (threeSphereSmoothValue) threeSphereSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeSphereSoftClipValue) threeSphereSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeSphereFallEaseValue) threeSphereFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedCoreColor = readWindowStorageString(window.localStorage, v, "threeSphereCoreColor");
+  if (threeSphereCoreColor && savedCoreColor && /^#[0-9A-Fa-f]{6}$/.test(savedCoreColor)) {
+    threeSphereCoreColor.value = savedCoreColor.toLowerCase();
+  } else if (threeSphereCoreColor) {
+    threeSphereCoreColor.value = DEFAULT_CONFIG.threeEnergySphere.coreColor;
+  }
+
+  const savedHaloColor = readWindowStorageString(window.localStorage, v, "threeSphereHaloColor");
+  if (threeSphereHaloColor && savedHaloColor && /^#[0-9A-Fa-f]{6}$/.test(savedHaloColor)) {
+    threeSphereHaloColor.value = savedHaloColor.toLowerCase();
+  } else if (threeSphereHaloColor) {
+    threeSphereHaloColor.value = DEFAULT_CONFIG.threeEnergySphere.haloColor;
+  }
+
+  const savedDeform = readWindowStorageString(window.localStorage, v, "threeSphereDeformStrength");
+  if (threeSphereDeformRange) {
+    const deform =
+      savedDeform != null && savedDeform !== ""
+        ? clampInt(savedDeform, 0, 100)
+        : DEFAULT_CONFIG.threeEnergySphere.deformStrength;
+    threeSphereDeformRange.value = String(deform);
+    if (threeSphereDeformValue) threeSphereDeformValue.textContent = String(deform);
+  }
+
+  const savedNoiseSpeed = readWindowStorageString(window.localStorage, v, "threeSphereNoiseSpeed");
+  if (threeSphereNoiseSpeedRange) {
+    const noiseSpeed =
+      savedNoiseSpeed != null && savedNoiseSpeed !== ""
+        ? Math.min(3, Math.max(0.2, Number(savedNoiseSpeed)))
+        : DEFAULT_CONFIG.threeEnergySphere.noiseSpeed;
+    threeSphereNoiseSpeedRange.value = String(Math.round(noiseSpeed * 10));
+    if (threeSphereNoiseSpeedValue) threeSphereNoiseSpeedValue.textContent = noiseSpeed.toFixed(1);
+  }
+
+  const savedHaloCount = readWindowStorageString(window.localStorage, v, "threeSphereHaloCount");
+  if (threeSphereHaloCountRange) {
+    const haloCount =
+      savedHaloCount != null && savedHaloCount !== ""
+        ? clampInt(savedHaloCount, 200, 3000)
+        : DEFAULT_CONFIG.threeEnergySphere.haloParticleCount;
+    threeSphereHaloCountRange.value = String(haloCount);
+    if (threeSphereHaloCountValue) threeSphereHaloCountValue.textContent = String(haloCount);
+  }
+
+  const savedAutoRotate = readWindowStorageString(window.localStorage, v, "threeSphereAutoRotateSpeed");
+  if (threeSphereAutoRotateSpeedRange) {
+    const autoRotate =
+      savedAutoRotate != null && savedAutoRotate !== ""
+        ? Math.min(20, Math.max(0, Number(savedAutoRotate)))
+        : DEFAULT_CONFIG.threeEnergySphere.autoRotateSpeedDeg;
+    threeSphereAutoRotateSpeedRange.value = String(Math.round(autoRotate));
+    if (threeSphereAutoRotateSpeedValue) threeSphereAutoRotateSpeedValue.textContent = String(Math.round(autoRotate));
+  }
+
+  if (threeSphereWireframeToggle) {
+    threeSphereWireframeToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSphereWireframe"),
+      DEFAULT_CONFIG.threeEnergySphere.wireframeOverlay,
+    );
+  }
+
+  if (threeSphereBloomToggle) {
+    threeSphereBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSphereBloom"),
+      DEFAULT_CONFIG.threeEnergySphere.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeSphereBloomStrength");
+  if (threeSphereBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeEnergySphere.bloomStrength;
+    threeSphereBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeSphereBloomStrengthValue) threeSphereBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+}
+
 function applyHelix3dFormFromStorage(v) {
   const sg = readHelix3dShapeConfig(v) ?? { ...DEFAULT_CONFIG.helix3d.shape };
   if (helix3dGainRange) helix3dGainRange.value = String(sg.gainPercent);
@@ -2817,6 +2969,7 @@ async function init() {
     applyThreePlasmaFormFromStorage(v);
     applyThreeGalaxyFormFromStorage(v);
     applyThreeTunnelFormFromStorage(v);
+    applyThreeSphereFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -4881,6 +5034,143 @@ async function init() {
   });
   threeTunnelFallEaseRange?.addEventListener("input", () => {
     void syncThreeTunnelShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeSphereCoreColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereCoreColor",
+        threeSphereCoreColor.value,
+      );
+      await emitVisual("waveform-three-sphere-core-color", threeSphereCoreColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新核心颜色失败：${String(err)}`;
+    }
+  });
+  threeSphereHaloColor?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereHaloColor",
+        threeSphereHaloColor.value,
+      );
+      await emitVisual("waveform-three-sphere-halo-color", threeSphereHaloColor.value);
+    } catch (err) {
+      statusEl.textContent = `更新光晕颜色失败：${String(err)}`;
+    }
+  });
+  threeSphereDeformRange?.addEventListener("input", async (event) => {
+    const deform = clampInt(event.target.value, 0, 100);
+    if (threeSphereDeformValue) threeSphereDeformValue.textContent = String(deform);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereDeformStrength",
+        String(deform),
+      );
+      await emitVisual("waveform-three-sphere-deform-strength", deform);
+    } catch (err) {
+      statusEl.textContent = `更新形变强度失败：${String(err)}`;
+    }
+  });
+  threeSphereNoiseSpeedRange?.addEventListener("input", async (event) => {
+    const noiseSpeed = Math.min(3, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeSphereNoiseSpeedValue) threeSphereNoiseSpeedValue.textContent = noiseSpeed.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereNoiseSpeed",
+        String(noiseSpeed),
+      );
+      await emitVisual("waveform-three-sphere-noise-speed", noiseSpeed);
+    } catch (err) {
+      statusEl.textContent = `更新噪声速度失败：${String(err)}`;
+    }
+  });
+  threeSphereHaloCountRange?.addEventListener("input", async (event) => {
+    const haloCount = clampInt(event.target.value, 200, 3000);
+    if (threeSphereHaloCountValue) threeSphereHaloCountValue.textContent = String(haloCount);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereHaloCount",
+        String(haloCount),
+      );
+      await emitVisual("waveform-three-sphere-halo-count", haloCount);
+    } catch (err) {
+      statusEl.textContent = `更新光晕粒子数失败：${String(err)}`;
+    }
+  });
+  threeSphereAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(20, Math.max(0, Number(event.target.value)));
+    if (threeSphereAutoRotateSpeedValue) threeSphereAutoRotateSpeedValue.textContent = String(speed);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereAutoRotateSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-sphere-auto-rotate-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeSphereWireframeToggle?.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereWireframe",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-sphere-wireframe", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新线框叠加失败：${String(err)}`;
+    }
+  });
+  threeSphereBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = event.target.checked;
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSphereBloom", String(enabled));
+      await emitVisual("waveform-three-sphere-bloom", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeSphereBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeSphereBloomStrengthValue) threeSphereBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSphereBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-sphere-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeSphereGainRange?.addEventListener("input", () => {
+    void syncThreeSphereShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSphereSmoothRange?.addEventListener("input", () => {
+    void syncThreeSphereShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSphereSoftClipRange?.addEventListener("input", () => {
+    void syncThreeSphereShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSphereFallEaseRange?.addEventListener("input", () => {
+    void syncThreeSphereShapeConfig(visualTargetLabel, emitVisual);
   });
 
   displayModeSelect?.addEventListener("change", async (event) => {
