@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~28 已全部完成（Phase 28 可选 GIF 预览未做）  
+> **状态**：Phase 0~30 已全部完成；Phase 31~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -131,6 +131,15 @@ export const DISPLAY_MODES = {
   threeAuroraRibbon: "threeAuroraRibbon",       // Phase 25
   threeBreathingRings: "threeBreathingRings",  // Phase 26
   threeNoiseLandscape: "threeNoiseLandscape",   // Phase 27
+  // --- 有机渐变 3D 系列（Phase 29~37，母版 threeLiquidBlob，不改动已有 renderer）---
+  threeLavaLamp: "threeLavaLamp",               // Phase 30  方案 E
+  threeOilMarble: "threeOilMarble",           // Phase 31  方案 E
+  threePearlChain: "threePearlChain",         // Phase 32  方案 E
+  threeCrystalGem: "threeCrystalGem",         // Phase 33  方案 F
+  threeGlassOrbs: "threeGlassOrbs",           // Phase 34  方案 F
+  threeHoloPrism: "threeHoloPrism",           // Phase 35  方案 F
+  threeNebulaVolume: "threeNebulaVolume",     // Phase 36  方案 G
+  threeKnotOrganic: "threeKnotOrganic",       // Phase 37  方案 G
   // oscilloscope: "oscilloscope", // Phase 8（需后端）
 };
 ```
@@ -181,9 +190,9 @@ function renderWaveform() {
 - **自转**：真 3D 模式默认慢速绕 Y 轴旋转（3~10°/s），设置页提供开关与速度滑块。
 - **后端**：无需改 Rust（与 Phase 8 示波器独立）。
 
-### 3.5 Three.js 高阶扩展原则（Phase 15~27 必读）
+### 3.5 Three.js 高阶扩展原则（Phase 15~27、29~37 必读）
 
-> **硬性约束**：Three.js **仅用于 Phase 15~27 新增模式**；Phase 0~14 已有 renderer **禁止回改**为 Three 实现。
+> **硬性约束**：Three.js **仅用于 Phase 15~27 与 29~37 新增模式**；Phase 0~14 已有 renderer **禁止回改**为 Three 实现；**Phase 29~37 另禁止修改** `liquidBlobRenderer.js` 等 Phase 15~27 已有 Three renderer。
 
 | 项 | 约定 |
 |----|------|
@@ -219,6 +228,39 @@ export function createThreeXxxRenderer(ctx) {
 | **B 赛博故障** | Glitch / Retro | 20~23 | kaleidoscope、glitch、phosphor、scanGrid |
 | **C 有机流体** | 艺术 / 柔和 | 24~27 | liquidBlob、aurora、breathingRings、noiseLandscape |
 | **D 精选三件套** | 均衡试水 | 16~18 | plasma、galaxy、tunnel（⊂ A，无独立 Phase） |
+
+### 3.6 有机渐变 3D 系列原则（Phase 29~37 必读）
+
+> **设计来源**：`threeLiquidBlob`（液态球体）用户反馈——多色可配 + 自动渐变、3D 感强、动画自然。  
+> **硬性约束**：本系列 **只在 `renderers/three/` 新增**；**禁止修改** `liquidBlobRenderer.js` 及 Phase 0~27 任何已有 renderer。
+
+| 项 | 约定 |
+|----|------|
+| **技术母版** | 全屏 quad + fragment raymarch（SDF 或体积密度）+ `spectrumUniforms` + Bloom |
+| **多色渐变** | 每模式 2~4 个 color picker；shader 内按 `position / normal / fresnel / 频谱` 自动 mix，用户只定锚点色 |
+| **频谱驱动** | bass→体积/脉动，mid→色相迁移，treble→fresnel/噪声细节（与 liquidBlob 一致） |
+| **新增依赖** | `glsl-noise`（Phase 29 安装）；`postprocessing` 扩展 `ChromaticAberrationEffect` |
+| **公共模块** | `three/raymarchHelpers.js`（smin、calcNormal、fullscreen quad）；`three/shaderChunks/` 可选 |
+| **设置页** | `<optgroup label="有机渐变 3D">` 与「Three 高阶」分组并列 |
+| **性能** | 体积类（nebula）步数 ≤48；raymarch 步数 ≤72（与 liquidBlob 同档） |
+
+**方案包对照**（8 个独立模式）：
+
+| 方案包 | 风格 | Phase | 模式 |
+|--------|------|-------|------|
+| **E 流体渐变** | 液态 / 流动 / 链式 | 30~32 | 熔岩灯、油彩大理石、珍珠链 |
+| **F 晶体光学** | 折射 / 色散 / 闪耀 | 33~35 | 宝石晶体、玻璃球栈、全息棱镜 |
+| **G 宇宙柔和** | 体积 / 有机曲面 | 36~37 | 星云团、扭结有机体 |
+| **E+F 精选** | 高性价比 | 30~31 + 33 + 35 | 熔岩灯、油彩、宝石、全息（无独立 Phase） |
+
+**与 liquidBlob 复用关系**：
+
+| 新模式 | 复用程度 |
+|--------|----------|
+| 熔岩灯 | ⭐⭐⭐⭐⭐ fork blob（改 buoyancy 运动方程） |
+| 珍珠链 | ⭐⭐⭐⭐ blob SDF 沿曲线分布 |
+| 油彩 / 星云 / 扭结 | ⭐⭐⭐ 共用 raymarch 框架，换 `mapScene()` |
+| 宝石 / 玻璃 / 全息 | ⭐⭐⭐ SDF 换形 + 多 stop 渐变 + 色散 pass |
 
 ---
 
@@ -1421,6 +1463,368 @@ threeNoiseLandscape: {
 
 ---
 
+## 4D. 有机渐变 3D 系列（Phase 29~38）
+
+> **讨论来源**：2026-06-10 液态球体效果反馈 + Three.js 高可玩性扩展评审。  
+> **实施策略**：Phase 29 插件/公共层 → 按 Phase 编号逐个实现；**每个 Phase 只做一个模式**。  
+> **推荐首批（方案 E 入门）**：Phase 29 → 30（熔岩灯，最快）→ 31（油彩大理石）。  
+> **npm 新增依赖**：`glsl-noise`（Phase 29）。
+
+---
+
+### Phase 29：Shader 与后处理公共扩展（约 1 天）
+
+> **目标**：为 Phase 30~37 提供共用工具；不新增用户可见模式。  
+> **前置**：Phase 15~28（Three 公共层与 liquidBlob）已完成。
+
+#### 29.1 安装依赖
+
+```bash
+cd frontend && npm install glsl-noise
+```
+
+#### 29.2 新建 / 扩展文件
+
+| 文件 | 职责 |
+|------|------|
+| `three/raymarchHelpers.js` | 导出 `createFullscreenQuadScene()`、`MARCH_STEPS` 常量、TS/JS 侧 uniform 更新 helper |
+| `three/shaderChunks/smin.glsl` | smooth-min 融合（从 liquidBlob 抽离 **仅作复制源**，不修改 liquidBlobRenderer） |
+| `three/shaderChunks/gradientMix.glsl` | 2~4 stop 色 `mixColor(stops[], t)` |
+| `three/postProcessing.js` | 扩展 `createChromaticComposer()`：`BloomEffect` + `ChromaticAberrationEffect` |
+| `three/noiseGlsl.js` | 封装 `glsl-noise` 导入为 shader `#include` 字符串或 vite raw import |
+
+#### 29.3 任务清单
+
+- [x] **29.3.1** `npm install glsl-noise`
+- [x] **29.3.2** `raymarchHelpers.js`：新 renderer 可 10 行搭好 fullscreen raymarch 场景
+- [x] **29.3.3** `postProcessing.js` 增加 chromatic 工厂；参数 `offset` 0~0.02
+- [x] **29.3.4** 文档注释：新系列 renderer **复制** smin/normal 进各自 shader，勿 import 修改 liquidBlob
+- [x] **29.3.5** 回归：liquidBlob 及 Phase 16~27 全部模式视觉无变化
+
+#### 29.4 验收标准
+
+- [x] 现有 Three 模式不受影响
+- [x] 新建测试 renderer（可临时，不注册 UI）能调用 chromatic + noise
+
+---
+
+### Phase 30：熔岩灯 Three Lava Lamp（方案 E，约 2~3 天）
+
+> **效果**：2~3 个大 metaball 缓慢上下浮，暖/冷双色竖向自动渐变，经典熔岩灯催眠感。  
+> **与 liquidBlob**：共用 smin raymarch；差别在 **竖直 buoyancy** 运动（更慢、更大 blob）。
+
+#### 30.1 配置 Schema
+
+```js
+threeLavaLamp: {
+  colorWarm: "#ff6b35",          // 底部暖色
+  colorCool: "#8f7cff",          // 顶部冷色
+  blobCount: 3,                  // 2~4
+  mergeStrength: 70,             // smin k，融合感
+  buoyancySpeed: 0.65,           // 浮力循环 0.2~2
+  lampAspect: 0.55,              // 灯体高宽比
+  bassDrive: 80,
+  bloomEnabled: true,
+  bloomStrength: 0.85,
+  shape: { gainPercent: 58, smoothPercent: 24, softClipPercent: 14, fallEasePercent: 58 },
+}
+```
+
+设置页中文名：**熔岩灯**
+
+#### 30.2 新建 `three/lavaLampRenderer.js`
+
+- [x] fork liquidBlob 架构：fullscreen raymarch + smin metaballs
+- [x] blob 中心 Y 按 `sin(buoyancySpeed * t + phase)` 浮起落下；X 轻微漂移
+- [x] 渐变：`mix(colorWarm, colorCool, smoothstep(-h,h,p.y))` + mid 偏移
+- [x] bass → blob 半径胀大
+
+#### 30.3 事件命名
+
+`waveform-three-lava-lamp-color-warm` | `color-cool` | `blob-count` | `merge-strength` | `buoyancy-speed` | `bass-drive` | `bloom-*` | `shape-config`
+
+#### 30.4 验收标准
+
+- [x] 竖向暖→冷渐变清晰；blob 上下循环无跳变
+- [x] 与 liquidBlob 并存，配置独立
+
+---
+
+### Phase 31：油彩大理石 Three Oil Marble（方案 E，约 3~4 天）
+
+> **效果**：流体颜料翻涌，3~4 色大理石纹自动混合，无硬边界。  
+> **与 liquidBlob**：连续 **域扭曲 fbm** 色块，非离散球体。
+
+#### 31.1 配置 Schema
+
+```js
+threeOilMarble: {
+  color1: "#8f7cff",
+  color2: "#ec4899",
+  color3: "#3b82f6",
+  color4: "#14b8a6",             // 可选第 4 色；opacity 低时可忽略
+  flowSpeed: 1.0,
+  noiseScale: 2.2,
+  warpStrength: 65,              // 域扭曲 0~100
+  reactiveness: 70,
+  bloomEnabled: true,
+  bloomStrength: 0.75,
+  shape: { gainPercent: 55, smoothPercent: 20, softClipPercent: 12, fallEasePercent: 55 },
+}
+```
+
+设置页中文名：**油彩大理石**
+
+#### 31.2 新建 `three/oilMarbleRenderer.js`
+
+- [ ] raymarch 薄壳 sphere 或 box SDF 为边界
+- [ ] 内部：`fbm(p + warp(p))` → 0~1 分段 mix 四色（`gradientMix.glsl`）
+- [ ] `glsl-noise` 驱动；bass 加速 flow；mid 偏移 warp
+
+#### 31.3 验收标准
+
+- [ ] 四色 picker 均生效；关闭 color4 时退化为三色
+- [ ] 流动连续，无块状马赛克（适当提高 march 精度）
+
+---
+
+### Phase 32：珍珠链 Three Pearl Chain（方案 E，约 3~4 天）
+
+> **效果**：5~8 颗珍珠球沿 3D 曲线串成链，调色板自动链式渐变，相邻球 smin 轻融合。  
+> **与 liquidBlob**：有序分布 vs 自由融合。
+
+#### 32.1 配置 Schema
+
+```js
+threePearlChain: {
+  color1: "#f5e6d3",
+  color2: "#c4b5fd",
+  color3: "#8f7cff",
+  pearlCount: 7,                 // 5~10
+  chainRadius: 0.75,             // 链弯曲半径
+  pearlSize: 0.22,
+  swaySpeed: 0.8,
+  mergeStrength: 45,             // 珠间融合（低=分离感）
+  bloomEnabled: true,
+  bloomStrength: 0.9,
+  shape: { gainPercent: 60, smoothPercent: 22, softClipPercent: 12, fallEasePercent: 55 },
+}
+```
+
+设置页中文名：**珍珠链**
+
+#### 32.2 新建 `three/pearlChainRenderer.js`
+
+- [ ] Catmull 或 sin 参数曲线求 pearl 中心
+- [ ] 每珠 SDF sphere；色沿链 index：`mix(color1,color2,color3, t)`
+- [ ] 链整体 sway；bass → pearl 半径
+
+#### 32.3 验收标准
+
+- [ ] 链式渐变可见；pearlCount 变化即时更新
+- [ ] **方案 E（流体渐变）三模式全部可切换**
+
+---
+
+### Phase 33：宝石晶体 Three Crystal Gem（方案 F，约 3~4 天）
+
+> **效果**： crystalline SDF 多面体，棱面法线 + 内部色带，慢自转。  
+> **渐变**：2~3 色按深度 + 法线 + fresnel 分层。
+
+#### 33.1 配置 Schema
+
+```js
+threeCrystalGem: {
+  colorCore: "#8f7cff",
+  colorEdge: "#ec4899",
+  colorHighlight: "#ffffff",
+  gemCount: 1,                   // 1~3
+  facetSharpness: 65,            // 0~100
+  rotationSpeedDeg: 5,
+  chromaticEnabled: true,
+  chromaticOffset: 0.003,
+  bloomEnabled: true,
+  bloomStrength: 1.0,
+  shape: { gainPercent: 62, smoothPercent: 18, softClipPercent: 12, fallEasePercent: 52 },
+}
+```
+
+设置页中文名：**宝石晶体**
+
+#### 33.2 新建 `three/crystalGemRenderer.js`
+
+- [ ] SDF：`octahedron` / `roundBox` 组合；`facetSharpness` 控制 `max(abs)` 棱感
+- [ ] 三色 mix：core 在内部，edge 在 fresnel，highlight 在 spec
+- [ ] 可选 `createChromaticComposer`
+
+#### 33.3 验收标准
+
+- [ ] 棱面 3D 感明显，非 smooth blob
+- [ ] chromatic 开关有效
+
+---
+
+### Phase 34：玻璃球栈 Three Glass Orbs（方案 F，约 4~5 天）
+
+> **效果**：3~5 透明玻璃球叠放，每球一色，假折射 + fresnel 混色。  
+> **插件**：ChromaticAberration + Bloom。
+
+#### 34.1 配置 Schema
+
+```js
+threeGlassOrbs: {
+  orbColors: ["#8f7cff", "#ec4899", "#3b82f6", "#14b8a6", "#f59e0b"], // 最多 5，UI 按 orbCount 显示
+  orbCount: 4,                   // 2~5
+  stackSpacing: 0.38,
+  transmission: 72,              // 透明感 0~100
+  refractionStrength: 55,
+  breatheWithPeak: true,
+  bloomEnabled: true,
+  bloomStrength: 0.95,
+  chromaticEnabled: true,
+  shape: { gainPercent: 55, smoothPercent: 20, softClipPercent: 10, fallEasePercent: 50 },
+}
+```
+
+设置页中文名：**玻璃球栈**
+
+#### 34.2 新建 `three/glassOrbsRenderer.js`
+
+- [ ] raymarch 多 sphere；hit 后假折射：`p + rd * refraction * noise`
+- [ ] 每球独立 `orbColors[i]`；球间 fresnel 混色
+- [ ] peak → 整体 scale 呼吸
+
+#### 34.3 验收标准
+
+- [ ] 多球可辨；transmission 低时更实，高时更透
+- [ ] 透明浮层 alpha 正确，无黑底
+
+---
+
+### Phase 35：全息棱镜 Three Holo Prism（方案 F，约 3 天）
+
+> **效果**：旋转棱柱，光谱色散边 + 用户 `tintLow/tintHigh` 染色。  
+> **插件**：ChromaticAberration 为核心。
+
+#### 35.1 配置 Schema
+
+```js
+threeHoloPrism: {
+  tintLow: "#3b82f6",
+  tintHigh: "#ec4899",
+  prismSides: 6,                 // 4~8
+  rotationSpeedDeg: 10,
+  spectralStrength: 75,          // 彩虹边 0~100
+  pulseOnPeak: true,
+  chromaticOffset: 0.006,
+  bloomEnabled: true,
+  bloomStrength: 0.8,
+  shape: { gainPercent: 58, smoothPercent: 16, softClipPercent: 10, fallEasePercent: 48 },
+}
+```
+
+设置页中文名：**全息棱镜**
+
+#### 35.2 新建 `three/holoPrismRenderer.js`
+
+- [ ] SDF 棱柱；fragment 加 `spectralStrength` 基于角度的 RGB 偏移
+- [ ] `mix(tintLow, tintHigh, angle)` 再叠光谱
+- [ ] peak 触发 chromatic 脉冲
+
+#### 35.3 验收标准
+
+- [ ] 棱柱边彩虹可见；spectralStrength=0 时仅双色 tint
+- [ ] **方案 F（晶体光学）三模式全部可切换**
+
+---
+
+### Phase 36：星云团 Three Nebula Volume（方案 G，约 4~5 天）
+
+> **效果**： fluffy 体积云，核心暖→边缘冷三色，密度 raymarch。  
+> **与 liquidBlob**：体积密度场 vs 硬表面 SDF。
+
+#### 36.1 配置 Schema
+
+```js
+threeNebulaVolume: {
+  colorCore: "#ff6b35",
+  colorMid: "#8f7cff",
+  colorEdge: "#1a1a2e",
+  densityScale: 1.1,
+  noiseScale: 1.8,
+  swirlSpeed: 0.7,
+  marchSteps: 40,                // 32~48，性能档
+  bloomEnabled: true,
+  bloomStrength: 1.1,
+  shape: { gainPercent: 55, smoothPercent: 18, softClipPercent: 12, fallEasePercent: 52 },
+}
+```
+
+设置页中文名：**星云团**
+
+#### 36.2 新建 `three/nebulaVolumeRenderer.js`
+
+- [ ] 体积 raymarch：沿 rd 累积 density × color gradient
+- [ ] `glsl-noise` 3D fbm；bass 膨胀 core；swirl 绕 Y
+- [ ] early exit 优化；marchSteps UI 可调
+
+#### 36.3 验收标准
+
+- [ ] 云雾柔和，非硬球；marchSteps≤48 时 macOS 浮窗 fps ≥ 25
+- [ ] 停止音乐后云雾缓慢衰减
+
+---
+
+### Phase 37：扭结有机体 Three Knot Organic（方案 G，约 3~4 天）
+
+> **效果**：torus knot / supershape 单曲面，表面色带沿 knot 参数 cyclic 渐变。  
+> **渐变**：2~3 色沿 knot 相位循环。
+
+#### 37.1 配置 Schema
+
+```js
+threeKnotOrganic: {
+  color1: "#8f7cff",
+  color2: "#ec4899",
+  color3: "#14b8a6",
+  knotP: 2,                      // torus knot p 2~4
+  knotQ: 3,                      // torus knot q 3~7
+  tubeRadius: 0.14,
+  surfaceNoise: 55,              // 表面 ripple 0~100
+  rotationSpeedDeg: 6,
+  bloomEnabled: true,
+  bloomStrength: 0.85,
+  shape: { gainPercent: 60, smoothPercent: 20, softClipPercent: 12, fallEasePercent: 55 },
+}
+```
+
+设置页中文名：**扭结有机体**
+
+#### 37.2 新建 `three/knotOrganicRenderer.js`
+
+- [ ] SDF torus knot（解析式或采样）；表面 noise 扰动
+- [ ] 色带：`t = atan2(p.y,p.x)` 或 knot 参数 → 3 色 cyclic mix
+- [ ] treble → surfaceNoise 强度
+
+#### 37.3 验收标准
+
+- [ ] knot 形清晰；p/q 变化改变拓扑
+- [ ] **方案 G（宇宙柔和）两模式全部可切换**
+
+---
+
+### Phase 38（可选）：有机渐变系列文档更新（约 0.5 天）
+
+> Phase 29~37 完成后执行。
+
+- [ ] `README.md` 补充有机渐变 3D 模式列表与 `glsl-noise` 依赖
+- [ ] `settings.html` optgroup「有机渐变 3D」说明
+- [ ] `docs/INSTALL.md` 增加 `glsl-noise`
+- [ ] 可选：liquidBlob / lavaLamp / oilMarble GIF 对比预览
+
+---
+
+
 ## 5. 每个 Phase 标准实施步骤（复制粘贴用）
 
 ### 5.1 Vanilla 模式（Phase 0~14）
@@ -1453,6 +1857,20 @@ threeNoiseLandscape: {
 ```
 
 **禁止**：为 Three 模式去改 `lineRenderer.js` 等已有 vanilla 文件（除 main.js 分发分支与 schema 注册外）。
+
+### 5.3 有机渐变 3D 系列（Phase 29~37）
+
+```
+1. 读 §3.6 + 对应 Phase；Phase 29（glsl-noise + raymarchHelpers）未完成则必须先做
+2. cd frontend && npm install glsl-noise（Phase 29）
+3. 在 renderers/three/ 新建 xxxRenderer.js；优先 fork liquidBlob / raymarchHelpers 架构
+4. 禁止修改 liquidBlobRenderer.js 及 Phase 0~27 已有 renderer
+5. 多色 UI：2~4 color picker + shader 内 position/fresnel/频谱自动渐变
+6. 晶体/玻璃/全息模式按需 createChromaticComposer
+7. 注册 threeModeRegistry + schema + settings optgroup「有机渐变 3D」
+8. 测试：透明 alpha、多色渐变、bass 脉动、与 liquidBlob 切换无 leak
+9. 更新进度追踪 + CHANGELOG
+```
 
 ---
 
@@ -1488,6 +1906,18 @@ threeNoiseLandscape: {
 | 26 | `three/breathingRingsRenderer.js` | 同上 |
 | 27 | `three/noiseLandscapeRenderer.js` | 同上 |
 | 28 | — | `README.md`, `docs/QUICK_CONTEXT.md`, `docs/INSTALL.md` |
+| 29 | `raymarchHelpers.js`, `noiseGlsl.js`, `shaderChunks/*`, 扩展 `postProcessing.js` | `package.json`（+glsl-noise） |
+| 30 | `three/lavaLampRenderer.js` | `visualizationSchema.js`, `registerModes.js`, `settings.html`, `settings.js` |
+| 31 | `three/oilMarbleRenderer.js` | 同上 |
+| 32 | `three/pearlChainRenderer.js` | 同上 |
+| 33 | `three/crystalGemRenderer.js` | 同上 |
+| 34 | `three/glassOrbsRenderer.js` | 同上 |
+| 35 | `three/holoPrismRenderer.js` | 同上 |
+| 36 | `three/nebulaVolumeRenderer.js` | 同上 |
+| 37 | `three/knotOrganicRenderer.js` | 同上 |
+| 38 | — | `README.md`, `docs/INSTALL.md`, `settings.html` optgroup |
+
+---
 
 ## 7. 推荐实施顺序与理由
 
@@ -1526,6 +1956,24 @@ threeNoiseLandscape: {
 
 **按方案包整包实施**：D(15→16→17→18) → A(+19) → B(20→23) → C(24→27) → 28
 
+**有机渐变 3D 推荐顺序（Phase 29~38）**：
+
+| 顺序 | Phase | 理由 |
+|------|-------|------|
+| 1 | **Phase 29 公共扩展** | glsl-noise + raymarchHelpers + chromatic |
+| 2 | **Phase 30 熔岩灯** | fork liquidBlob 最快；验证多色竖向渐变 |
+| 3 | **Phase 31 油彩大理石** | 域扭曲 fbm；与 blob 差异大 |
+| 4 | **Phase 32 珍珠链** | 方案 E 收尾 |
+| 5 | **Phase 33 宝石晶体** | 方案 F 入门；棱面 + 三色 |
+| 6 | **Phase 35 全息棱镜** | chromatic 最炫（可先于 glass 做） |
+| 7 | **Phase 34 玻璃球栈** | 假折射；方案 F 收尾 |
+| 8 | **Phase 36 星云团** | 体积 raymarch；注意性能档 |
+| 9 | **Phase 37 扭结有机体** | 方案 G 收尾 |
+| 10 | **Phase 38 文档** | glsl-noise 说明 + GIF |
+
+**按方案包**：E(29→30→31→32) → F(33→35→34) → G(36→37) → 38  
+**精选试水（E+F 子集）**：29 → 30 → 31 → 33 → 35
+
 ---
 
 ## 8. 风险与规避
@@ -1547,6 +1995,11 @@ threeNoiseLandscape: {
 | Three 多窗 GPU | 每频谱窗独立 threeBridge；particleCount 超 15000 时警告或自动降级 |
 | Three composer 内存 leak | 每 renderer 实现 dispose；切换模式 / 窗口关闭时调用 |
 | liquidBlob 性能 | 优先 fullscreen SDF 近似，真 marching cubes 不做 |
+| 修改 liquidBlob 引入回归 | Phase 29~37 **只新增** renderer；smin 等 chunk 复制不 refactor 母版 |
+| 体积 raymarch 性能 | nebula `marchSteps` ≤48；提供 UI 性能档 |
+| 多色 uniform 上限 | shader 最多 4 vec3 色；超出用 palette texture |
+| glsl-noise vite 导入 | 用 `?raw` 或 noiseGlsl.js 预 bundling；避免 shader 编译失败 |
+| ChromaticAberration 透明边 | offset ≤0.01 默认；强拍脉冲后快速 decay |
 
 ---
 
@@ -1585,8 +2038,18 @@ threeNoiseLandscape: {
 | 26 | 呼吸光环 Three Breathing Rings（C） | `[x]` 已完成 | 2026-06-10 |
 | 27 | 噪声地貌 Three Noise Landscape（C） | `[x]` 已完成 | 2026-06-10 |
 | 28 | Three 模式文档与 README（可选） | `[x]` 已完成 | 2026-06-10 |
+| 29 | Shader 公共扩展（glsl-noise + raymarch） | `[x]` 已完成 | 2026-06-10 |
+| 30 | 熔岩灯 Three Lava Lamp（E） | `[x]` 已完成 | 2026-06-10 |
+| 31 | 油彩大理石 Three Oil Marble（E） | `[ ]` 未开始 | |
+| 32 | 珍珠链 Three Pearl Chain（E） | `[ ]` 未开始 | |
+| 33 | 宝石晶体 Three Crystal Gem（F） | `[ ]` 未开始 | |
+| 34 | 玻璃球栈 Three Glass Orbs（F） | `[ ]` 未开始 | |
+| 35 | 全息棱镜 Three Holo Prism（F） | `[ ]` 未开始 | |
+| 36 | 星云团 Three Nebula Volume（G） | `[ ]` 未开始 | |
+| 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
+| 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：全部 Phase 已完成；可选后续为各 Three 模式录制 GIF 预览（`docs/images/three-*.gif`）。
+**当前建议下一步**：Phase 31（油彩大理石）
 
 ---
 
@@ -1605,6 +2068,12 @@ Three.js 扩展（Phase 15~27）：
 - 禁止修改已有 vanilla renderer（line/bar/ring3d 等），只在 renderers/three/ 新增。
 - 依赖：three + postprocessing（npm install 在 frontend 目录）。
 - 推荐首批：Phase 15 → 16（等离子场）→ 17 → 18（方案 D）。
+
+有机渐变 3D（Phase 29~37）：
+- 必须先完成 Phase 29（glsl-noise + raymarchHelpers）。
+- 禁止修改 liquidBlobRenderer 及 Phase 0~27 已有 renderer。
+- 推荐首批：Phase 29 → 30（熔岩灯）→ 31（油彩大理石）。
+- 多色模式：2~4 color picker + shader 自动渐变；母版架构同 liquidBlob raymarch。
 ```
 
 ---

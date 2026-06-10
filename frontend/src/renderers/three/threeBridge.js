@@ -36,17 +36,24 @@ export function createThreeBridge() {
 
   function setMode(modeId) {
     const next = String(modeId ?? "");
-    if (next === activeModeId) return;
+    if (next === activeModeId && activeRenderer) return;
 
     if (activeRenderer) {
       activeRenderer.dispose();
       activeRenderer = null;
     }
+
+    if (ctx?.scene) {
+      while (ctx.scene.children.length > 0) {
+        ctx.scene.remove(ctx.scene.children[0]);
+      }
+    }
+
     activeModeId = next;
 
     if (!hasThreeMode(next)) {
       if (!warnedModes.has(next)) {
-        console.warn(`[WaveDance] Three 模式「${next}」尚未实现，保持上一帧或空白`);
+        console.warn(`[WaveDance] Three 模式「${next}」尚未实现，保持空白`);
         warnedModes.add(next);
       }
       return;
@@ -58,6 +65,9 @@ export function createThreeBridge() {
     }
 
     activeRenderer = createThreeModeRenderer(next, ctx);
+    if (!activeRenderer) {
+      console.error(`[WaveDance] 创建 Three renderer 失败：${next}`);
+    }
   }
 
   function render(points, shapeConfig, styleConfig, frameMeta) {
@@ -109,5 +119,9 @@ export function createThreeBridge() {
     return activeModeId;
   }
 
-  return { init, setMode, render, resize, clear, dispose, isActive, getActiveMode };
+  function hasActiveRenderer() {
+    return activeRenderer !== null;
+  }
+
+  return { init, setMode, render, resize, clear, dispose, isActive, getActiveMode, hasActiveRenderer };
 }

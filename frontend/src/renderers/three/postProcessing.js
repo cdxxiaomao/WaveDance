@@ -4,6 +4,7 @@ import {
   RenderPass,
   EffectPass,
   BloomEffect,
+  ChromaticAberrationEffect,
   GlitchEffect,
   GlitchMode,
   ScanlineEffect,
@@ -217,6 +218,45 @@ export function createPhosphorTrailComposer(renderer, scene, camera, options = {
   }
 
   return { composer, afterimagePass, bloomEffect };
+}
+
+/**
+ * Bloom + 色散后处理链（晶体 / 玻璃 / 全息等有机渐变 3D 模式用）。
+ * @param {import('three').WebGLRenderer} renderer
+ * @param {import('three').Scene} scene
+ * @param {import('three').Camera} camera
+ * @param {{ offset?: number, radialModulation?: boolean, bloomEnabled?: boolean, bloomStrength?: number, bloomThreshold?: number }} [options]
+ */
+export function createChromaticComposer(renderer, scene, camera, options = {}) {
+  const offset = Math.max(0, Math.min(0.02, Number(options.offset) ?? 0.008));
+  const radialModulation = Boolean(options.radialModulation);
+  const bloomEnabled = options.bloomEnabled !== false;
+
+  const composer = createBasicComposer(renderer, scene, camera);
+
+  const chromaticEffect = new ChromaticAberrationEffect({
+    offset: new THREE.Vector2(offset, offset * 0.5),
+    radialModulation,
+    modulationOffset: 0.15,
+  });
+
+  /** @type {BloomEffect | null} */
+  let bloomEffect = null;
+  const effects = [chromaticEffect];
+
+  if (bloomEnabled) {
+    bloomEffect = new BloomEffect({
+      intensity: options.bloomStrength ?? 0.85,
+      luminanceThreshold: options.bloomThreshold ?? 0.08,
+      luminanceSmoothing: 0.35,
+      mipmapBlur: true,
+    });
+    effects.push(bloomEffect);
+  }
+
+  composer.addPass(new EffectPass(camera, ...effects));
+
+  return { composer, chromaticEffect, bloomEffect };
 }
 
 /**

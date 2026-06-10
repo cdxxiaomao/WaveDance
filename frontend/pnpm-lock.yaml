@@ -14,6 +14,9 @@ importers:
       '@uimaxbai/am-lyrics':
         specifier: ^1.5.4
         version: 1.5.4
+      glsl-noise:
+        specifier: ^0.0.0
+        version: 0.0.0
       postprocessing:
         specifier: ^6.39.1
         version: 6.39.1(three@0.184.0)
@@ -343,6 +346,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  glsl-noise@0.0.0:
+    resolution: {integrity: sha512-b/ZCF6amfAUb7dJM/MxRs7AetQEahYzJ8PtgfrmEdtw6uyGOr+ZSGtgjFm6mfsBkxJ4d2W7kg+Nlqzqvn3Bc0w==}
+
   lit-element@4.2.2:
     resolution: {integrity: sha512-aFKhNToWxoyhkNDmWZwEva2SlQia+jfG0fjIWV//YeTaWrVnOxD89dPKfigCUspXFmjzOEUQpOkejH5Ly6sG0w==}
 
@@ -605,6 +611,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  glsl-noise@0.0.0: {}
 
   lit-element@4.2.2:
     dependencies:

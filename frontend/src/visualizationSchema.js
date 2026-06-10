@@ -257,6 +257,15 @@ export const STORAGE_KEYS = {
   threeNoiseBloomStrength: "wavedance.threeNoiseLandscapeBloomStrength",
   threeNoiseCameraPitch: "wavedance.threeNoiseLandscapeCameraPitchDeg",
   threeNoiseShape: "wavedance.threeNoiseLandscapeShapeConfig",
+  threeLavaLampColorWarm: "wavedance.threeLavaLampColorWarm",
+  threeLavaLampColorCool: "wavedance.threeLavaLampColorCool",
+  threeLavaLampBlobCount: "wavedance.threeLavaLampBlobCount",
+  threeLavaLampMergeStrength: "wavedance.threeLavaLampMergeStrength",
+  threeLavaLampBuoyancySpeed: "wavedance.threeLavaLampBuoyancySpeed",
+  threeLavaLampBassDrive: "wavedance.threeLavaLampBassDrive",
+  threeLavaLampBloom: "wavedance.threeLavaLampBloomEnabled",
+  threeLavaLampBloomStrength: "wavedance.threeLavaLampBloomStrength",
+  threeLavaLampShape: "wavedance.threeLavaLampShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -291,6 +300,7 @@ export const DISPLAY_MODES = {
   threeAuroraRibbon: "threeAuroraRibbon",
   threeBreathingRings: "threeBreathingRings",
   threeNoiseLandscape: "threeNoiseLandscape",
+  threeLavaLamp: "threeLavaLamp",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -307,6 +317,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeAuroraRibbon,
   DISPLAY_MODES.threeBreathingRings,
   DISPLAY_MODES.threeNoiseLandscape,
+  DISPLAY_MODES.threeLavaLamp,
 ];
 
 /** @param {string} mode */
@@ -781,6 +792,23 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 45,
     },
   },
+  threeLavaLamp: {
+    colorWarm: "#ff6b35",
+    colorCool: "#8f7cff",
+    blobCount: 3,
+    mergeStrength: 70,
+    buoyancySpeed: 0.65,
+    lampAspect: 0.55,
+    bassDrive: 80,
+    bloomEnabled: true,
+    bloomStrength: 0.85,
+    shape: {
+      gainPercent: 58,
+      smoothPercent: 24,
+      softClipPercent: 14,
+      fallEasePercent: 58,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -813,6 +841,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeAuroraRibbon) return DISPLAY_MODES.threeAuroraRibbon;
   if (s === DISPLAY_MODES.threeBreathingRings) return DISPLAY_MODES.threeBreathingRings;
   if (s === DISPLAY_MODES.threeNoiseLandscape) return DISPLAY_MODES.threeNoiseLandscape;
+  if (s === DISPLAY_MODES.threeLavaLamp) return DISPLAY_MODES.threeLavaLamp;
   return DISPLAY_MODES.line;
 }
 
@@ -1177,6 +1206,15 @@ export function windowStorageKeys(windowLabel) {
     threeNoiseBloomStrength: `${pre}.threeNoiseLandscapeBloomStrength`,
     threeNoiseCameraPitch: `${pre}.threeNoiseLandscapeCameraPitchDeg`,
     threeNoiseShape: `${pre}.threeNoiseLandscapeShapeConfig`,
+    threeLavaLampColorWarm: `${pre}.threeLavaLampColorWarm`,
+    threeLavaLampColorCool: `${pre}.threeLavaLampColorCool`,
+    threeLavaLampBlobCount: `${pre}.threeLavaLampBlobCount`,
+    threeLavaLampMergeStrength: `${pre}.threeLavaLampMergeStrength`,
+    threeLavaLampBuoyancySpeed: `${pre}.threeLavaLampBuoyancySpeed`,
+    threeLavaLampBassDrive: `${pre}.threeLavaLampBassDrive`,
+    threeLavaLampBloom: `${pre}.threeLavaLampBloomEnabled`,
+    threeLavaLampBloomStrength: `${pre}.threeLavaLampBloomStrength`,
+    threeLavaLampShape: `${pre}.threeLavaLampShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

@@ -8,6 +8,26 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 30：熔岩灯 Three Lava Lamp（E）
+
+- 新建 `frontend/src/renderers/three/lavaLampRenderer.js`：基于 `raymarchHelpers` 全屏 raymarch + smin metaball，竖直 buoyancy 浮力运动，暖/冷双色竖向渐变，bass 驱动半径胀大，灯体 ellipsoid 容器约束；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeLavaLamp`、`DEFAULT_CONFIG.threeLavaLamp` 及 storage keys。
+- `main.js`：监听 `waveform-three-lava-lamp-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：新增 `<optgroup label="有机渐变 3D">` 与「熔岩灯」配置面板（暖/冷色、球体数量、融合、浮力、低频驱动、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
+### 可视化模式扩展 — Phase 29：Shader 与后处理公共扩展
+
+- 安装 `glsl-noise` 依赖（`frontend/package.json`）。
+- 新建 `frontend/src/renderers/three/raymarchHelpers.js`：`MARCH_STEPS`、`createFullscreenQuadScene()`、`createRaymarchUniforms`、`updateSpectrumUniforms` 等 raymarch 公共工具。
+- 新建 `frontend/src/renderers/three/shaderChunks/`（`smin.glsl`、`gradientMix.glsl`、`calcNormal.glsl`）供 Phase 30~37 复制进 shader。
+- 新建 `frontend/src/renderers/three/noiseGlsl.js`：Vite `?raw` 预打包 glsl-noise（simplex2d/3d、classic3d）及 `prependNoiseGlsl`。
+- 扩展 `postProcessing.js`：新增 `createChromaticComposer()`（Bloom + ChromaticAberration，`offset` 0~0.02）。
+- 新建 `phase29SandboxRenderer.js`（不注册 UI）验证 chromatic + noise + raymarch 链路；未改动 liquidBlob 及 Phase 16~27 已有 renderer。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 28：Three 模式文档与 README 更新
 
 - `README.md`：效果预览补充 Vanilla WebGL（16）与 Three 高阶（12）分组模式表，项目特性与快速开始注明 `three` / `postprocessing` 依赖。

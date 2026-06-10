@@ -67,6 +67,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
   [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
   [DISPLAY_MODES.threeNoiseLandscape]: "threeNoiseLandscapeConfigPanel",
+  [DISPLAY_MODES.threeLavaLamp]: "threeLavaLampConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -642,6 +643,27 @@ const threeNoiseSoftClipRange = document.querySelector("#threeNoiseSoftClipRange
 const threeNoiseSoftClipValue = document.querySelector("#threeNoiseSoftClipValue");
 const threeNoiseFallEaseRange = document.querySelector("#threeNoiseFallEaseRange");
 const threeNoiseFallEaseValue = document.querySelector("#threeNoiseFallEaseValue");
+const threeLavaLampColorWarm = document.querySelector("#threeLavaLampColorWarm");
+const threeLavaLampColorCool = document.querySelector("#threeLavaLampColorCool");
+const threeLavaLampBlobCountRange = document.querySelector("#threeLavaLampBlobCountRange");
+const threeLavaLampBlobCountValue = document.querySelector("#threeLavaLampBlobCountValue");
+const threeLavaLampMergeStrengthRange = document.querySelector("#threeLavaLampMergeStrengthRange");
+const threeLavaLampMergeStrengthValue = document.querySelector("#threeLavaLampMergeStrengthValue");
+const threeLavaLampBuoyancySpeedRange = document.querySelector("#threeLavaLampBuoyancySpeedRange");
+const threeLavaLampBuoyancySpeedValue = document.querySelector("#threeLavaLampBuoyancySpeedValue");
+const threeLavaLampBassDriveRange = document.querySelector("#threeLavaLampBassDriveRange");
+const threeLavaLampBassDriveValue = document.querySelector("#threeLavaLampBassDriveValue");
+const threeLavaLampBloomToggle = document.querySelector("#threeLavaLampBloomToggle");
+const threeLavaLampBloomStrengthRange = document.querySelector("#threeLavaLampBloomStrengthRange");
+const threeLavaLampBloomStrengthValue = document.querySelector("#threeLavaLampBloomStrengthValue");
+const threeLavaLampGainRange = document.querySelector("#threeLavaLampGainRange");
+const threeLavaLampGainValue = document.querySelector("#threeLavaLampGainValue");
+const threeLavaLampSmoothRange = document.querySelector("#threeLavaLampSmoothRange");
+const threeLavaLampSmoothValue = document.querySelector("#threeLavaLampSmoothValue");
+const threeLavaLampSoftClipRange = document.querySelector("#threeLavaLampSoftClipRange");
+const threeLavaLampSoftClipValue = document.querySelector("#threeLavaLampSoftClipValue");
+const threeLavaLampFallEaseRange = document.querySelector("#threeLavaLampFallEaseRange");
+const threeLavaLampFallEaseValue = document.querySelector("#threeLavaLampFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3121,6 +3143,135 @@ function applyThreeLiquidBlobFormFromStorage(v) {
   }
 }
 
+function readThreeLavaLampShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeLavaLampShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeLavaLampGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeLavaLampSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeLavaLampSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeLavaLampFallEaseRange?.value, 0, 100),
+  };
+  if (threeLavaLampGainValue) threeLavaLampGainValue.textContent = String(config.gainPercent);
+  if (threeLavaLampSmoothValue) threeLavaLampSmoothValue.textContent = String(config.smoothPercent);
+  if (threeLavaLampSoftClipValue) threeLavaLampSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeLavaLampFallEaseValue) threeLavaLampFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeLavaLampShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-lava-lamp-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新熔岩灯形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeLavaLampFormFromStorage(v) {
+  const sg = readThreeLavaLampShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeLavaLamp.shape };
+  if (threeLavaLampGainRange) threeLavaLampGainRange.value = String(sg.gainPercent);
+  if (threeLavaLampSmoothRange) threeLavaLampSmoothRange.value = String(sg.smoothPercent);
+  if (threeLavaLampSoftClipRange) threeLavaLampSoftClipRange.value = String(sg.softClipPercent);
+  if (threeLavaLampFallEaseRange) threeLavaLampFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeLavaLampGainValue) threeLavaLampGainValue.textContent = String(sg.gainPercent);
+  if (threeLavaLampSmoothValue) threeLavaLampSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeLavaLampSoftClipValue) threeLavaLampSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeLavaLampFallEaseValue) threeLavaLampFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedWarm = readWindowStorageString(window.localStorage, v, "threeLavaLampColorWarm");
+  if (threeLavaLampColorWarm && savedWarm && /^#[0-9A-Fa-f]{6}$/.test(savedWarm)) {
+    threeLavaLampColorWarm.value = savedWarm.toLowerCase();
+  } else if (threeLavaLampColorWarm) {
+    threeLavaLampColorWarm.value = DEFAULT_CONFIG.threeLavaLamp.colorWarm;
+  }
+
+  const savedCool = readWindowStorageString(window.localStorage, v, "threeLavaLampColorCool");
+  if (threeLavaLampColorCool && savedCool && /^#[0-9A-Fa-f]{6}$/.test(savedCool)) {
+    threeLavaLampColorCool.value = savedCool.toLowerCase();
+  } else if (threeLavaLampColorCool) {
+    threeLavaLampColorCool.value = DEFAULT_CONFIG.threeLavaLamp.colorCool;
+  }
+
+  const savedCount = readWindowStorageString(window.localStorage, v, "threeLavaLampBlobCount");
+  if (threeLavaLampBlobCountRange) {
+    const count =
+      savedCount != null && savedCount !== ""
+        ? clampInt(savedCount, 2, 4)
+        : DEFAULT_CONFIG.threeLavaLamp.blobCount;
+    threeLavaLampBlobCountRange.value = String(count);
+    if (threeLavaLampBlobCountValue) threeLavaLampBlobCountValue.textContent = String(count);
+  }
+
+  const savedMerge = readWindowStorageString(window.localStorage, v, "threeLavaLampMergeStrength");
+  if (threeLavaLampMergeStrengthRange) {
+    const merge =
+      savedMerge != null && savedMerge !== ""
+        ? clampInt(savedMerge, 0, 100)
+        : DEFAULT_CONFIG.threeLavaLamp.mergeStrength;
+    threeLavaLampMergeStrengthRange.value = String(merge);
+    if (threeLavaLampMergeStrengthValue) {
+      threeLavaLampMergeStrengthValue.textContent = String(merge);
+    }
+  }
+
+  const savedBuoyancy = readWindowStorageString(window.localStorage, v, "threeLavaLampBuoyancySpeed");
+  if (threeLavaLampBuoyancySpeedRange) {
+    const buoyancy =
+      savedBuoyancy != null && savedBuoyancy !== ""
+        ? Math.min(2, Math.max(0.2, Number(savedBuoyancy)))
+        : DEFAULT_CONFIG.threeLavaLamp.buoyancySpeed;
+    threeLavaLampBuoyancySpeedRange.value = String(Math.round(buoyancy * 10));
+    if (threeLavaLampBuoyancySpeedValue) {
+      threeLavaLampBuoyancySpeedValue.textContent = buoyancy.toFixed(2);
+    }
+  }
+
+  const savedBassDrive = readWindowStorageString(window.localStorage, v, "threeLavaLampBassDrive");
+  if (threeLavaLampBassDriveRange) {
+    const bassDrive =
+      savedBassDrive != null && savedBassDrive !== ""
+        ? clampInt(savedBassDrive, 0, 100)
+        : DEFAULT_CONFIG.threeLavaLamp.bassDrive;
+    threeLavaLampBassDriveRange.value = String(bassDrive);
+    if (threeLavaLampBassDriveValue) threeLavaLampBassDriveValue.textContent = String(bassDrive);
+  }
+
+  if (threeLavaLampBloomToggle) {
+    threeLavaLampBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeLavaLampBloom"),
+      DEFAULT_CONFIG.threeLavaLamp.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeLavaLampBloomStrength");
+  if (threeLavaLampBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeLavaLamp.bloomStrength;
+    threeLavaLampBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeLavaLampBloomStrengthValue) {
+      threeLavaLampBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -4191,6 +4342,7 @@ async function init() {
     applyThreeAuroraFormFromStorage(v);
     applyThreeBreathingFormFromStorage(v);
     applyThreeNoiseFormFromStorage(v);
+    applyThreeLavaLampFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -6987,6 +7139,128 @@ async function init() {
   });
   threeLiquidBlobFallEaseRange?.addEventListener("input", () => {
     void syncThreeLiquidBlobShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeLavaLampColorWarm?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampColorWarm",
+        threeLavaLampColorWarm.value,
+      );
+      await emitVisual("waveform-three-lava-lamp-color-warm", threeLavaLampColorWarm.value);
+    } catch (err) {
+      statusEl.textContent = `更新暖色失败：${String(err)}`;
+    }
+  });
+  threeLavaLampColorCool?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampColorCool",
+        threeLavaLampColorCool.value,
+      );
+      await emitVisual("waveform-three-lava-lamp-color-cool", threeLavaLampColorCool.value);
+    } catch (err) {
+      statusEl.textContent = `更新冷色失败：${String(err)}`;
+    }
+  });
+  threeLavaLampBlobCountRange?.addEventListener("input", async (event) => {
+    const count = clampInt(event.target.value, 2, 4);
+    if (threeLavaLampBlobCountValue) threeLavaLampBlobCountValue.textContent = String(count);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeLavaLampBlobCount", String(count));
+      await emitVisual("waveform-three-lava-lamp-blob-count", count);
+    } catch (err) {
+      statusEl.textContent = `更新球体数量失败：${String(err)}`;
+    }
+  });
+  threeLavaLampMergeStrengthRange?.addEventListener("input", async (event) => {
+    const merge = clampInt(event.target.value, 0, 100);
+    if (threeLavaLampMergeStrengthValue) threeLavaLampMergeStrengthValue.textContent = String(merge);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampMergeStrength",
+        String(merge),
+      );
+      await emitVisual("waveform-three-lava-lamp-merge-strength", merge);
+    } catch (err) {
+      statusEl.textContent = `更新融合强度失败：${String(err)}`;
+    }
+  });
+  threeLavaLampBuoyancySpeedRange?.addEventListener("input", async (event) => {
+    const buoyancy = Math.min(2, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeLavaLampBuoyancySpeedValue) {
+      threeLavaLampBuoyancySpeedValue.textContent = buoyancy.toFixed(2);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampBuoyancySpeed",
+        String(buoyancy),
+      );
+      await emitVisual("waveform-three-lava-lamp-buoyancy-speed", buoyancy);
+    } catch (err) {
+      statusEl.textContent = `更新浮力速度失败：${String(err)}`;
+    }
+  });
+  threeLavaLampBassDriveRange?.addEventListener("input", async (event) => {
+    const bassDrive = clampInt(event.target.value, 0, 100);
+    if (threeLavaLampBassDriveValue) threeLavaLampBassDriveValue.textContent = String(bassDrive);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampBassDrive",
+        String(bassDrive),
+      );
+      await emitVisual("waveform-three-lava-lamp-bass-drive", bassDrive);
+    } catch (err) {
+      statusEl.textContent = `更新低频驱动失败：${String(err)}`;
+    }
+  });
+  threeLavaLampBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeLavaLampBloom", String(enabled));
+      await emitVisual("waveform-three-lava-lamp-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeLavaLampBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeLavaLampBloomStrengthValue) {
+      threeLavaLampBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLavaLampBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-lava-lamp-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeLavaLampGainRange?.addEventListener("input", () => {
+    void syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLavaLampSmoothRange?.addEventListener("input", () => {
+    void syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLavaLampSoftClipRange?.addEventListener("input", () => {
+    void syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeLavaLampFallEaseRange?.addEventListener("input", () => {
+    void syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {

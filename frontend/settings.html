@@ -109,6 +109,9 @@
                 <option value="threeBreathingRings">呼吸光环</option>
                 <option value="threeNoiseLandscape">噪声地貌</option>
               </optgroup>
+              <optgroup label="有机渐变 3D">
+                <option value="threeLavaLamp">熔岩灯</option>
+              </optgroup>
             </select>
           </div>
           <div class="settings-field settings-field--row">
@@ -1636,6 +1639,61 @@
           <div class="settings-field">
             <label for="threeNoiseFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeNoiseFallEaseValue">45</span>%</label>
             <input id="threeNoiseFallEaseRange" type="range" min="0" max="100" step="1" value="45" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeLavaLampConfigPanel" aria-labelledby="sec-three-lava-lamp-display" hidden>
+        <h2 id="sec-three-lava-lamp-display" class="settings-card__title">熔岩灯配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-lava-lamp" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeLavaLampColorWarm" class="settings-label">暖色（底部）</label>
+            <input id="threeLavaLampColorWarm" type="color" value="#ff6b35" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeLavaLampColorCool" class="settings-label">冷色（顶部）</label>
+            <input id="threeLavaLampColorCool" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampBlobCountRange" class="settings-label">球体数量 <span class="settings-value" id="threeLavaLampBlobCountValue">3</span></label>
+            <input id="threeLavaLampBlobCountRange" type="range" min="2" max="4" step="1" value="3" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampMergeStrengthRange" class="settings-label">融合强度 <span class="settings-value" id="threeLavaLampMergeStrengthValue">70</span>%</label>
+            <input id="threeLavaLampMergeStrengthRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampBuoyancySpeedRange" class="settings-label">浮力速度 <span class="settings-value" id="threeLavaLampBuoyancySpeedValue">0.65</span></label>
+            <input id="threeLavaLampBuoyancySpeedRange" type="range" min="2" max="20" step="1" value="7" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampBassDriveRange" class="settings-label">低频驱动 <span class="settings-value" id="threeLavaLampBassDriveValue">80</span>%</label>
+            <input id="threeLavaLampBassDriveRange" type="range" min="0" max="100" step="1" value="80" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeLavaLampBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeLavaLampBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeLavaLampBloomStrengthValue">0.9</span></label>
+            <input id="threeLavaLampBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampGainRange" class="settings-label">增益 <span class="settings-value" id="threeLavaLampGainValue">58</span>%</label>
+            <input id="threeLavaLampGainRange" type="range" min="10" max="150" step="1" value="58" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeLavaLampSmoothValue">24</span>%</label>
+            <input id="threeLavaLampSmoothRange" type="range" min="0" max="400" step="1" value="24" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeLavaLampSoftClipValue">14</span>%</label>
+            <input id="threeLavaLampSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeLavaLampFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeLavaLampFallEaseValue">58</span>%</label>
+            <input id="threeLavaLampFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
           </div>
         </div>
       </section>

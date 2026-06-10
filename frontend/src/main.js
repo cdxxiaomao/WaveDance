@@ -108,6 +108,7 @@ const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
 const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
 const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.shape };
 const threeNoiseLandscapeShapeConfig = { ...DEFAULT_CONFIG.threeNoiseLandscape.shape };
+const threeLavaLampShapeConfig = { ...DEFAULT_CONFIG.threeLavaLamp.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -331,6 +332,14 @@ function applyThreeNoiseLandscapeShapeConfig(payload) {
   threeNoiseLandscapeShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeLavaLampShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeLavaLampShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeLavaLampShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeLavaLampShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeLavaLampShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -395,6 +404,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
       "threeNoiseShape",
     );
     if (threeNoiseLandscapeRaw) applyThreeNoiseLandscapeShapeConfig(JSON.parse(threeNoiseLandscapeRaw));
+    const threeLavaLampRaw = readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampShape");
+    if (threeLavaLampRaw) applyThreeLavaLampShapeConfig(JSON.parse(threeLavaLampRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -684,6 +695,14 @@ let threeNoiseWireframeOverlay = DEFAULT_CONFIG.threeNoiseLandscape.wireframeOve
 let threeNoiseBloomEnabled = DEFAULT_CONFIG.threeNoiseLandscape.bloomEnabled;
 let threeNoiseBloomStrength = DEFAULT_CONFIG.threeNoiseLandscape.bloomStrength;
 let threeNoiseCameraPitchDeg = DEFAULT_CONFIG.threeNoiseLandscape.cameraPitchDeg;
+let threeLavaLampColorWarmHex = DEFAULT_CONFIG.threeLavaLamp.colorWarm;
+let threeLavaLampColorCoolHex = DEFAULT_CONFIG.threeLavaLamp.colorCool;
+let threeLavaLampBlobCount = DEFAULT_CONFIG.threeLavaLamp.blobCount;
+let threeLavaLampMergeStrength = DEFAULT_CONFIG.threeLavaLamp.mergeStrength;
+let threeLavaLampBuoyancySpeed = DEFAULT_CONFIG.threeLavaLamp.buoyancySpeed;
+let threeLavaLampBassDrive = DEFAULT_CONFIG.threeLavaLamp.bassDrive;
+let threeLavaLampBloomEnabled = DEFAULT_CONFIG.threeLavaLamp.bloomEnabled;
+let threeLavaLampBloomStrength = DEFAULT_CONFIG.threeLavaLamp.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1686,6 +1705,46 @@ function applyThreeLiquidBlobBloomStrength(value) {
     : DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
 }
 
+function applyThreeLavaLampColorWarmHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeLavaLamp.colorWarm;
+  threeLavaLampColorWarmHex = safe;
+}
+
+function applyThreeLavaLampColorCoolHex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeLavaLamp.colorCool;
+  threeLavaLampColorCoolHex = safe;
+}
+
+function applyThreeLavaLampBlobCount(value) {
+  threeLavaLampBlobCount = clampInt(value, 2, 4);
+}
+
+function applyThreeLavaLampMergeStrength(value) {
+  threeLavaLampMergeStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeLavaLampBuoyancySpeed(value) {
+  const n = Number(value);
+  threeLavaLampBuoyancySpeed = Number.isFinite(n)
+    ? Math.min(2, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threeLavaLamp.buoyancySpeed;
+}
+
+function applyThreeLavaLampBassDrive(value) {
+  threeLavaLampBassDrive = clampInt(value, 0, 100);
+}
+
+function applyThreeLavaLampBloomEnabled(value) {
+  threeLavaLampBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeLavaLamp.bloomEnabled);
+}
+
+function applyThreeLavaLampBloomStrength(value) {
+  const n = Number(value);
+  threeLavaLampBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeLavaLamp.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -1980,6 +2039,9 @@ function syncRenderBackend(mode) {
         threeBridge.init(threeCanvas);
       }
       threeBridge.setMode(mode);
+      if (!threeBridge.hasActiveRenderer()) {
+        throw new Error(`Three renderer 未就绪：${mode}`);
+      }
       renderBackend = "three";
       threeInitBlockedMode = null;
     } catch (err) {
@@ -1993,6 +2055,9 @@ function syncRenderBackend(mode) {
 
   if (threeBridge.getActiveMode() !== mode) {
     threeBridge.setMode(mode);
+    if (!threeBridge.hasActiveRenderer()) {
+      console.error(`[WaveDance] Three 模式切换失败：${mode}`);
+    }
   }
   activateThreeOverlay();
 }
@@ -2075,6 +2140,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeAuroraRibbon) return threeAuroraShapeConfig;
   if (mode === DISPLAY_MODES.threeBreathingRings) return threeBreathingRingsShapeConfig;
   if (mode === DISPLAY_MODES.threeNoiseLandscape) return threeNoiseLandscapeShapeConfig;
+  if (mode === DISPLAY_MODES.threeLavaLamp) return threeLavaLampShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2439,6 +2505,20 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeNoiseBloomEnabled,
       bloomStrength: threeNoiseBloomStrength,
       cameraPitchDeg: threeNoiseCameraPitchDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeLavaLamp) {
+    return {
+      colorWarm: threeLavaLampColorWarmHex,
+      colorCool: threeLavaLampColorCoolHex,
+      blobCount: threeLavaLampBlobCount,
+      mergeStrength: threeLavaLampMergeStrength,
+      buoyancySpeed: threeLavaLampBuoyancySpeed,
+      lampAspect: DEFAULT_CONFIG.threeLavaLamp.lampAspect,
+      bassDrive: threeLavaLampBassDrive,
+      bloomEnabled: threeLavaLampBloomEnabled,
+      bloomStrength: threeLavaLampBloomStrength,
       freqReversed,
     };
   }
@@ -4428,6 +4508,69 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-lava-lamp-color-warm",
+    (event) => {
+      applyThreeLavaLampColorWarmHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-color-cool",
+    (event) => {
+      applyThreeLavaLampColorCoolHex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-blob-count",
+    (event) => {
+      applyThreeLavaLampBlobCount(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-merge-strength",
+    (event) => {
+      applyThreeLavaLampMergeStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-buoyancy-speed",
+    (event) => {
+      applyThreeLavaLampBuoyancySpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-bass-drive",
+    (event) => {
+      applyThreeLavaLampBassDrive(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-bloom-enabled",
+    (event) => {
+      applyThreeLavaLampBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-bloom-strength",
+    (event) => {
+      applyThreeLavaLampBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-lava-lamp-shape-config",
+    (event) => {
+      applyThreeLavaLampShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -5368,6 +5511,41 @@ async function init() {
       readWindowStorageString(window.localStorage, windowLabel, "threeNoiseCameraPitch") ??
         DEFAULT_CONFIG.threeNoiseLandscape.cameraPitchDeg,
     );
+    applyThreeLavaLampColorWarmHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampColorWarm") ??
+        DEFAULT_CONFIG.threeLavaLamp.colorWarm,
+    );
+    applyThreeLavaLampColorCoolHex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampColorCool") ??
+        DEFAULT_CONFIG.threeLavaLamp.colorCool,
+    );
+    applyThreeLavaLampBlobCount(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampBlobCount") ??
+        DEFAULT_CONFIG.threeLavaLamp.blobCount,
+    );
+    applyThreeLavaLampMergeStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampMergeStrength") ??
+        DEFAULT_CONFIG.threeLavaLamp.mergeStrength,
+    );
+    applyThreeLavaLampBuoyancySpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampBuoyancySpeed") ??
+        DEFAULT_CONFIG.threeLavaLamp.buoyancySpeed,
+    );
+    applyThreeLavaLampBassDrive(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampBassDrive") ??
+        DEFAULT_CONFIG.threeLavaLamp.bassDrive,
+    );
+    applyThreeLavaLampBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampBloom"),
+    );
+    const savedLavaLampBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeLavaLampBloomStrength",
+    );
+    if (savedLavaLampBloomStrength != null && savedLavaLampBloomStrength !== "") {
+      applyThreeLavaLampBloomStrength(savedLavaLampBloomStrength);
+    }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {
     // ignore storage failures
