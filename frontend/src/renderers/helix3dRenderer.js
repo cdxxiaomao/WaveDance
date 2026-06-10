@@ -44,22 +44,20 @@ function appendCubeLineMesh(positions, lineIndices, cx, cy, cz, halfSize, baseIn
 }
 
 /**
- * @param {number} slot
- * @param {number} pointCount
+ * @param {number} t 沿螺旋 0~1
+ * @param {number} amp 归一化幅度
  * @param {object} opts
  * @returns {[number, number, number]}
  */
-function helixPointPosition(slot, pointCount, opts) {
+function helixPointAt(t, amp, opts) {
   const {
     helixRadius,
     helixPitch,
     helixTurns,
-    amp,
     extrudeMode,
     extrudeScale,
     heightScale,
   } = opts;
-  const t = pointCount <= 1 ? 0 : slot / (pointCount - 1);
   const theta = t * helixTurns * Math.PI * 2;
   const yBase = t * helixPitch * helixTurns - helixPitch * 0.5;
   let r = helixRadius;
@@ -70,6 +68,53 @@ function helixPointPosition(slot, pointCount, opts) {
     r = helixRadius + amp * extrudeScale;
   }
   return [r * Math.cos(theta), y, r * Math.sin(theta)];
+}
+
+/**
+ * @param {number} slot
+ * @param {number} pointCount
+ * @param {object} opts
+ * @returns {[number, number, number]}
+ */
+function helixPointPosition(slot, pointCount, opts) {
+  const t = pointCount <= 1 ? 0 : slot / (pointCount - 1);
+  return helixPointAt(t, opts.amp, opts);
+}
+
+/** @param {number} a @param {number} b @param {number} t */
+function smoothstep(a, b, t) {
+  const x = Math.max(0, Math.min(1, (t - a) / (b - a)));
+  return x * x * (3 - 2 * x);
+}
+
+/**
+ * 沿螺旋参数高密度采样 + 幅度 smoothstep 插值，生成平滑链线顶点。
+ * @param {number[]} amps
+ * @param {number} pointCount
+ * @param {object} helixOpts
+ * @param {boolean} freqReversed
+ * @param {number} subdivisionsPerSegment
+ * @returns {number[]}
+ */
+function buildSmoothChainPositions(amps, pointCount, helixOpts, freqReversed, subdivisionsPerSegment) {
+  if (pointCount < 2) return [];
+
+  const chainPositions = [];
+  const segments = (pointCount - 1) * subdivisionsPerSegment;
+
+  for (let s = 0; s <= segments; s++) {
+    const u = s / segments;
+    const slotFloat = freqReversed ? (1 - u) * (pointCount - 1) : u * (pointCount - 1);
+    const slot0 = Math.floor(slotFloat);
+    const slot1 = Math.min(pointCount - 1, slot0 + 1);
+    const localT = slotFloat - slot0;
+    const amp = amps[slot0] + (amps[slot1] - amps[slot0]) * smoothstep(0, 1, localT);
+    const t = pointCount <= 1 ? 0 : slotFloat / (pointCount - 1);
+    const [x, y, z] = helixPointAt(t, amp, helixOpts);
+    chainPositions.push(x, y, z);
+  }
+
+  return chainPositions;
 }
 
 function pointHalfSizeWorld(pointSizePx, canvasHeight, cameraDistance, amp) {
@@ -86,7 +131,6 @@ export function createHelix3dRenderer(gl) {
   const wireProgram = createWireframeProgram(gl);
   const posBuffer = gl.createBuffer();
   const lineIndexBuffer = gl.createBuffer();
-  const chainIndexBuffer = gl.createBuffer();
 
   const mvpMat = createMat4();
   const viewMat = createMat4();
@@ -128,32 +172,29 @@ export function createHelix3dRenderer(gl) {
 
     const positions = [];
     const cubeLineIndices = [];
-    const chainIndices = [];
-    const helixPositions = [];
+    const helixOpts = {
+      helixRadius,
+      helixPitch,
+      helixTurns,
+      extrudeMode,
+      extrudeScale,
+      heightScale,
+    };
 
     for (let i = 0; i < pointCount; i++) {
       const slot = freqReversed ? pointCount - 1 - i : i;
       const amp = amps[slot];
-      const [x, y, z] = helixPointPosition(slot, pointCount, {
-        helixRadius,
-        helixPitch,
-        helixTurns,
-        amp,
-        extrudeMode,
-        extrudeScale,
-        heightScale,
-      });
-      helixPositions.push(x, y, z);
+      const [x, y, z] = helixPointPosition(slot, pointCount, { ...helixOpts, amp });
 
       const halfSize = pointHalfSizeWorld(pointSizePx, gl.canvas.height, cameraDistance, amp);
       appendCubeLineMesh(positions, cubeLineIndices, x, y, z, halfSize, i * 8);
     }
 
-    if (wireframeEnabled && pointCount >= 2) {
-      for (let i = 0; i < pointCount; i++) {
-        chainIndices.push(i);
-      }
-    }
+    const subdivisionsPerSegment = Math.max(4, Math.min(10, Math.round(48 / pointCount)));
+    const chainPositions =
+      wireframeEnabled && pointCount >= 2
+        ? buildSmoothChainPositions(amps, pointCount, helixOpts, freqReversed, subdivisionsPerSegment)
+        : [];
 
     const aspect = gl.canvas.width / Math.max(1, gl.canvas.height);
     camera.getProjectionMatrix(projMat, aspect, cameraFovDeg);
@@ -173,18 +214,16 @@ export function createHelix3dRenderer(gl) {
     gl.useProgram(wireProgram.program);
     gl.uniformMatrix4fv(wireProgram.uniforms.mvp, false, mvpMat);
 
-    if (wireframeEnabled && chainIndices.length >= 2) {
+    if (wireframeEnabled && chainPositions.length >= 6) {
       gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(helixPositions), gl.DYNAMIC_DRAW);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(chainPositions), gl.DYNAMIC_DRAW);
       gl.enableVertexAttribArray(wireProgram.attribs.position);
       gl.vertexAttribPointer(wireProgram.attribs.position, 3, gl.FLOAT, false, 0, 0);
 
       gl.uniform3f(wireProgram.uniforms.color, dotColor.r * 0.85, dotColor.g * 0.85, dotColor.b);
       gl.uniform1f(wireProgram.uniforms.alpha, 0.55);
 
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, chainIndexBuffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(chainIndices), gl.DYNAMIC_DRAW);
-      gl.drawElements(gl.LINE_STRIP, chainIndices.length, gl.UNSIGNED_SHORT, 0);
+      gl.drawArrays(gl.LINE_STRIP, 0, chainPositions.length / 3);
     }
 
     if (cubeLineIndices.length > 0) {
