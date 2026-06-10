@@ -109,6 +109,7 @@ const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
 const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.shape };
 const threeNoiseLandscapeShapeConfig = { ...DEFAULT_CONFIG.threeNoiseLandscape.shape };
 const threeLavaLampShapeConfig = { ...DEFAULT_CONFIG.threeLavaLamp.shape };
+const threeOilMarbleShapeConfig = { ...DEFAULT_CONFIG.threeOilMarble.shape };
 
 let latestPoints = [];
 let latestTimeSamples = [];
@@ -340,6 +341,14 @@ function applyThreeLavaLampShapeConfig(payload) {
   threeLavaLampShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeOilMarbleShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeOilMarbleShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeOilMarbleShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeOilMarbleShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeOilMarbleShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function loadShapeConfigsFromStorage(windowLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, windowLabel, "lineShape");
@@ -406,6 +415,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threeNoiseLandscapeRaw) applyThreeNoiseLandscapeShapeConfig(JSON.parse(threeNoiseLandscapeRaw));
     const threeLavaLampRaw = readWindowStorageString(window.localStorage, windowLabel, "threeLavaLampShape");
     if (threeLavaLampRaw) applyThreeLavaLampShapeConfig(JSON.parse(threeLavaLampRaw));
+    const threeOilMarbleRaw = readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleShape");
+    if (threeOilMarbleRaw) applyThreeOilMarbleShapeConfig(JSON.parse(threeOilMarbleRaw));
   } catch {
     // ignore storage failures and keep defaults
   }
@@ -703,6 +714,17 @@ let threeLavaLampBuoyancySpeed = DEFAULT_CONFIG.threeLavaLamp.buoyancySpeed;
 let threeLavaLampBassDrive = DEFAULT_CONFIG.threeLavaLamp.bassDrive;
 let threeLavaLampBloomEnabled = DEFAULT_CONFIG.threeLavaLamp.bloomEnabled;
 let threeLavaLampBloomStrength = DEFAULT_CONFIG.threeLavaLamp.bloomStrength;
+let threeOilMarbleColor1Hex = DEFAULT_CONFIG.threeOilMarble.color1;
+let threeOilMarbleColor2Hex = DEFAULT_CONFIG.threeOilMarble.color2;
+let threeOilMarbleColor3Hex = DEFAULT_CONFIG.threeOilMarble.color3;
+let threeOilMarbleColor4Hex = DEFAULT_CONFIG.threeOilMarble.color4;
+let threeOilMarbleColor4Enabled = DEFAULT_CONFIG.threeOilMarble.color4Enabled;
+let threeOilMarbleFlowSpeed = DEFAULT_CONFIG.threeOilMarble.flowSpeed;
+let threeOilMarbleNoiseScale = DEFAULT_CONFIG.threeOilMarble.noiseScale;
+let threeOilMarbleWarpStrength = DEFAULT_CONFIG.threeOilMarble.warpStrength;
+let threeOilMarbleReactiveness = DEFAULT_CONFIG.threeOilMarble.reactiveness;
+let threeOilMarbleBloomEnabled = DEFAULT_CONFIG.threeOilMarble.bloomEnabled;
+let threeOilMarbleBloomStrength = DEFAULT_CONFIG.threeOilMarble.bloomStrength;
 let freqReversed = DEFAULT_CONFIG.freqReversed;
 
 function applyBarColorHex(hex) {
@@ -1745,6 +1767,63 @@ function applyThreeLavaLampBloomStrength(value) {
     : DEFAULT_CONFIG.threeLavaLamp.bloomStrength;
 }
 
+function applyThreeOilMarbleColor1Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeOilMarble.color1;
+  threeOilMarbleColor1Hex = safe;
+}
+
+function applyThreeOilMarbleColor2Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeOilMarble.color2;
+  threeOilMarbleColor2Hex = safe;
+}
+
+function applyThreeOilMarbleColor3Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeOilMarble.color3;
+  threeOilMarbleColor3Hex = safe;
+}
+
+function applyThreeOilMarbleColor4Hex(raw) {
+  const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeOilMarble.color4;
+  threeOilMarbleColor4Hex = safe;
+}
+
+function applyThreeOilMarbleColor4Enabled(value) {
+  threeOilMarbleColor4Enabled = parseBoolean(value, DEFAULT_CONFIG.threeOilMarble.color4Enabled);
+}
+
+function applyThreeOilMarbleFlowSpeed(value) {
+  const n = Number(value);
+  threeOilMarbleFlowSpeed = Number.isFinite(n)
+    ? Math.min(2.5, Math.max(0.2, n))
+    : DEFAULT_CONFIG.threeOilMarble.flowSpeed;
+}
+
+function applyThreeOilMarbleNoiseScale(value) {
+  const n = Number(value);
+  threeOilMarbleNoiseScale = Number.isFinite(n)
+    ? Math.min(4.5, Math.max(0.8, n))
+    : DEFAULT_CONFIG.threeOilMarble.noiseScale;
+}
+
+function applyThreeOilMarbleWarpStrength(value) {
+  threeOilMarbleWarpStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeOilMarbleReactiveness(value) {
+  threeOilMarbleReactiveness = clampInt(value, 0, 100);
+}
+
+function applyThreeOilMarbleBloomEnabled(value) {
+  threeOilMarbleBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeOilMarble.bloomEnabled);
+}
+
+function applyThreeOilMarbleBloomStrength(value) {
+  const n = Number(value);
+  threeOilMarbleBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeOilMarble.bloomStrength;
+}
+
 function applyThreeAuroraColorLowHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
   threeAuroraColorLowHex = safe;
@@ -2141,6 +2220,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeBreathingRings) return threeBreathingRingsShapeConfig;
   if (mode === DISPLAY_MODES.threeNoiseLandscape) return threeNoiseLandscapeShapeConfig;
   if (mode === DISPLAY_MODES.threeLavaLamp) return threeLavaLampShapeConfig;
+  if (mode === DISPLAY_MODES.threeOilMarble) return threeOilMarbleShapeConfig;
   return waveShapeConfig;
 }
 
@@ -2519,6 +2599,22 @@ function getStyleConfigForMode(mode) {
       bassDrive: threeLavaLampBassDrive,
       bloomEnabled: threeLavaLampBloomEnabled,
       bloomStrength: threeLavaLampBloomStrength,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeOilMarble) {
+    return {
+      color1: threeOilMarbleColor1Hex,
+      color2: threeOilMarbleColor2Hex,
+      color3: threeOilMarbleColor3Hex,
+      color4: threeOilMarbleColor4Hex,
+      color4Enabled: threeOilMarbleColor4Enabled,
+      flowSpeed: threeOilMarbleFlowSpeed,
+      noiseScale: threeOilMarbleNoiseScale,
+      warpStrength: threeOilMarbleWarpStrength,
+      reactiveness: threeOilMarbleReactiveness,
+      bloomEnabled: threeOilMarbleBloomEnabled,
+      bloomStrength: threeOilMarbleBloomStrength,
       freqReversed,
     };
   }
@@ -4571,6 +4667,90 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-oil-marble-color1",
+    (event) => {
+      applyThreeOilMarbleColor1Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-color2",
+    (event) => {
+      applyThreeOilMarbleColor2Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-color3",
+    (event) => {
+      applyThreeOilMarbleColor3Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-color4",
+    (event) => {
+      applyThreeOilMarbleColor4Hex(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-color4-enabled",
+    (event) => {
+      applyThreeOilMarbleColor4Enabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-flow-speed",
+    (event) => {
+      applyThreeOilMarbleFlowSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-noise-scale",
+    (event) => {
+      applyThreeOilMarbleNoiseScale(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-warp-strength",
+    (event) => {
+      applyThreeOilMarbleWarpStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-reactiveness",
+    (event) => {
+      applyThreeOilMarbleReactiveness(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-bloom-enabled",
+    (event) => {
+      applyThreeOilMarbleBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-bloom-strength",
+    (event) => {
+      applyThreeOilMarbleBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-oil-marble-shape-config",
+    (event) => {
+      applyThreeOilMarbleShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "visualization-display-mode",
     (event) => {
       displayMode = normalizeDisplayMode(event.payload);
@@ -5545,6 +5725,52 @@ async function init() {
     );
     if (savedLavaLampBloomStrength != null && savedLavaLampBloomStrength !== "") {
       applyThreeLavaLampBloomStrength(savedLavaLampBloomStrength);
+    }
+    applyThreeOilMarbleColor1Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleColor1") ??
+        DEFAULT_CONFIG.threeOilMarble.color1,
+    );
+    applyThreeOilMarbleColor2Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleColor2") ??
+        DEFAULT_CONFIG.threeOilMarble.color2,
+    );
+    applyThreeOilMarbleColor3Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleColor3") ??
+        DEFAULT_CONFIG.threeOilMarble.color3,
+    );
+    applyThreeOilMarbleColor4Hex(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleColor4") ??
+        DEFAULT_CONFIG.threeOilMarble.color4,
+    );
+    applyThreeOilMarbleColor4Enabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleColor4Enabled"),
+    );
+    applyThreeOilMarbleFlowSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleFlowSpeed") ??
+        DEFAULT_CONFIG.threeOilMarble.flowSpeed,
+    );
+    applyThreeOilMarbleNoiseScale(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleNoiseScale") ??
+        DEFAULT_CONFIG.threeOilMarble.noiseScale,
+    );
+    applyThreeOilMarbleWarpStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleWarpStrength") ??
+        DEFAULT_CONFIG.threeOilMarble.warpStrength,
+    );
+    applyThreeOilMarbleReactiveness(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleReactiveness") ??
+        DEFAULT_CONFIG.threeOilMarble.reactiveness,
+    );
+    applyThreeOilMarbleBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeOilMarbleBloom"),
+    );
+    const savedOilMarbleBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeOilMarbleBloomStrength",
+    );
+    if (savedOilMarbleBloomStrength != null && savedOilMarbleBloomStrength !== "") {
+      applyThreeOilMarbleBloomStrength(savedOilMarbleBloomStrength);
     }
     applyFreqReversed(readWindowStorageString(window.localStorage, windowLabel, "freqReversed"));
   } catch {

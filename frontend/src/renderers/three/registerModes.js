@@ -13,6 +13,7 @@ import { createAuroraRibbonRenderer } from "./auroraRibbonRenderer.js";
 import { createBreathingRingsRenderer } from "./breathingRingsRenderer.js";
 import { createNoiseLandscapeRenderer } from "./noiseLandscapeRenderer.js";
 import { createLavaLampRenderer } from "./lavaLampRenderer.js";
+import { createOilMarbleRenderer } from "./oilMarbleRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
@@ -27,3 +28,4 @@ registerThreeMode(DISPLAY_MODES.threeAuroraRibbon, createAuroraRibbonRenderer);
 registerThreeMode(DISPLAY_MODES.threeBreathingRings, createBreathingRingsRenderer);
 registerThreeMode(DISPLAY_MODES.threeNoiseLandscape, createNoiseLandscapeRenderer);
 registerThreeMode(DISPLAY_MODES.threeLavaLamp, createLavaLampRenderer);
+registerThreeMode(DISPLAY_MODES.threeOilMarble, createOilMarbleRenderer);

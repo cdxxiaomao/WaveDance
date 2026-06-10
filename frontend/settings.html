@@ -111,6 +111,7 @@
               </optgroup>
               <optgroup label="有机渐变 3D">
                 <option value="threeLavaLamp">熔岩灯</option>
+                <option value="threeOilMarble">油彩大理石</option>
               </optgroup>
             </select>
           </div>
@@ -1694,6 +1695,74 @@
           <div class="settings-field">
             <label for="threeLavaLampFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeLavaLampFallEaseValue">58</span>%</label>
             <input id="threeLavaLampFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeOilMarbleConfigPanel" aria-labelledby="sec-three-oil-marble-display" hidden>
+        <h2 id="sec-three-oil-marble-display" class="settings-card__title">油彩大理石配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-oil-marble" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeOilMarbleColor1" class="settings-label">颜色 1</label>
+            <input id="threeOilMarbleColor1" type="color" value="#8f7cff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeOilMarbleColor2" class="settings-label">颜色 2</label>
+            <input id="threeOilMarbleColor2" type="color" value="#ec4899" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeOilMarbleColor3" class="settings-label">颜色 3</label>
+            <input id="threeOilMarbleColor3" type="color" value="#3b82f6" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="threeOilMarbleColor4" class="settings-label">颜色 4</label>
+            <input id="threeOilMarbleColor4" type="color" value="#14b8a6" class="settings-color" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeOilMarbleColor4Toggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>启用第 4 色</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeOilMarbleFlowSpeedRange" class="settings-label">流动速度 <span class="settings-value" id="threeOilMarbleFlowSpeedValue">1.0</span></label>
+            <input id="threeOilMarbleFlowSpeedRange" type="range" min="2" max="25" step="1" value="10" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleNoiseScaleRange" class="settings-label">噪声尺度 <span class="settings-value" id="threeOilMarbleNoiseScaleValue">2.2</span></label>
+            <input id="threeOilMarbleNoiseScaleRange" type="range" min="8" max="45" step="1" value="22" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleWarpStrengthRange" class="settings-label">域扭曲 <span class="settings-value" id="threeOilMarbleWarpStrengthValue">65</span>%</label>
+            <input id="threeOilMarbleWarpStrengthRange" type="range" min="0" max="100" step="1" value="65" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleReactivenessRange" class="settings-label">音频响应 <span class="settings-value" id="threeOilMarbleReactivenessValue">70</span>%</label>
+            <input id="threeOilMarbleReactivenessRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeOilMarbleBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeOilMarbleBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeOilMarbleBloomStrengthValue">0.8</span></label>
+            <input id="threeOilMarbleBloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleGainRange" class="settings-label">增益 <span class="settings-value" id="threeOilMarbleGainValue">55</span>%</label>
+            <input id="threeOilMarbleGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeOilMarbleSmoothValue">20</span>%</label>
+            <input id="threeOilMarbleSmoothRange" type="range" min="0" max="400" step="1" value="20" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeOilMarbleSoftClipValue">12</span>%</label>
+            <input id="threeOilMarbleSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeOilMarbleFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeOilMarbleFallEaseValue">55</span>%</label>
+            <input id="threeOilMarbleFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
           </div>
         </div>
       </section>

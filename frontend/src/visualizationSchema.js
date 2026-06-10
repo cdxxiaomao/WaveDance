@@ -266,6 +266,18 @@ export const STORAGE_KEYS = {
   threeLavaLampBloom: "wavedance.threeLavaLampBloomEnabled",
   threeLavaLampBloomStrength: "wavedance.threeLavaLampBloomStrength",
   threeLavaLampShape: "wavedance.threeLavaLampShapeConfig",
+  threeOilMarbleColor1: "wavedance.threeOilMarbleColor1",
+  threeOilMarbleColor2: "wavedance.threeOilMarbleColor2",
+  threeOilMarbleColor3: "wavedance.threeOilMarbleColor3",
+  threeOilMarbleColor4: "wavedance.threeOilMarbleColor4",
+  threeOilMarbleColor4Enabled: "wavedance.threeOilMarbleColor4Enabled",
+  threeOilMarbleFlowSpeed: "wavedance.threeOilMarbleFlowSpeed",
+  threeOilMarbleNoiseScale: "wavedance.threeOilMarbleNoiseScale",
+  threeOilMarbleWarpStrength: "wavedance.threeOilMarbleWarpStrength",
+  threeOilMarbleReactiveness: "wavedance.threeOilMarbleReactiveness",
+  threeOilMarbleBloom: "wavedance.threeOilMarbleBloomEnabled",
+  threeOilMarbleBloomStrength: "wavedance.threeOilMarbleBloomStrength",
+  threeOilMarbleShape: "wavedance.threeOilMarbleShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -301,6 +313,7 @@ export const DISPLAY_MODES = {
   threeBreathingRings: "threeBreathingRings",
   threeNoiseLandscape: "threeNoiseLandscape",
   threeLavaLamp: "threeLavaLamp",
+  threeOilMarble: "threeOilMarble",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
@@ -318,6 +331,7 @@ export const THREE_DISPLAY_MODES = [
   DISPLAY_MODES.threeBreathingRings,
   DISPLAY_MODES.threeNoiseLandscape,
   DISPLAY_MODES.threeLavaLamp,
+  DISPLAY_MODES.threeOilMarble,
 ];
 
 /** @param {string} mode */
@@ -809,6 +823,25 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 58,
     },
   },
+  threeOilMarble: {
+    color1: "#8f7cff",
+    color2: "#ec4899",
+    color3: "#3b82f6",
+    color4: "#14b8a6",
+    color4Enabled: true,
+    flowSpeed: 1.0,
+    noiseScale: 2.2,
+    warpStrength: 65,
+    reactiveness: 70,
+    bloomEnabled: true,
+    bloomStrength: 0.75,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 20,
+      softClipPercent: 12,
+      fallEasePercent: 55,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -842,6 +875,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeBreathingRings) return DISPLAY_MODES.threeBreathingRings;
   if (s === DISPLAY_MODES.threeNoiseLandscape) return DISPLAY_MODES.threeNoiseLandscape;
   if (s === DISPLAY_MODES.threeLavaLamp) return DISPLAY_MODES.threeLavaLamp;
+  if (s === DISPLAY_MODES.threeOilMarble) return DISPLAY_MODES.threeOilMarble;
   return DISPLAY_MODES.line;
 }
 
@@ -1215,6 +1249,18 @@ export function windowStorageKeys(windowLabel) {
     threeLavaLampBloom: `${pre}.threeLavaLampBloomEnabled`,
     threeLavaLampBloomStrength: `${pre}.threeLavaLampBloomStrength`,
     threeLavaLampShape: `${pre}.threeLavaLampShapeConfig`,
+    threeOilMarbleColor1: `${pre}.threeOilMarbleColor1`,
+    threeOilMarbleColor2: `${pre}.threeOilMarbleColor2`,
+    threeOilMarbleColor3: `${pre}.threeOilMarbleColor3`,
+    threeOilMarbleColor4: `${pre}.threeOilMarbleColor4`,
+    threeOilMarbleColor4Enabled: `${pre}.threeOilMarbleColor4Enabled`,
+    threeOilMarbleFlowSpeed: `${pre}.threeOilMarbleFlowSpeed`,
+    threeOilMarbleNoiseScale: `${pre}.threeOilMarbleNoiseScale`,
+    threeOilMarbleWarpStrength: `${pre}.threeOilMarbleWarpStrength`,
+    threeOilMarbleReactiveness: `${pre}.threeOilMarbleReactiveness`,
+    threeOilMarbleBloom: `${pre}.threeOilMarbleBloomEnabled`,
+    threeOilMarbleBloomStrength: `${pre}.threeOilMarbleBloomStrength`,
+    threeOilMarbleShape: `${pre}.threeOilMarbleShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

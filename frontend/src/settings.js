@@ -68,6 +68,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
   [DISPLAY_MODES.threeNoiseLandscape]: "threeNoiseLandscapeConfigPanel",
   [DISPLAY_MODES.threeLavaLamp]: "threeLavaLampConfigPanel",
+  [DISPLAY_MODES.threeOilMarble]: "threeOilMarbleConfigPanel",
 };
 const waveformColor = document.querySelector("#waveformColor");
 const waveformWidthRange = document.querySelector("#waveformWidthRange");
@@ -664,6 +665,30 @@ const threeLavaLampSoftClipRange = document.querySelector("#threeLavaLampSoftCli
 const threeLavaLampSoftClipValue = document.querySelector("#threeLavaLampSoftClipValue");
 const threeLavaLampFallEaseRange = document.querySelector("#threeLavaLampFallEaseRange");
 const threeLavaLampFallEaseValue = document.querySelector("#threeLavaLampFallEaseValue");
+const threeOilMarbleColor1 = document.querySelector("#threeOilMarbleColor1");
+const threeOilMarbleColor2 = document.querySelector("#threeOilMarbleColor2");
+const threeOilMarbleColor3 = document.querySelector("#threeOilMarbleColor3");
+const threeOilMarbleColor4 = document.querySelector("#threeOilMarbleColor4");
+const threeOilMarbleColor4Toggle = document.querySelector("#threeOilMarbleColor4Toggle");
+const threeOilMarbleFlowSpeedRange = document.querySelector("#threeOilMarbleFlowSpeedRange");
+const threeOilMarbleFlowSpeedValue = document.querySelector("#threeOilMarbleFlowSpeedValue");
+const threeOilMarbleNoiseScaleRange = document.querySelector("#threeOilMarbleNoiseScaleRange");
+const threeOilMarbleNoiseScaleValue = document.querySelector("#threeOilMarbleNoiseScaleValue");
+const threeOilMarbleWarpStrengthRange = document.querySelector("#threeOilMarbleWarpStrengthRange");
+const threeOilMarbleWarpStrengthValue = document.querySelector("#threeOilMarbleWarpStrengthValue");
+const threeOilMarbleReactivenessRange = document.querySelector("#threeOilMarbleReactivenessRange");
+const threeOilMarbleReactivenessValue = document.querySelector("#threeOilMarbleReactivenessValue");
+const threeOilMarbleBloomToggle = document.querySelector("#threeOilMarbleBloomToggle");
+const threeOilMarbleBloomStrengthRange = document.querySelector("#threeOilMarbleBloomStrengthRange");
+const threeOilMarbleBloomStrengthValue = document.querySelector("#threeOilMarbleBloomStrengthValue");
+const threeOilMarbleGainRange = document.querySelector("#threeOilMarbleGainRange");
+const threeOilMarbleGainValue = document.querySelector("#threeOilMarbleGainValue");
+const threeOilMarbleSmoothRange = document.querySelector("#threeOilMarbleSmoothRange");
+const threeOilMarbleSmoothValue = document.querySelector("#threeOilMarbleSmoothValue");
+const threeOilMarbleSoftClipRange = document.querySelector("#threeOilMarbleSoftClipRange");
+const threeOilMarbleSoftClipValue = document.querySelector("#threeOilMarbleSoftClipValue");
+const threeOilMarbleFallEaseRange = document.querySelector("#threeOilMarbleFallEaseRange");
+const threeOilMarbleFallEaseValue = document.querySelector("#threeOilMarbleFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -3272,6 +3297,139 @@ function applyThreeLavaLampFormFromStorage(v) {
   }
 }
 
+function readThreeOilMarbleShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeOilMarbleShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeOilMarbleShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeOilMarbleGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeOilMarbleSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeOilMarbleSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeOilMarbleFallEaseRange?.value, 0, 100),
+  };
+  if (threeOilMarbleGainValue) threeOilMarbleGainValue.textContent = String(config.gainPercent);
+  if (threeOilMarbleSmoothValue) threeOilMarbleSmoothValue.textContent = String(config.smoothPercent);
+  if (threeOilMarbleSoftClipValue) threeOilMarbleSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeOilMarbleFallEaseValue) threeOilMarbleFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeOilMarbleShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-oil-marble-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新油彩大理石形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeOilMarbleFormFromStorage(v) {
+  const sg = readThreeOilMarbleShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeOilMarble.shape };
+  if (threeOilMarbleGainRange) threeOilMarbleGainRange.value = String(sg.gainPercent);
+  if (threeOilMarbleSmoothRange) threeOilMarbleSmoothRange.value = String(sg.smoothPercent);
+  if (threeOilMarbleSoftClipRange) threeOilMarbleSoftClipRange.value = String(sg.softClipPercent);
+  if (threeOilMarbleFallEaseRange) threeOilMarbleFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeOilMarbleGainValue) threeOilMarbleGainValue.textContent = String(sg.gainPercent);
+  if (threeOilMarbleSmoothValue) threeOilMarbleSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeOilMarbleSoftClipValue) threeOilMarbleSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeOilMarbleFallEaseValue) threeOilMarbleFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const colorKeys = [
+    ["threeOilMarbleColor1", threeOilMarbleColor1, "color1"],
+    ["threeOilMarbleColor2", threeOilMarbleColor2, "color2"],
+    ["threeOilMarbleColor3", threeOilMarbleColor3, "color3"],
+    ["threeOilMarbleColor4", threeOilMarbleColor4, "color4"],
+  ];
+  for (const [storageKey, el, defaultKey] of colorKeys) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (el && saved && /^#[0-9A-Fa-f]{6}$/.test(saved)) {
+      el.value = saved.toLowerCase();
+    } else if (el) {
+      el.value = DEFAULT_CONFIG.threeOilMarble[defaultKey];
+    }
+  }
+
+  if (threeOilMarbleColor4Toggle) {
+    threeOilMarbleColor4Toggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeOilMarbleColor4Enabled"),
+      DEFAULT_CONFIG.threeOilMarble.color4Enabled,
+    );
+  }
+
+  const savedFlow = readWindowStorageString(window.localStorage, v, "threeOilMarbleFlowSpeed");
+  if (threeOilMarbleFlowSpeedRange) {
+    const flow =
+      savedFlow != null && savedFlow !== ""
+        ? Math.min(2.5, Math.max(0.2, Number(savedFlow)))
+        : DEFAULT_CONFIG.threeOilMarble.flowSpeed;
+    threeOilMarbleFlowSpeedRange.value = String(Math.round(flow * 10));
+    if (threeOilMarbleFlowSpeedValue) threeOilMarbleFlowSpeedValue.textContent = flow.toFixed(1);
+  }
+
+  const savedNoise = readWindowStorageString(window.localStorage, v, "threeOilMarbleNoiseScale");
+  if (threeOilMarbleNoiseScaleRange) {
+    const noise =
+      savedNoise != null && savedNoise !== ""
+        ? Math.min(4.5, Math.max(0.8, Number(savedNoise)))
+        : DEFAULT_CONFIG.threeOilMarble.noiseScale;
+    threeOilMarbleNoiseScaleRange.value = String(Math.round(noise * 10));
+    if (threeOilMarbleNoiseScaleValue) threeOilMarbleNoiseScaleValue.textContent = noise.toFixed(1);
+  }
+
+  const savedWarp = readWindowStorageString(window.localStorage, v, "threeOilMarbleWarpStrength");
+  if (threeOilMarbleWarpStrengthRange) {
+    const warp =
+      savedWarp != null && savedWarp !== ""
+        ? clampInt(savedWarp, 0, 100)
+        : DEFAULT_CONFIG.threeOilMarble.warpStrength;
+    threeOilMarbleWarpStrengthRange.value = String(warp);
+    if (threeOilMarbleWarpStrengthValue) threeOilMarbleWarpStrengthValue.textContent = String(warp);
+  }
+
+  const savedReact = readWindowStorageString(window.localStorage, v, "threeOilMarbleReactiveness");
+  if (threeOilMarbleReactivenessRange) {
+    const react =
+      savedReact != null && savedReact !== ""
+        ? clampInt(savedReact, 0, 100)
+        : DEFAULT_CONFIG.threeOilMarble.reactiveness;
+    threeOilMarbleReactivenessRange.value = String(react);
+    if (threeOilMarbleReactivenessValue) threeOilMarbleReactivenessValue.textContent = String(react);
+  }
+
+  if (threeOilMarbleBloomToggle) {
+    threeOilMarbleBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeOilMarbleBloom"),
+      DEFAULT_CONFIG.threeOilMarble.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeOilMarbleBloomStrength");
+  if (threeOilMarbleBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeOilMarble.bloomStrength;
+    threeOilMarbleBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeOilMarbleBloomStrengthValue) {
+      threeOilMarbleBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeAuroraShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeAuroraShape");
@@ -4343,6 +4501,7 @@ async function init() {
     applyThreeBreathingFormFromStorage(v);
     applyThreeNoiseFormFromStorage(v);
     applyThreeLavaLampFormFromStorage(v);
+    applyThreeOilMarbleFormFromStorage(v);
 
     let lineHex = readWindowStorageString(window.localStorage, v, "lineColor");
     if (typeof lineHex !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(lineHex)) {
@@ -7261,6 +7420,176 @@ async function init() {
   });
   threeLavaLampFallEaseRange?.addEventListener("input", () => {
     void syncThreeLavaLampShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeOilMarbleColor1?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleColor1",
+        threeOilMarbleColor1.value,
+      );
+      await emitVisual("waveform-three-oil-marble-color1", threeOilMarbleColor1.value);
+    } catch (err) {
+      statusEl.textContent = `更新颜色 1 失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleColor2?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleColor2",
+        threeOilMarbleColor2.value,
+      );
+      await emitVisual("waveform-three-oil-marble-color2", threeOilMarbleColor2.value);
+    } catch (err) {
+      statusEl.textContent = `更新颜色 2 失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleColor3?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleColor3",
+        threeOilMarbleColor3.value,
+      );
+      await emitVisual("waveform-three-oil-marble-color3", threeOilMarbleColor3.value);
+    } catch (err) {
+      statusEl.textContent = `更新颜色 3 失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleColor4?.addEventListener("input", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleColor4",
+        threeOilMarbleColor4.value,
+      );
+      await emitVisual("waveform-three-oil-marble-color4", threeOilMarbleColor4.value);
+    } catch (err) {
+      statusEl.textContent = `更新颜色 4 失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleColor4Toggle?.addEventListener("change", async () => {
+    const enabled = threeOilMarbleColor4Toggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleColor4Enabled",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-oil-marble-color4-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新第 4 色开关失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleFlowSpeedRange?.addEventListener("input", async (event) => {
+    const flow = Math.min(2.5, Math.max(0.2, Number(event.target.value) / 10));
+    if (threeOilMarbleFlowSpeedValue) threeOilMarbleFlowSpeedValue.textContent = flow.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleFlowSpeed",
+        String(flow),
+      );
+      await emitVisual("waveform-three-oil-marble-flow-speed", flow);
+    } catch (err) {
+      statusEl.textContent = `更新流动速度失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleNoiseScaleRange?.addEventListener("input", async (event) => {
+    const noise = Math.min(4.5, Math.max(0.8, Number(event.target.value) / 10));
+    if (threeOilMarbleNoiseScaleValue) threeOilMarbleNoiseScaleValue.textContent = noise.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleNoiseScale",
+        String(noise),
+      );
+      await emitVisual("waveform-three-oil-marble-noise-scale", noise);
+    } catch (err) {
+      statusEl.textContent = `更新噪声尺度失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleWarpStrengthRange?.addEventListener("input", async (event) => {
+    const warp = clampInt(event.target.value, 0, 100);
+    if (threeOilMarbleWarpStrengthValue) threeOilMarbleWarpStrengthValue.textContent = String(warp);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleWarpStrength",
+        String(warp),
+      );
+      await emitVisual("waveform-three-oil-marble-warp-strength", warp);
+    } catch (err) {
+      statusEl.textContent = `更新域扭曲失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleReactivenessRange?.addEventListener("input", async (event) => {
+    const react = clampInt(event.target.value, 0, 100);
+    if (threeOilMarbleReactivenessValue) threeOilMarbleReactivenessValue.textContent = String(react);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleReactiveness",
+        String(react),
+      );
+      await emitVisual("waveform-three-oil-marble-reactiveness", react);
+    } catch (err) {
+      statusEl.textContent = `更新音频响应失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleBloomToggle?.addEventListener("change", async () => {
+    const enabled = threeOilMarbleBloomToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleBloom",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-oil-marble-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeOilMarbleBloomStrengthValue) {
+      threeOilMarbleBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeOilMarbleBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-oil-marble-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeOilMarbleGainRange?.addEventListener("input", () => {
+    void syncThreeOilMarbleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeOilMarbleSmoothRange?.addEventListener("input", () => {
+    void syncThreeOilMarbleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeOilMarbleSoftClipRange?.addEventListener("input", () => {
+    void syncThreeOilMarbleShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeOilMarbleFallEaseRange?.addEventListener("input", () => {
+    void syncThreeOilMarbleShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeAuroraColorLow?.addEventListener("input", async () => {

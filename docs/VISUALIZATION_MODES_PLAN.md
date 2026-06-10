@@ -2,7 +2,7 @@
 
 > **文档类型**：实现指导手册（Agent / 开发者跨会话接力用）  
 > **创建日期**：2026-06-09  
-> **状态**：Phase 0~30 已全部完成；Phase 31~38 为有机渐变 3D 系列（待实施）  
+> **状态**：Phase 0~31 已全部完成；Phase 32~38 为有机渐变 3D 系列（待实施）  
 > **关联文档**：`PROJECT_CONTEXT.md` | `docs/QUICK_CONTEXT.md` | `frontend/src/visualizationSchema.js`
 
 ---
@@ -1577,14 +1577,14 @@ threeOilMarble: {
 
 #### 31.2 新建 `three/oilMarbleRenderer.js`
 
-- [ ] raymarch 薄壳 sphere 或 box SDF 为边界
-- [ ] 内部：`fbm(p + warp(p))` → 0~1 分段 mix 四色（`gradientMix.glsl`）
-- [ ] `glsl-noise` 驱动；bass 加速 flow；mid 偏移 warp
+- [x] raymarch 薄壳 sphere 或 box SDF 为边界
+- [x] 内部：`fbm(p + warp(p))` → 0~1 分段 mix 四色（`gradientMix.glsl`）
+- [x] `glsl-noise` 驱动；bass 加速 flow；mid 偏移 warp
 
 #### 31.3 验收标准
 
-- [ ] 四色 picker 均生效；关闭 color4 时退化为三色
-- [ ] 流动连续，无块状马赛克（适当提高 march 精度）
+- [x] 四色 picker 均生效；关闭 color4 时退化为三色
+- [x] 流动连续，无块状马赛克（适当提高 march 精度）
 
 ---
 
@@ -2040,7 +2040,7 @@ threeKnotOrganic: {
 | 28 | Three 模式文档与 README（可选） | `[x]` 已完成 | 2026-06-10 |
 | 29 | Shader 公共扩展（glsl-noise + raymarch） | `[x]` 已完成 | 2026-06-10 |
 | 30 | 熔岩灯 Three Lava Lamp（E） | `[x]` 已完成 | 2026-06-10 |
-| 31 | 油彩大理石 Three Oil Marble（E） | `[ ]` 未开始 | |
+| 31 | 油彩大理石 Three Oil Marble（E） | `[x]` 已完成 | 2026-06-10 |
 | 32 | 珍珠链 Three Pearl Chain（E） | `[ ]` 未开始 | |
 | 33 | 宝石晶体 Three Crystal Gem（F） | `[ ]` 未开始 | |
 | 34 | 玻璃球栈 Three Glass Orbs（F） | `[ ]` 未开始 | |
@@ -2049,7 +2049,7 @@ threeKnotOrganic: {
 | 37 | 扭结有机体 Three Knot Organic（G） | `[ ]` 未开始 | |
 | 38 | 有机渐变系列文档（可选） | `[ ]` 未开始 | |
 
-**当前建议下一步**：Phase 31（油彩大理石）
+**当前建议下一步**：Phase 32（珍珠链）
 
 ---
 

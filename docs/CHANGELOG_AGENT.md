@@ -8,6 +8,15 @@
 
 ## 2026-06-10（续）
 
+### 可视化模式扩展 — Phase 31：油彩大理石 Three Oil Marble（E）
+
+- 新建 `frontend/src/renderers/three/oilMarbleRenderer.js`：薄壳 sphere raymarch + 域扭曲 fbm 四色渐变（`gradientMix.glsl` + `glsl-noise`），bass 驱动流动、mid 偏移 warp；`registerModes.js` 注册。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeOilMarble`、`DEFAULT_CONFIG.threeOilMarble` 及 storage keys。
+- `main.js`：监听 `waveform-three-oil-marble-*` 事件，持久化加载，`getStyleConfigForMode` / `getShapeConfigForMode` 分支。
+- `settings.html` / `settings.js`：「有机渐变 3D → 油彩大理石」配置面板（四色 picker、第 4 色开关、流动/噪声/域扭曲/音频响应、Bloom、形状四件套）。
+
+## 2026-06-10（续）
+
 ### 可视化模式扩展 — Phase 30：熔岩灯 Three Lava Lamp（E）
 
 - 新建 `frontend/src/renderers/three/lavaLampRenderer.js`：基于 `raymarchHelpers` 全屏 raymarch + smin metaball，竖直 buoyancy 浮力运动，暖/冷双色竖向渐变，bass 驱动半径胀大，灯体 ellipsoid 容器约束；`registerModes.js` 注册。
