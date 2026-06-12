@@ -566,6 +566,7 @@ const threeLiquidBlobWobbleSpeedRange = document.querySelector("#threeLiquidBlob
 const threeLiquidBlobWobbleSpeedValue = document.querySelector("#threeLiquidBlobWobbleSpeedValue");
 const threeLiquidBlobBassDriveRange = document.querySelector("#threeLiquidBlobBassDriveRange");
 const threeLiquidBlobBassDriveValue = document.querySelector("#threeLiquidBlobBassDriveValue");
+const threeLiquidBlobPulseOnPeakToggle = document.querySelector("#threeLiquidBlobPulseOnPeakToggle");
 const threeLiquidBlobBloomToggle = document.querySelector("#threeLiquidBlobBloomToggle");
 const threeLiquidBlobBloomStrengthRange = document.querySelector("#threeLiquidBlobBloomStrengthRange");
 const threeLiquidBlobBloomStrengthValue = document.querySelector("#threeLiquidBlobBloomStrengthValue");
@@ -3297,6 +3298,13 @@ function applyThreeLiquidBlobFormFromStorage(v) {
         : DEFAULT_CONFIG.threeLiquidBlob.bassDrive;
     threeLiquidBlobBassDriveRange.value = String(bassDrive);
     if (threeLiquidBlobBassDriveValue) threeLiquidBlobBassDriveValue.textContent = String(bassDrive);
+  }
+
+  if (threeLiquidBlobPulseOnPeakToggle) {
+    threeLiquidBlobPulseOnPeakToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeLiquidBlobPulseOnPeak"),
+      DEFAULT_CONFIG.threeLiquidBlob.pulseOnPeak,
+    );
   }
 
   if (threeLiquidBlobBloomToggle) {
@@ -8241,6 +8249,20 @@ async function init() {
       await emitVisual("waveform-three-liquid-blob-bass-drive", bassDrive);
     } catch (err) {
       statusEl.textContent = `更新低频驱动失败：${String(err)}`;
+    }
+  });
+  threeLiquidBlobPulseOnPeakToggle?.addEventListener("change", async () => {
+    const enabled = threeLiquidBlobPulseOnPeakToggle.checked;
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeLiquidBlobPulseOnPeak",
+        enabled ? "1" : "0",
+      );
+      await emitVisual("waveform-three-liquid-blob-pulse-on-peak", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新峰值体积脉冲失败：${String(err)}`;
     }
   });
   threeLiquidBlobBloomToggle?.addEventListener("change", async (event) => {

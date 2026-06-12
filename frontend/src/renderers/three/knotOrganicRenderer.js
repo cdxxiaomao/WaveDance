@@ -2,8 +2,6 @@ import * as THREE from "three";
 import { createBloomComposer, createBasicComposer, disposeComposer } from "./postProcessing.js";
 import { DEFAULT_CONFIG } from "../../visualizationSchema.js";
 import {
-  MARCH_STEPS,
-  GLSL_CALC_NORMAL,
   GLSL_GRADIENT_MIX,
   RAYMARCH_VERTEX,
   createRaymarchUniforms,
@@ -14,7 +12,11 @@ import {
 } from "./raymarchHelpers.js";
 import { prependNoiseGlsl, GLSL_FBM_SNOISE_3D } from "./noiseGlsl.js";
 
-const KNOT_SAMPLES = 64;
+/** 扭结 SDF 比球体类场景重，步数略低以保帧率 */
+const KNOT_MARCH_STEPS = 56;
+/** 粗采样找最近相位 + Newton 精修，替代 64 段折线近似 */
+const KNOT_COARSE_SAMPLES = 12;
+const KNOT_NEWTON_STEPS = 4;
 
 const FRAGMENT = prependNoiseGlsl(/* glsl */ `
 precision highp float;
@@ -74,31 +76,22 @@ vec3 knotPos(float t, float p, float q) {
   return vec3(r * cos(p * t), r * sin(p * t), -sin(q * t)) * 0.27;
 }
 
-float sdSegment(vec3 p, vec3 a, vec3 b) {
-  vec3 pa = p - a;
-  vec3 ba = b - a;
-  float h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-6), 0.0, 1.0);
-  return length(pa - ba * h);
+vec3 knotTangent(float t, float p, float q) {
+  float cq = cos(q * t);
+  float sq = sin(q * t);
+  float cp = cos(p * t);
+  float sp = sin(p * t);
+  float r = cq + 2.0;
+  float dr = -q * sq;
+  return vec3(dr * cp - r * p * sp, dr * sp + r * p * cp, -q * cq) * 0.27;
 }
 
-float sdKnotTube(vec3 p, float pK, float qK, float tube) {
-  float d = 1e6;
-  for (int i = 0; i < ${KNOT_SAMPLES}; i++) {
-    if (i >= ${KNOT_SAMPLES} - 1) break;
-    float t0 = 6.2831853 * float(i) / float(${KNOT_SAMPLES});
-    float t1 = 6.2831853 * float(i + 1) / float(${KNOT_SAMPLES});
-    vec3 a = knotPos(t0, pK, qK);
-    vec3 b = knotPos(t1, pK, qK);
-    d = min(d, sdSegment(p, a, b));
-  }
-  return d - tube;
-}
-
-float knotPhaseAt(vec3 p, float pK, float qK) {
+// 粗采样 + Newton：O(16) 量级，替代 64 段折线距离
+float knotClosestT(vec3 p, float pK, float qK) {
   float bestT = 0.0;
   float bestD = 1e6;
-  for (int i = 0; i < ${KNOT_SAMPLES}; i++) {
-    float t = 6.2831853 * float(i) / float(${KNOT_SAMPLES});
+  for (int i = 0; i < ${KNOT_COARSE_SAMPLES}; i++) {
+    float t = 6.2831853 * float(i) / float(${KNOT_COARSE_SAMPLES});
     vec3 kp = knotPos(t, pK, qK);
     float d = length(p - kp);
     if (d < bestD) {
@@ -106,22 +99,41 @@ float knotPhaseAt(vec3 p, float pK, float qK) {
       bestT = t;
     }
   }
-  return fract(bestT / 6.2831853 + u_time * 0.04 + u_mid * 0.06);
+  float t = bestT;
+  for (int j = 0; j < ${KNOT_NEWTON_STEPS}; j++) {
+    vec3 c = knotPos(t, pK, qK);
+    vec3 tangent = knotTangent(t, pK, qK);
+    t += dot(p - c, tangent) / max(dot(tangent, tangent), 1e-4);
+  }
+  return t;
 }
 
-float mapScene(vec3 p) {
+float sdKnotTube(vec3 p, float pK, float qK, float tube) {
+  float t = knotClosestT(p, pK, qK);
+  return length(p - knotPos(t, pK, qK)) - tube;
+}
+
+float knotPhaseAt(vec3 p, float pK, float qK) {
+  float t = knotClosestT(p, pK, qK);
+  return fract(t / 6.2831853 + u_time * 0.04 + u_mid * 0.06);
+}
+
+// raymarch / 法线仅用平滑管体 SDF，避免每步 FBM
+float mapKnotCore(vec3 p) {
   vec3 q = transformScene(p);
   float tube = u_tubeRadius * (1.0 + u_bass * 0.42 + u_peak * 0.18);
-  float d = sdKnotTube(q, u_knotP, u_knotQ, tube);
-
-  float noiseAmp = u_surfaceNoise * 0.00014 * (1.0 + u_treble * 2.2);
-  float ripple = fbmSnoise3(q * 6.5 + vec3(u_time * 0.18, -u_time * 0.12, u_time * 0.08));
-  d -= ripple * noiseAmp;
-
-  return d;
+  return sdKnotTube(q, u_knotP, u_knotQ, tube);
 }
 
-${GLSL_CALC_NORMAL}
+vec3 calcNormal(vec3 p) {
+  const float e = 0.0015;
+  vec2 ev = vec2(e, 0.0);
+  return normalize(vec3(
+    mapKnotCore(p + ev.xyy) - mapKnotCore(p - ev.xyy),
+    mapKnotCore(p + ev.yxy) - mapKnotCore(p - ev.yxy),
+    mapKnotCore(p + ev.yyx) - mapKnotCore(p - ev.yyx)
+  ));
+}
 
 void main() {
   vec2 uv = (vUv - 0.5) * 2.0;
@@ -134,9 +146,9 @@ void main() {
   float hit = -1.0;
   vec3 p;
 
-  for (int i = 0; i < ${MARCH_STEPS}; i++) {
+  for (int i = 0; i < ${KNOT_MARCH_STEPS}; i++) {
     p = ro + rd * t;
-    float d = mapScene(p);
+    float d = mapKnotCore(p);
     if (d < 0.0011) {
       hit = t;
       break;
@@ -158,12 +170,16 @@ void main() {
   hueT = fract(hueT + u_peak * 0.08);
   vec3 col = mixColor3Cyclic(u_color1, u_color2, u_color3, hueT);
 
+  float noiseAmp = u_surfaceNoise * (0.08 + u_treble * 0.14);
+  float ripple = fbmSnoise3(localP * 6.5 + vec3(u_time * 0.18, -u_time * 0.12, u_time * 0.08));
+  col *= 1.0 + ripple * noiseAmp;
+
   float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.6);
   float shade = 0.52 + 0.48 * dot(n, normalize(vec3(0.26, 0.84, 0.46)));
   col *= shade + u_bass * 0.52 + u_treble * 0.24 + u_peak * 0.28;
   col += fresnel * (mixColor3Cyclic(u_color1, u_color2, u_color3, hueT + 0.12) * (0.48 + u_peak * 0.26) + vec3(0.12, 0.1, 0.14));
 
-  float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
+  float edgeSoft = smoothstep(0.012, 0.0, mapKnotCore(p));
   float alpha = clamp(0.74 + fresnel * 0.22 + u_bass * 0.14 + u_peak * 0.12, 0.0, 1.0) * edgeSoft;
 
   gl_FragColor = vec4(col, alpha);
@@ -236,7 +252,7 @@ export function createKnotOrganicRenderer(ctx) {
         intensity: bloomStrength,
         luminanceThreshold: 0.08,
         luminanceSmoothing: 0.35,
-        mipmapBlur: true,
+        mipmapBlur: false,
       });
     } else {
       composer = createBasicComposer(renderer, scene, camera);

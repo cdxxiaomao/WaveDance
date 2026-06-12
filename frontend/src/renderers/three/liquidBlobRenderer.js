@@ -1,5 +1,7 @@
 import * as THREE from "three";
-import { createBloomComposer, createBasicComposer, disposeComposer } from "./postProcessing.js";
+import { BloomEffect, EffectPass } from "postprocessing";
+import { createBasicComposer, disposeComposer } from "./postProcessing.js";
+import { updateSpectrumUniforms } from "./raymarchHelpers.js";
 import { DEFAULT_CONFIG } from "../../visualizationSchema.js";
 
 const MAX_BLOBS = 5;
@@ -20,6 +22,7 @@ uniform float u_time;
 uniform float u_bass;
 uniform float u_mid;
 uniform float u_treble;
+uniform float u_peak;
 uniform vec2 u_resolution;
 uniform int u_blobCount;
 uniform vec3 u_blobCenters[${MAX_BLOBS}];
@@ -87,13 +90,13 @@ void main() {
 
   float fresnel = pow(1.0 - max(dot(n, -rd), 0.0), 2.4);
   float shade = 0.55 + 0.45 * dot(n, normalize(vec3(0.3, 0.8, 0.5)));
-  float hueMix = clamp(0.35 + p.y * 0.8 + u_mid * 0.35 + fresnel * 0.25, 0.0, 1.0);
+  float hueMix = clamp(0.35 + p.y * 0.8 + u_mid * 0.42 + fresnel * 0.25 + u_peak * 0.12, 0.0, 1.0);
   vec3 col = mix(u_colorPrimary, u_colorSecondary, hueMix);
-  col *= shade + u_bass * 0.45 + u_treble * 0.15;
-  col += fresnel * (u_colorSecondary * 0.55 + vec3(0.12));
+  col *= shade + u_bass * 0.55 + u_mid * 0.18 + u_treble * 0.22 + u_peak * 0.32;
+  col += fresnel * (u_colorSecondary * (0.55 + u_peak * 0.35) + vec3(0.12 + u_peak * 0.08));
 
   float edgeSoft = smoothstep(0.012, 0.0, mapScene(p));
-  float alpha = clamp(0.72 + fresnel * 0.28 + u_bass * 0.12, 0.0, 1.0) * edgeSoft;
+  float alpha = clamp(0.72 + fresnel * 0.28 + u_bass * 0.14 + u_peak * 0.18, 0.0, 1.0) * edgeSoft;
 
   gl_FragColor = vec4(col, alpha);
 }
@@ -110,13 +113,29 @@ function hexToColor(hex, fallback) {
  * @param {number} elapsed
  * @param {number} wobbleSpeed
  * @param {number} bass
+ * @param {number} mid
+ * @param {number} peak
  * @param {number} bassDrive
+ * @param {boolean} pulseOnPeak
+ * @param {number} peakPulse
  * @param {Float32Array} centers @param {Float32Array} radii
  */
-function updateBlobField(count, elapsed, wobbleSpeed, bass, bassDrive, centers, radii) {
+function updateBlobField(
+  count,
+  elapsed,
+  wobbleSpeed,
+  bass,
+  mid,
+  peak,
+  bassDrive,
+  pulseOnPeak,
+  peakPulse,
+  centers,
+  radii,
+) {
   const drive = bassDrive / 100;
-  const spread = 0.52 * (1 + bass * 0.22 * drive);
-  const baseRadius = 0.34 + bass * drive * 0.28;
+  const peakBoost = pulseOnPeak ? peak + peakPulse * 0.85 : peak * 0.55;
+  const baseRadius = (0.34 + bass * drive * 0.42 + peakBoost * 0.28) * (1 + mid * 0.08);
   const wobbleT = elapsed * wobbleSpeed;
 
   for (let i = 0; i < count; i++) {
@@ -125,13 +144,13 @@ function updateBlobField(count, elapsed, wobbleSpeed, bass, bassDrive, centers, 
     const angle = phase + wobbleT * 0.35 + Math.sin(wobbleT * 0.7 + i) * 0.4;
 
     const x =
-      Math.cos(angle) * spread * ring +
+      Math.cos(angle) * 0.52 * ring +
       Math.sin(wobbleT * 1.8 + i * 2.1) * 0.14 * wobbleSpeed;
     const y =
       Math.sin(wobbleT * 1.4 + i * 1.6) * 0.22 * wobbleSpeed +
       Math.cos(wobbleT * 0.9 + phase) * 0.08;
     const z =
-      Math.sin(angle) * spread * ring +
+      Math.sin(angle) * 0.52 * ring +
       Math.cos(wobbleT * 1.5 + i * 1.9) * 0.14 * wobbleSpeed;
 
     centers[i * 3] = x;
@@ -139,7 +158,7 @@ function updateBlobField(count, elapsed, wobbleSpeed, bass, bassDrive, centers, 
     centers[i * 3 + 2] = z;
 
     const pulse = 0.88 + 0.22 * Math.sin(wobbleT * 1.2 + i * 1.3);
-    radii[i] = baseRadius * pulse * (1 + bass * drive * 0.55);
+    radii[i] = baseRadius * pulse * (1 + bass * drive * 0.72 + peakBoost * 0.38);
   }
 }
 
@@ -164,6 +183,7 @@ export function createLiquidBlobRenderer(ctx) {
     u_bass: { value: 0 },
     u_mid: { value: 0 },
     u_treble: { value: 0 },
+    u_peak: { value: 0 },
     u_resolution: { value: new THREE.Vector2(1, 1) },
     u_blobCount: { value: DEFAULT_CONFIG.threeLiquidBlob.blobCount },
     u_blobCenters: { value: blobCenters },
@@ -197,31 +217,34 @@ export function createLiquidBlobRenderer(ctx) {
 
   const cpuCenters = new Float32Array(MAX_BLOBS * 3);
   let composer = null;
+  /** @type {import('postprocessing').BloomEffect | null} */
+  let bloomEffect = null;
   let bloomEnabled = DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled;
   let bloomStrength = DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
+  let peakPulse = 0;
+  let peakSmoothed = 0;
   let lastComposerKey = "";
   const clock = new THREE.Clock(true);
   let elapsed = 0;
-  let bassSmoothed = 0;
-  let midSmoothed = 0;
-  let trebleSmoothed = 0;
+  const spectrumState = { bass: 0, mid: 0, treble: 0 };
 
   function rebuildComposer() {
     const key = `${bloomEnabled}:${bloomStrength.toFixed(2)}`;
     if (key === lastComposerKey && composer) return;
     disposeComposer(composer);
     composer = null;
+    bloomEffect = null;
     lastComposerKey = key;
 
+    composer = createBasicComposer(renderer, scene, camera);
     if (bloomEnabled) {
-      composer = createBloomComposer(renderer, scene, camera, {
+      bloomEffect = new BloomEffect({
         intensity: bloomStrength,
         luminanceThreshold: 0.08,
         luminanceSmoothing: 0.35,
         mipmapBlur: true,
       });
-    } else {
-      composer = createBasicComposer(renderer, scene, camera);
+      composer.addPass(new EffectPass(camera, bloomEffect));
     }
 
     const size = renderer.getSize(new THREE.Vector2());
@@ -237,7 +260,7 @@ export function createLiquidBlobRenderer(ctx) {
     uniforms.u_resolution.value.set(size.x, size.y);
   }
 
-  function render(_points, _shapeConfig, styleConfig, _frameMeta, spectrum) {
+  function render(_points, _shapeConfig, styleConfig, frameMeta, spectrum) {
     const style = styleConfig ?? {};
     const cfg = DEFAULT_CONFIG.threeLiquidBlob;
 
@@ -245,6 +268,8 @@ export function createLiquidBlobRenderer(ctx) {
     const mergeStrength = clampInt(Number(style.mergeStrength), 0, 100, cfg.mergeStrength);
     const wobbleSpeed = clampFloat(Number(style.wobbleSpeed), 0.2, 3, cfg.wobbleSpeed);
     const bassDrive = clampInt(Number(style.bassDrive), 0, 100, cfg.bassDrive);
+    const pulseOnPeak =
+      style.pulseOnPeak !== undefined ? Boolean(style.pulseOnPeak) : cfg.pulseOnPeak;
     const nextBloomEnabled =
       style.bloomEnabled !== undefined ? Boolean(style.bloomEnabled) : cfg.bloomEnabled;
     const nextBloomStrength = Number(style.bloomStrength) || cfg.bloomStrength;
@@ -262,20 +287,38 @@ export function createLiquidBlobRenderer(ctx) {
     const safeDt = dt > 0 ? dt : 1 / 60;
     elapsed += safeDt;
 
-    const bass = spectrum?.bass ?? 0;
-    const mid = spectrum?.mid ?? 0;
-    const treble = spectrum?.treble ?? 0;
+    updateSpectrumUniforms(uniforms, spectrum, spectrumState, {
+      bass: 0.32,
+      mid: 0.28,
+      treble: 0.24,
+    });
 
-    bassSmoothed += (bass - bassSmoothed) * 0.22;
-    midSmoothed += (mid - midSmoothed) * 0.18;
-    trebleSmoothed += (treble - trebleSmoothed) * 0.16;
+    const peak = frameMeta?.peak ? Number(frameMeta.peak) : 0;
+    peakSmoothed += (peak - peakSmoothed) * 0.28;
+    uniforms.u_peak.value = peakSmoothed;
+
+    if (pulseOnPeak && peak > 0.18) {
+      peakPulse = Math.max(peakPulse, peak * 1.15);
+    }
+    peakPulse *= 0.88;
+
+    const bass = spectrumState.bass ?? 0;
+    const mid = spectrumState.mid ?? 0;
+
+    if (bloomEffect) {
+      bloomEffect.intensity = bloomStrength * (1 + peakSmoothed * 0.65 + bass * 0.18);
+    }
 
     updateBlobField(
       blobCount,
       elapsed,
       wobbleSpeed,
-      bassSmoothed,
+      bass,
+      mid,
+      peakSmoothed,
       bassDrive,
+      pulseOnPeak,
+      peakPulse,
       cpuCenters,
       blobRadii,
     );
@@ -290,9 +333,6 @@ export function createLiquidBlobRenderer(ctx) {
     }
 
     uniforms.u_time.value = elapsed;
-    uniforms.u_bass.value = bassSmoothed;
-    uniforms.u_mid.value = midSmoothed;
-    uniforms.u_treble.value = trebleSmoothed;
     uniforms.u_blobCount.value = blobCount;
     uniforms.u_mergeK.value = 0.06 + (mergeStrength / 100) * 0.42;
     uniforms.u_colorPrimary.value.copy(hexToColor(style.blobColor, cfg.blobColor));

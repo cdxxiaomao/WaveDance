@@ -222,6 +222,7 @@ export const STORAGE_KEYS = {
   threeLiquidBlobMergeStrength: "wavedance.threeLiquidBlobMergeStrength",
   threeLiquidBlobWobbleSpeed: "wavedance.threeLiquidBlobWobbleSpeed",
   threeLiquidBlobBassDrive: "wavedance.threeLiquidBlobBassDrive",
+  threeLiquidBlobPulseOnPeak: "wavedance.threeLiquidBlobPulseOnPeak",
   threeLiquidBlobBloom: "wavedance.threeLiquidBlobBloomEnabled",
   threeLiquidBlobBloomStrength: "wavedance.threeLiquidBlobBloomStrength",
   threeLiquidBlobShape: "wavedance.threeLiquidBlobShapeConfig",
@@ -824,6 +825,7 @@ export const DEFAULT_CONFIG = {
     mergeStrength: 65,
     wobbleSpeed: 1.0,
     bassDrive: 75,
+    pulseOnPeak: true,
     bloomEnabled: true,
     bloomStrength: 0.8,
     shape: {
@@ -1401,6 +1403,7 @@ export function windowStorageKeys(windowLabel) {
     threeLiquidBlobMergeStrength: `${pre}.threeLiquidBlobMergeStrength`,
     threeLiquidBlobWobbleSpeed: `${pre}.threeLiquidBlobWobbleSpeed`,
     threeLiquidBlobBassDrive: `${pre}.threeLiquidBlobBassDrive`,
+    threeLiquidBlobPulseOnPeak: `${pre}.threeLiquidBlobPulseOnPeak`,
     threeLiquidBlobBloom: `${pre}.threeLiquidBlobBloomEnabled`,
     threeLiquidBlobBloomStrength: `${pre}.threeLiquidBlobBloomStrength`,
     threeLiquidBlobShape: `${pre}.threeLiquidBlobShapeConfig`,

@@ -741,6 +741,7 @@ let threeLiquidBlobCount = DEFAULT_CONFIG.threeLiquidBlob.blobCount;
 let threeLiquidBlobMergeStrength = DEFAULT_CONFIG.threeLiquidBlob.mergeStrength;
 let threeLiquidBlobWobbleSpeed = DEFAULT_CONFIG.threeLiquidBlob.wobbleSpeed;
 let threeLiquidBlobBassDrive = DEFAULT_CONFIG.threeLiquidBlob.bassDrive;
+let threeLiquidBlobPulseOnPeak = DEFAULT_CONFIG.threeLiquidBlob.pulseOnPeak;
 let threeLiquidBlobBloomEnabled = DEFAULT_CONFIG.threeLiquidBlob.bloomEnabled;
 let threeLiquidBlobBloomStrength = DEFAULT_CONFIG.threeLiquidBlob.bloomStrength;
 let threeAuroraColorLowHex = DEFAULT_CONFIG.threeAuroraRibbon.colorLow;
@@ -1842,6 +1843,10 @@ function applyThreeLiquidBlobWobbleSpeed(value) {
 
 function applyThreeLiquidBlobBassDrive(value) {
   threeLiquidBlobBassDrive = clampInt(value, 0, 100);
+}
+
+function applyThreeLiquidBlobPulseOnPeak(value) {
+  threeLiquidBlobPulseOnPeak = parseBoolean(value, DEFAULT_CONFIG.threeLiquidBlob.pulseOnPeak);
 }
 
 function applyThreeLiquidBlobBloomEnabled(value) {
@@ -2991,6 +2996,7 @@ function getStyleConfigForMode(mode) {
       mergeStrength: threeLiquidBlobMergeStrength,
       wobbleSpeed: threeLiquidBlobWobbleSpeed,
       bassDrive: threeLiquidBlobBassDrive,
+      pulseOnPeak: threeLiquidBlobPulseOnPeak,
       bloomEnabled: threeLiquidBlobBloomEnabled,
       bloomStrength: threeLiquidBlobBloomStrength,
       freqReversed,
@@ -4903,6 +4909,13 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-liquid-blob-pulse-on-peak",
+    (event) => {
+      applyThreeLiquidBlobPulseOnPeak(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "waveform-three-liquid-blob-bloom-enabled",
     (event) => {
       applyThreeLiquidBlobBloomEnabled(event.payload);
@@ -6570,6 +6583,9 @@ async function init() {
     applyThreeLiquidBlobBassDrive(
       readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobBassDrive") ??
         DEFAULT_CONFIG.threeLiquidBlob.bassDrive,
+    );
+    applyThreeLiquidBlobPulseOnPeak(
+      readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobPulseOnPeak"),
     );
     applyThreeLiquidBlobBloomEnabled(
       readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobBloom"),
