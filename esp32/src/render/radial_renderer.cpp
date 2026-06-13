@@ -4,29 +4,15 @@
 
 #include "config.h"
 
-void draw_status_bar(Arduino_GFX *gfx, SpectrumState &state, const char *mode_name) {
-  if (gfx == nullptr) {
-    return;
-  }
-  const int w = gfx->width();
-  gfx->fillRect(0, 0, w, 18, RGB565_BLACK);
-  uint16_t dot = state.has_frame && !state.silence ? RGB565_GREEN : RGB565_ORANGE;
-  gfx->fillCircle(8, 9, 4, dot);
-  gfx->setCursor(18, 6);
-  gfx->setTextSize(1);
-  gfx->setTextColor(RGB565_DARKGREY);
-  gfx->print(state.has_frame ? "LINK " : "WAIT ");
-  if (mode_name != nullptr) {
-    gfx->print(mode_name);
-  }
-}
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-void BarRenderer::update_eased(SpectrumState &state) {
+void RadialRenderer::update_eased(SpectrumState &state) {
   uint8_t n = state.point_count;
   if (n == 0) {
     n = 1;
   }
-
   for (uint8_t i = 0; i < n; ++i) {
     float target = state.targets[i] / 255.0f;
     float current = state.eased[i];
@@ -41,7 +27,7 @@ void BarRenderer::update_eased(SpectrumState &state) {
   }
 }
 
-uint16_t BarRenderer::bar_color(float norm, uint8_t idx, uint8_t count) {
+uint16_t RadialRenderer::bar_color(float norm, uint8_t idx, uint8_t count) {
   float hue = (count <= 1) ? 0.55f : ((float)idx / (float)(count - 1));
   float sat = 0.85f;
   float val = 0.35f + norm * 0.65f;
@@ -85,29 +71,29 @@ uint16_t BarRenderer::bar_color(float norm, uint8_t idx, uint8_t count) {
   return (uint16_t)((ri >> 3) << 11 | (gi >> 2) << 5 | (bi >> 3));
 }
 
-void BarRenderer::render(Arduino_GFX *gfx, SpectrumState &state, const char *mode_name) {
+void RadialRenderer::render(Arduino_GFX *gfx, SpectrumState &state, const char *mode_name) {
   if (gfx == nullptr) {
     return;
   }
 
   const int w = gfx->width();
   const int h = gfx->height();
-  const int area_h = BAR_AREA_HEIGHT;
-  const int area_y = h - area_h;
-  const int inner_h = area_h - BAR_TOP_MARGIN - BAR_BOTTOM_MARGIN;
-  const int baseline_y = h - BAR_BOTTOM_MARGIN - 1;
-
+  const int area_y = 24;
+  const int area_h = h - area_y - 20;
   gfx->fillRect(0, area_y, w, area_h, RGB565_BLACK);
+
+  const int cx = w / 2;
+  const int cy = area_y + area_h / 2 + 8;
+  const int inner_r = 18;
+  const int outer_max = (w < area_h ? w : area_h) / 2 - 24;
+  if (outer_max <= inner_r + 4) {
+    draw_status_bar(gfx, state, mode_name);
+    return;
+  }
 
   uint8_t n = state.point_count;
   if (n == 0) {
     n = SPECTRUM_BUCKETS;
-  }
-
-  int total_gap = BAR_GAP_PX * (int)(n + 1);
-  int bar_w = (w - total_gap) / (int)n;
-  if (bar_w < 1) {
-    bar_w = 1;
   }
 
   if (!state.has_frame) {
@@ -115,13 +101,13 @@ void BarRenderer::render(Arduino_GFX *gfx, SpectrumState &state, const char *mod
         (sinf((float)millis() * 0.004f) + 1.0f) * 0.5f * 0.35f + 0.05f;
     for (uint8_t i = 0; i < n; ++i) {
       float v = pulse * (0.6f + 0.4f * sinf((float)i * 0.45f + (float)millis() * 0.003f));
-      int bar_h = (int)(v * (float)inner_h);
-      if (bar_h < 2) {
-        bar_h = 2;
-      }
-      int x = BAR_GAP_PX + (int)i * (bar_w + BAR_GAP_PX);
-      int y = baseline_y - bar_h + 1;
-      gfx->fillRect(x, y, bar_w, bar_h, RGB565_DARKGREEN);
+      float angle = ((float)i / (float)n) * 2.0f * (float)M_PI - (float)M_PI / 2.0f;
+      int r2 = inner_r + (int)(v * (float)(outer_max - inner_r));
+      int x1 = cx + (int)(cosf(angle) * (float)inner_r);
+      int y1 = cy + (int)(sinf(angle) * (float)inner_r);
+      int x2 = cx + (int)(cosf(angle) * (float)r2);
+      int y2 = cy + (int)(sinf(angle) * (float)r2);
+      gfx->drawLine(x1, y1, x2, y2, RGB565_DARKGREEN);
     }
   } else {
     update_eased(state);
@@ -130,18 +116,18 @@ void BarRenderer::render(Arduino_GFX *gfx, SpectrumState &state, const char *mod
       if (v <= 0.001f) {
         continue;
       }
-
-      int bar_h = (int)(v * (float)inner_h);
-      if (bar_h < 1) {
-        bar_h = 1;
-      }
-
-      int x = BAR_GAP_PX + (int)i * (bar_w + BAR_GAP_PX);
-      int y = baseline_y - bar_h + 1;
+      float angle = ((float)i / (float)n) * 2.0f * (float)M_PI - (float)M_PI / 2.0f;
+      int r2 = inner_r + (int)(v * (float)(outer_max - inner_r));
+      int x1 = cx + (int)(cosf(angle) * (float)inner_r);
+      int y1 = cy + (int)(sinf(angle) * (float)inner_r);
+      int x2 = cx + (int)(cosf(angle) * (float)r2);
+      int y2 = cy + (int)(sinf(angle) * (float)r2);
       uint16_t color = bar_color(v, i, n);
-      gfx->fillRect(x, y, bar_w, bar_h, color);
+      gfx->drawLine(x1, y1, x2, y2, color);
+      gfx->drawLine(x1, y1 + 1, x2, y2 + 1, color);
     }
   }
 
+  gfx->drawCircle(cx, cy, inner_r - 2, RGB565_DARKGREY);
   draw_status_bar(gfx, state, mode_name);
 }

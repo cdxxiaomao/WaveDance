@@ -63,11 +63,23 @@ Mac 音频采集 (BlackHole / 麦克风)
 | RAM | ~320 KB SRAM | 避免大 JSON；不用 WiFi/LWIP 可省约 50 KB |
 | Flash | 4 MB 常见 | PlatformIO + Arduino 框架足够 |
 | USB | Type-C CDC / USB-Serial-JTAG | 与 Mac 有线通信 + 供电；见 §4.1 |
-| 屏幕 | 因板型而异 | 首版按用户板 **1.47″ 矩形 ST7789 172×320** 为参考（见 2.3） |
+| 屏幕 | 因板型而异 | 用户板：**0.42″ OLED 72×40**（见 §2.3）；另有 1.47″ 172×320 参考 |
 
-### 2.3 目标硬件（已锁定）
+### 2.3 目标硬件
 
-#### 用户购买来源
+#### 用户板（已确认 · 2026-06-13）
+
+| 项目 | 规格 |
+|------|------|
+| SoC | ESP32-C3FH4 |
+| 屏幕 | **0.42″ OLED，72 × 40** |
+| 驱动 | SSD1306（U8g2） |
+| 接口 | I2C SDA=**GPIO5**，SCL=**GPIO6** |
+| 固件 | `esp32/oled-042/`，烧录 `./flash-oled-042.sh` |
+| 频谱桶 | Mac 端建议 **16** |
+| 模式 | BOOT 键切换 **BAR / VU** |
+
+#### 参考板型：微雪 ESP32-C3-LCD-1.47（172×320，非本用户板）
 
 用户购买链接（CapCut 种草/带货视频，常见为同款开发板开箱或 **SD 卡 GIF/图片播放** Demo）：
 
@@ -536,7 +548,7 @@ LCD_Init();           // 或 Arduino: lcd.begin()
 - [x] `EspDisplayBridge`：节流、rebucket、串口 `write_all`
 - [x] 采集线程挂接 `maybe_send_frame`
 - [x] Tauri commands：`list_serial_ports`、`get/set_esp_display_config`、`test_esp_display_ping`
-- [ ] 设置页 UI（Phase 3）；当前可用 `invoke` 或后续补 UI
+- [x] 设置页 UI（Phase 3）
 
 **验收**：Mac 播放音乐时，串口 sniffer 或 ESP 侧能持续收到合法 WDFR 帧；静默时 `SILENCE` 正确。
 
@@ -555,10 +567,10 @@ LCD_Init();           // 或 Arduino: lcd.begin()
 
 ### Phase 3 — 设置页 + 状态反馈
 
-- [x] `settings.html` + `espDisplaySettings.js` 外接屏分组
-- [x] 配置 `localStorage` 持久化 + 启动时同步到后端
-- [x] `test_esp_display_ping` + `esp-display-status` 事件展示
-- [ ] BOOT 键切换 bar / vu / radial（ESP 固件 Phase 2）
+- [x] `settings.html` + `espDisplaySettings.js` 外接屏分组（主设置页快捷入口 + 独立设置窗）
+- [x] 配置 `localStorage` 持久化 + 启动时同步到后端（主窗 / 设置页 init）
+- [x] `test_esp_display_ping` + `esp-display-status` 事件展示（含连接态颜色与最近发送时间）
+- [x] BOOT 键切换 bar / vu / radial（ESP 固件）
 
 **验收**：重启 WaveDance 后配置保留；测试连接有明确成功/失败提示。
 
@@ -649,7 +661,7 @@ LCD_Init();           // 或 Arduino: lcd.begin()
 | 0 | 协议与文档冻结 | ✅ ESP32-C3-LCD-1.47 已锁定 |
 | 1 | Rust 编码 + 串口推送 | ✅ 后端已完成，待设置页 |
 | 2 | ESP 接收 + 柱状图 | ✅ 固件已实现（`esp32/`） |
-| 3 | 设置页 + 状态反馈 | ✅ UI 已完成（ESP 多模式待固件） |
+| 3 | 设置页 + 状态反馈 | ✅ 已完成（含 ESP 多模式切换） |
 | 4 | 示波器与打磨 | ⬜ 待开始 |
 | 5 | 可选增强 | ⬜ 待定 |
 
@@ -660,9 +672,10 @@ LCD_Init();           // 或 Arduino: lcd.begin()
 | 项 | 状态 | 说明 |
 |----|------|------|
 | 芯片型号 | ✅ | ESP32-C3**FH4**，4 MB Flash |
-| 屏幕外形 | ✅ | 矩形 1.47″ **172×320**，**16 针排针**，**白光背光**，ESP32-C3-LCD-1.47 类 |
+| 屏幕外形 | ✅ | **0.42″ OLED 72×40**（SSD1306，I2C）；非 1.47″ 172×320 |
+| 固件路径 | ✅ | `esp32/oled-042/` + `./flash-oled-042.sh` |
 | 传输方式 | ✅ | **Type-C USB 串口**，不用 WiFi |
-| 断连时行为 | ✅ | ESP 侧 **渐隐到黑**（Phase 2 固件实现） |
-| 首版默认模式 | ✅ 建议 `bar` | 竖屏底对齐柱状频谱，32 桶 |
+| 断连时行为 | ✅ | ESP 侧 **渐隐到黑** |
+| 首版默认模式 | ✅ | 柱状 **bar**，16 桶；BOOT 切换 bar / vu |
 
 可从 **Phase 1（Mac 串口推送）** 与 **Phase 2（ESP 读串口 + bar）** 并行开发。

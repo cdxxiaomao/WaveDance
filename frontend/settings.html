@@ -73,6 +73,23 @@
         </div>
       </section>
 
+      <section class="settings-card" aria-labelledby="sec-esp-display">
+        <h2 id="sec-esp-display" class="settings-card__title">外接屏 (ESP32)</h2>
+        <div class="settings-card__body">
+          <p class="settings-hint">
+            使用 Type-C 连接 ESP32-C3 开发板，经 USB 串口推送频谱（无需 WiFi）。<strong>0.42″ OLED（72×40）</strong> 请选频谱桶数 <strong>16</strong>，并烧录 <code>flash-oled-042.sh</code> 固件。
+          </p>
+          <div class="settings-actions settings-actions--wrap" data-no-drag>
+            <button type="button" id="openEspDisplaySettingsBtn" class="settings-btn">
+              打开外接屏设置…
+            </button>
+          </div>
+          <p id="espDisplayQuickStatus" class="settings-blackhole-hint esp-display-status--muted" role="status">
+            未连接
+          </p>
+        </div>
+      </section>
+
       <section class="settings-card" aria-labelledby="sec-spectrum">
         <h2 id="sec-spectrum" class="settings-card__title">频谱分析</h2>
         <div class="settings-card__body settings-form" data-no-drag>

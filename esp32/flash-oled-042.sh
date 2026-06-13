@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 烧录 ESP32-C3 0.42" OLED 简易信息屏固件
+# 烧录 ESP32-C3 0.42" OLED 72×40 频谱固件（WaveDance WDFR v1）
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -20,8 +20,8 @@ if [[ -z "$PORT" ]]; then
   exit 1
 fi
 
-echo ">>> 烧录 0.42 OLED WaveDance 频谱固件 → ${PORT}"
-echo ">>> 烧录后在 WaveDance 设置页启用 ESP 推送并测试连接"
+echo ">>> 烧录 72×40 OLED WaveDance 固件 → ${PORT}"
+echo ">>> Mac 设置：波特率 921600，频谱桶数建议 16，BOOT 键切换 BAR/VU"
 "$VENV/bin/pio" run -d "$ROOT/oled-042" -e esp32-c3-oled-042 -t upload --upload-port "$PORT"
 echo ""
-echo ">>> 完成。待机: WD WAIT + 呼吸柱 | 连接后: WD LINK + 频谱"
+echo ">>> 完成。待机: WD WAT + 呼吸柱 | 连接: WD LNK + 频谱 | BOOT: BAR↔VU"

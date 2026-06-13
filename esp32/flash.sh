@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# macOS 上勿用 pip3 install --user（PEP 668 会拒绝）；本脚本自动创建 venv 并烧录。
+# 烧录 ESP32-C3 1.47" LCD 172×320 固件（微雪 ESP32-C3-LCD-1.47）
+# 若你的屏幕是 0.42" OLED 72×40，请改用：./flash-oled-042.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"

@@ -23,7 +23,7 @@
         <div class="settings-card__body settings-form" data-no-drag>
           <p class="settings-hint">
             使用 Type-C 连接 ESP32-C3 开发板，通过 USB 串口推送频谱（无需 WiFi）。请先
-            <strong>开始采集</strong>，再启用推送。
+            <strong>开始采集</strong>，再启用推送。<strong>72×40 OLED</strong> 建议频谱桶数 <strong>16</strong>；BOOT 键切换 BAR / VU。
           </p>
           <label class="settings-toggle settings-toggle--block">
             <input id="espDisplayEnabled" type="checkbox" />
@@ -78,7 +78,7 @@
             <span class="settings-toggle__ui" aria-hidden="true"></span>
             <span>反转频率方向（与主窗选项一致时可勾选）</span>
           </label>
-          <p id="espDisplayStatus" class="settings-blackhole-hint" role="status">未连接</p>
+          <p id="espDisplayStatus" class="settings-blackhole-hint esp-display-status--muted" role="status">未连接</p>
         </div>
       </section>
     </div>

@@ -1,6 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import {
+  initEspDisplayQuickPanel,
+  syncEspDisplayConfigFromStorage,
+} from "./espDisplaySettings.js";
+import {
   clampInt,
   DEFAULT_CONFIG,
   DISPLAY_MODES,
@@ -10621,6 +10625,11 @@ async function init() {
   }
 
   await syncMainBackgroundStyle(visualTargetLabel, emitVisual);
+  await syncEspDisplayConfigFromStorage();
+  await initEspDisplayQuickPanel({
+    statusEl: document.querySelector("#espDisplayQuickStatus"),
+    openBtn: document.querySelector("#openEspDisplaySettingsBtn"),
+  });
   await refreshBlackholeStatus();
   window.setInterval(refreshMidiSetupVisibility, 1000);
 }

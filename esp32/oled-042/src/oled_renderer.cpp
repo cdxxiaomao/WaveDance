@@ -2,8 +2,6 @@
 
 #include <math.h>
 
-#include "config.h"
-
 static U8G2_SSD1306_72X40_ER_F_HW_I2C s_display(
     U8G2_R0, U8X8_PIN_NONE, OLED_I2C_SCL, OLED_I2C_SDA);
 
@@ -16,6 +14,34 @@ bool oled_display_begin() {
 }
 
 U8G2 &oled_display() { return s_display; }
+
+const char *oled_mode_label(DisplayMode mode) {
+  switch (mode) {
+    case MODE_VU:
+      return "VU";
+    case MODE_BAR:
+    default:
+      return "BAR";
+  }
+}
+
+void oled_draw_status(U8G2 &display, const SpectrumState &state, DisplayMode mode) {
+  display.setFont(u8g2_font_4x6_tr);
+  display.drawStr(0, 6, "WD");
+
+  if (state.has_frame && !state.silence) {
+    display.drawDisc(14, 2, 2);
+    display.drawStr(20, 6, "LNK");
+  } else if (state.has_frame) {
+    display.drawCircle(14, 2, 2);
+    display.drawStr(20, 6, "---");
+  } else {
+    display.drawCircle(14, 2, 2);
+    display.drawStr(20, 6, "WAT");
+  }
+
+  display.drawStr(44, 6, oled_mode_label(mode));
+}
 
 void OledBarRenderer::update_eased(SpectrumState &state) {
   uint8_t n = state.point_count;
@@ -61,22 +87,6 @@ float OledBarRenderer::bucket_value(const SpectrumState &state, uint8_t col,
   return peak;
 }
 
-void OledBarRenderer::draw_status(U8G2 &display, const SpectrumState &state) {
-  display.setFont(u8g2_font_4x6_tr);
-  display.drawStr(0, 6, "WD");
-
-  if (state.has_frame && !state.silence) {
-    display.drawDisc(16, 2, 2);
-    display.drawStr(22, 6, "LINK");
-  } else if (state.has_frame) {
-    display.drawCircle(16, 2, 2);
-    display.drawStr(22, 6, "----");
-  } else {
-    display.drawCircle(16, 2, 2);
-    display.drawStr(22, 6, "WAIT");
-  }
-}
-
 void OledBarRenderer::draw_bars(U8G2 &display, SpectrumState &state, bool live) {
   constexpr int area_y = STATUS_ROW_HEIGHT;
   constexpr int area_h = BAR_AREA_HEIGHT;
@@ -113,9 +123,9 @@ void OledBarRenderer::draw_bars(U8G2 &display, SpectrumState &state, bool live) 
   }
 }
 
-void OledBarRenderer::render(U8G2 &display, SpectrumState &state) {
+void OledBarRenderer::render(U8G2 &display, SpectrumState &state, DisplayMode mode) {
   display.clearBuffer();
-  draw_status(display, state);
+  oled_draw_status(display, state, mode);
 
   if (!state.has_frame) {
     const float pulse =
@@ -138,6 +148,53 @@ void OledBarRenderer::render(U8G2 &display, SpectrumState &state) {
   } else {
     draw_bars(display, state, true);
   }
+
+  display.sendBuffer();
+}
+
+void OledVuRenderer::draw_meter(U8G2 &display, int x, int y, int w, int h,
+                                float level) {
+  display.drawFrame(x, y, w, h);
+  int fill_w = (int)(level * (float)(w - 2));
+  if (fill_w < 0) {
+    fill_w = 0;
+  }
+  if (fill_w > w - 2) {
+    fill_w = w - 2;
+  }
+  if (fill_w > 0) {
+    display.drawBox(x + 1, y + 1, fill_w, h - 2);
+  }
+}
+
+void OledVuRenderer::render(U8G2 &display, SpectrumState &state, DisplayMode mode) {
+  display.clearBuffer();
+  oled_draw_status(display, state, mode);
+
+  constexpr int margin_x = 2;
+  constexpr int bar_w = DISPLAY_WIDTH - margin_x * 2;
+  constexpr int bar_h = 7;
+  constexpr int peak_y = 12;
+  constexpr int rms_y = 26;
+
+  float peak_target = state.has_frame ? state.peak : 0.08f;
+  float rms_target = state.has_frame ? state.rms : 0.05f;
+  if (!state.has_frame) {
+    float pulse = (sinf((float)millis() * 0.003f) + 1.0f) * 0.5f * 0.22f + 0.06f;
+    peak_target = pulse;
+    rms_target = pulse * 0.65f;
+  }
+
+  float k_up = BAR_ATTACK_K;
+  float k_down = BAR_DECAY_K;
+  eased_peak_ += (peak_target - eased_peak_) * (peak_target > eased_peak_ ? k_up : k_down);
+  eased_rms_ += (rms_target - eased_rms_) * (rms_target > eased_rms_ ? k_up : k_down);
+
+  display.setFont(u8g2_font_4x6_tr);
+  display.drawStr(margin_x, peak_y - 2, "P");
+  display.drawStr(margin_x, rms_y - 2, "R");
+  draw_meter(display, margin_x + 8, peak_y, bar_w - 8, bar_h, eased_peak_);
+  draw_meter(display, margin_x + 8, rms_y, bar_w - 8, bar_h, eased_rms_);
 
   display.sendBuffer();
 }

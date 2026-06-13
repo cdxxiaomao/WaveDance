@@ -36,3 +36,11 @@ int display_height() {
   }
   return s_gfx->height();
 }
+
+bool display_boot_pressed() {
+#if USE_IO_EXPANDER
+  return s_lcd.bootPressed();
+#else
+  return false;
+#endif
+}

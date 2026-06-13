@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { syncEspDisplayConfigFromStorage } from "./espDisplaySettings.js";
 import { createLineRenderer } from "./renderers/lineRenderer.js";
 import { createBarRenderer } from "./renderers/barRenderer.js";
 import { createAreaRenderer } from "./renderers/areaRenderer.js";
@@ -7150,6 +7151,10 @@ async function init() {
     await invoke("set_overlay_blur_enabled", { label: windowLabel, enabled: blurEnabled });
   } catch (err) {
     console.error("restore overlay blur failed:", err);
+  }
+
+  if (windowLabel === "main") {
+    await syncEspDisplayConfigFromStorage();
   }
 
   renderWaveform();

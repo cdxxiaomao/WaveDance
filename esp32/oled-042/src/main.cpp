@@ -7,15 +7,41 @@
 
 namespace {
 
+constexpr uint8_t PIN_BOOT = 9;
+
 SerialReceiver g_serial;
 SpectrumState g_spectrum;
-OledBarRenderer g_renderer;
+OledBarRenderer g_bar_renderer;
+OledVuRenderer g_vu_renderer;
 
 constexpr size_t kReadChunk = 128;
 uint8_t g_read_buf[kReadChunk];
 
 uint32_t g_last_draw_ms = 0;
 uint32_t g_draw_interval_ms = 1000 / DISPLAY_FPS;
+DisplayMode g_display_mode = DEFAULT_MODE;
+
+bool g_boot_was_pressed = false;
+uint32_t g_boot_press_ms = 0;
+
+void cycle_display_mode() {
+  g_display_mode = (g_display_mode == MODE_BAR) ? MODE_VU : MODE_BAR;
+}
+
+void poll_boot_button() {
+  const bool pressed = digitalRead(PIN_BOOT) == LOW;
+  const uint32_t now = millis();
+
+  if (pressed && !g_boot_was_pressed) {
+    g_boot_press_ms = now;
+  }
+
+  if (!pressed && g_boot_was_pressed && now - g_boot_press_ms >= 50) {
+    cycle_display_mode();
+  }
+
+  g_boot_was_pressed = pressed;
+}
 
 void read_serial_stream() {
   while (Serial.available() > 0) {
@@ -34,6 +60,15 @@ void read_serial_stream() {
   }
 }
 
+void render_current_mode() {
+  U8G2 &display = oled_display();
+  if (g_display_mode == MODE_VU) {
+    g_vu_renderer.render(display, g_spectrum, g_display_mode);
+  } else {
+    g_bar_renderer.render(display, g_spectrum, g_display_mode);
+  }
+}
+
 void maybe_draw() {
   uint32_t now = millis();
   if (now - g_last_draw_ms < g_draw_interval_ms) {
@@ -42,7 +77,7 @@ void maybe_draw() {
   g_last_draw_ms = now;
 
   g_spectrum.tick_fade(now);
-  g_renderer.render(oled_display(), g_spectrum);
+  render_current_mode();
 }
 
 }  // namespace
@@ -50,6 +85,8 @@ void maybe_draw() {
 void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(300);
+
+  pinMode(PIN_BOOT, INPUT_PULLUP);
 
   if (!oled_display_begin()) {
     Serial.println("OLED init failed");
@@ -64,12 +101,13 @@ void setup() {
 
   g_draw_interval_ms = 1000 / DISPLAY_FPS;
   g_last_draw_ms = millis();
-  g_renderer.render(oled_display(), g_spectrum);
+  render_current_mode();
 
-  Serial.println("WaveDance ESP32-C3 0.42 OLED spectrum ready");
+  Serial.println("WaveDance ESP32-C3 0.42 OLED (72x40) ready");
 }
 
 void loop() {
+  poll_boot_button();
   read_serial_stream();
   maybe_draw();
 }

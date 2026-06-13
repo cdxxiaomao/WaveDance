@@ -1,15 +1,47 @@
 # WaveDance ESP32 外接屏固件
 
-ESP32-C3-LCD-1.47（微雪 172×320）固件：经 **USB Type-C 串口** 接收 WaveDance 推送的 **WDFR v1** 二进制帧，在屏幕上绘制柱状频谱。
+> **你的屏幕是 72×40 OLED？** 请用 [`./flash-oled-042.sh`](#esp32-c3-042-oled-小屏72×40) 烧录，不要用 `./flash.sh`（后者面向 172×320 微雪 LCD）。
 
-## 硬件
+ESP32 外接屏固件经 **USB Type-C 串口** 接收 WaveDance 推送的 **WDFR v1** 二进制帧并绘制频谱。
 
-| 项目 | 说明 |
+## 选哪套固件？
+
+| 屏幕 | 分辨率 | 烧录命令 | 工程目录 |
+|------|--------|----------|----------|
+| **0.42″ OLED（用户板）** | **72×40** | `./flash-oled-042.sh` | `oled-042/` |
+| 微雪 1.47″ LCD | 172×320 | `./flash.sh` | `src/` |
+
+---
+
+## ESP32-C3 0.42" OLED 小屏（72×40）
+
+适用于 **0.42 寸 SSD1306 OLED** 开发板（I2C **SDA=GPIO5, SCL=GPIO6**），分辨率 **72×40**。
+
+```bash
+cd esp32
+./flash-oled-042.sh
+```
+
+| 屏幕 | 含义 |
 |------|------|
-| 开发板 | [Waveshare ESP32-C3-LCD-1.47](https://www.waveshare.com/esp32-c3-lcd-1.47.htm) |
-| 屏幕 | 172×320 ST7789，经 CH32V003 IO 扩展器控制 |
-| 连接 | Type-C 数据线接 Mac（供电 + USB CDC 串口） |
-| 官方 BSP | 本工程 `lib/ESP32_C3_LCD_1in47/`（来自 [waveshareteam/ESP32-C3-LCD-1.47](https://github.com/waveshareteam/ESP32-C3-LCD-1.47)） |
+| 顶栏 **WD WAT** + 底部细柱呼吸 | 固件就绪，等待 Mac 推送 |
+| 顶栏 **WD LNK** + 柱随音乐跳动 | 推送正常 |
+| 顶栏右侧 **BAR** / **VU** | 当前显示模式；**BOOT** 键切换 |
+
+Mac 端设置：
+
+1. 串口 `/dev/cu.usbmodem*`
+2. 波特率 **921600**
+3. 频谱桶数建议 **16**（与固件一致）
+4. 开启「启用推送」→「测试连接」
+
+工程目录：`esp32/oled-042/`
+
+---
+
+## ESP32-C3-LCD-1.47（172×320，微雪）
+
+172×320 ST7789 彩色竖屏固件（非 72×40 OLED 用户请忽略本节）。
 
 ## 依赖
 
@@ -48,23 +80,18 @@ pio run -t upload --upload-port /dev/cu.usbmodem101
 
 ## ESP32-C3 0.42" OLED 小屏（WaveDance 频谱）
 
-适用于 **0.42 寸 SSD1306 OLED** 开发板（I2C SDA=GPIO5, SCL=GPIO6），72×40 单色柱状频谱。
-
-```bash
-cd esp32
-./flash-oled-042.sh /dev/cu.usbmodem101
-```
-
-| 屏幕 | 含义 |
-|------|------|
-| 顶栏 **WD WAIT** + 底部细柱呼吸 | 固件就绪，等待 Mac 推送 |
-| 顶栏 **WD LINK** + 柱随音乐跳动 | 推送正常 |
-
-Mac 端设置与 1.47" 板相同：串口 `/dev/cu.usbmodem*`、波特率 **921600**、开启「启用推送」。
-
-工程目录：`esp32/oled-042/`（复用 `src/protocol_decode.cpp` 等 WDFR 解码逻辑）。
+（已移至文档顶部「72×40」章节。）
 
 ---
+
+## 1.47″ LCD 硬件
+
+| 项目 | 说明 |
+|------|------|
+| 开发板 | [Waveshare ESP32-C3-LCD-1.47](https://www.waveshare.com/esp32-c3-lcd-1.47.htm) |
+| 屏幕 | 172×320 ST7789，经 CH32V003 IO 扩展器控制 |
+| 连接 | Type-C 数据线接 Mac（供电 + USB CDC 串口） |
+| 官方 BSP | 本工程 `lib/ESP32_C3_LCD_1in47/` |
 
 首次烧录后，板子进入 **串口接收模式**。在 WaveDance 设置页：
 
@@ -97,9 +124,23 @@ esp32/
     serial_receiver.cpp      # 流式组帧
     spectrum_state.cpp       # 频谱状态 + 断连渐隐
     display/waveshare_c3_lcd147.cpp
-    render/bar_renderer.cpp  # 柱状频谱（Phase 2）
+    render/bar_renderer.cpp  # 柱状频谱
+    render/vu_renderer.cpp   # VU 双电平条
+    render/radial_renderer.cpp # 圆形频谱
   lib/ESP32_C3_LCD_1in47/    # 微雪板级 BSP
 ```
+
+## 显示模式（BOOT 键）
+
+短按板载 **BOOT** 键循环切换（Phase 3）：
+
+| 模式 | 顶栏标识 | 说明 |
+|------|----------|------|
+| 柱状 | `LINK BAR` | 默认，底对齐竖柱 |
+| VU | `LINK VU` | 中部 peak / rms 双横条 |
+| 圆形 | `LINK RAD` | 放射状频谱线 |
+
+示波器模式（`scope`）需 Mac 端开启「携带时域波形」，Phase 4 实现。
 
 ## 协议
 

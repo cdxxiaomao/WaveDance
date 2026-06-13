@@ -1908,6 +1908,18 @@ body.settings-window .settings-blackhole-hint {
   color: var(--settings-text-muted);
 }
 
+body.settings-window .esp-display-status--ok {
+  color: #6ee7a0;
+}
+
+body.settings-window .esp-display-status--error {
+  color: #f87171;
+}
+
+body.settings-window .esp-display-status--muted {
+  color: var(--settings-text-muted);
+}
+
 body.settings-window .settings-muted {
   margin: 0 0 12px;
   font-size: 12px;

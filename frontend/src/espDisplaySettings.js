@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-const STORAGE_KEY = "wavedance.espDisplayConfig";
+export const STORAGE_KEY = "wavedance.espDisplayConfig";
 
-const DEFAULT_CONFIG = {
+export const DEFAULT_CONFIG = {
   enabled: false,
   serial_path: "",
   baud_rate: 921600,
@@ -14,7 +14,7 @@ const DEFAULT_CONFIG = {
   freq_reversed: false,
 };
 
-function readLocalConfig() {
+export function readLocalConfig() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -27,7 +27,7 @@ function readLocalConfig() {
   }
 }
 
-function writeLocalConfig(config) {
+export function writeLocalConfig(config) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   } catch {
@@ -35,18 +35,142 @@ function writeLocalConfig(config) {
   }
 }
 
-function formatEspStatus(status) {
-  if (!status || typeof status !== "object") {
-    return "状态未知";
+function formatRelativeTime(ms) {
+  if (ms == null || !Number.isFinite(ms)) {
+    return null;
   }
+  const delta = Date.now() - ms;
+  if (delta < 0) {
+    return "刚刚";
+  }
+  if (delta < 5000) {
+    return "刚刚";
+  }
+  if (delta < 60_000) {
+    return `${Math.floor(delta / 1000)} 秒前`;
+  }
+  if (delta < 3_600_000) {
+    return `${Math.floor(delta / 60_000)} 分钟前`;
+  }
+  return new Date(ms).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function formatEspStatus(status) {
+  if (!status || typeof status !== "object") {
+    return { text: "状态未知", tone: "muted" };
+  }
+
   const parts = [status.message || "—"];
   if (status.connected) {
     parts.push(`已发送 ${status.frames_sent ?? 0} 帧`);
+    const sentAt = formatRelativeTime(status.last_sent_at_ms);
+    if (sentAt) {
+      parts.push(`最近 ${sentAt}`);
+    }
   }
   if (status.last_seq != null) {
     parts.push(`seq ${status.last_seq}`);
   }
-  return parts.join(" · ");
+
+  let tone = "muted";
+  if (status.ok && status.connected) {
+    tone = "ok";
+  } else if (status.message && status.message !== "未连接" && status.message !== "请选择串口") {
+    tone = "error";
+  } else if (status.connected === false && status.message === "未连接") {
+    tone = "muted";
+  }
+
+  return { text: parts.join(" · "), tone };
+}
+
+function applyStatusTone(el, tone) {
+  if (!el) {
+    return;
+  }
+  el.classList.remove(
+    "esp-display-status--ok",
+    "esp-display-status--error",
+    "esp-display-status--muted",
+  );
+  if (tone) {
+    el.classList.add(`esp-display-status--${tone}`);
+  }
+}
+
+function showEspStatusOn(el, status) {
+  if (!el) {
+    return;
+  }
+  const { text, tone } = formatEspStatus(status);
+  el.textContent = text;
+  applyStatusTone(el, tone);
+}
+
+/**
+ * 启动时将 localStorage 中的外接屏配置同步到 Rust 后端（无需打开设置窗）。
+ */
+export async function syncEspDisplayConfigFromStorage() {
+  const local = readLocalConfig();
+  try {
+    const response = await invoke("get_esp_display_config");
+    const backend = response.config ?? {};
+    const needsPush =
+      local.serial_path &&
+      (!backend.serial_path ||
+        backend.baud_rate !== local.baud_rate ||
+        backend.max_fps !== local.max_fps ||
+        backend.bucket_count !== local.bucket_count ||
+        backend.include_time_samples !== local.include_time_samples ||
+        backend.freq_reversed !== local.freq_reversed);
+    if (needsPush || local.enabled !== backend.enabled) {
+      await invoke("set_esp_display_config", {
+        patch: {
+          enabled: local.enabled,
+          serial_path: local.serial_path,
+          baud_rate: local.baud_rate,
+          max_fps: local.max_fps,
+          bucket_count: local.bucket_count,
+          include_time_samples: local.include_time_samples,
+          freq_reversed: local.freq_reversed,
+        },
+      });
+    }
+  } catch (err) {
+    console.warn("esp display startup sync failed:", err);
+  }
+}
+
+/**
+ * 主设置页中的外接屏快捷入口（状态 + 打开独立设置窗）。
+ * @param {{ statusEl?: HTMLElement | null, openBtn?: HTMLElement | null }} options
+ */
+export async function initEspDisplayQuickPanel({ statusEl, openBtn } = {}) {
+  const showStatus = (status) => showEspStatusOn(statusEl, status);
+
+  openBtn?.addEventListener("click", () => {
+    void invoke("open_esp_display_settings_window").catch((err) => {
+      const msg = `打开外接屏设置失败：${String(err)}`;
+      if (statusEl) {
+        statusEl.textContent = msg;
+        applyStatusTone(statusEl, "error");
+      }
+    });
+  });
+
+  await listen("esp-display-status", (event) => {
+    showStatus(event.payload);
+  });
+
+  try {
+    const response = await invoke("get_esp_display_config");
+    showStatus(response.status);
+  } catch (err) {
+    if (statusEl) {
+      statusEl.textContent = `加载外接屏状态失败：${String(err)}`;
+      applyStatusTone(statusEl, "error");
+    }
+  }
 }
 
 /**
@@ -72,9 +196,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
   let applying = false;
 
   function showEspStatus(status) {
-    if (statusHint) {
-      statusHint.textContent = formatEspStatus(status);
-    }
+    showEspStatusOn(statusHint, status);
   }
 
   function applyToForm(config) {
@@ -147,9 +269,8 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
     applying = false;
     showEspStatus(response.status);
     if (flashMainStatus && statusEl) {
-      statusEl.textContent = response.status.ok
-        ? "外接屏配置已更新"
-        : `外接屏：${response.status.message}`;
+      const { text } = formatEspStatus(response.status);
+      statusEl.textContent = response.status.ok ? "外接屏配置已更新" : `外接屏：${text}`;
     }
     return response;
   }
@@ -166,6 +287,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
       const msg = `外接屏配置失败：${String(err)}`;
       if (statusHint) {
         statusHint.textContent = msg;
+        applyStatusTone(statusHint, "error");
       }
       if (statusEl) {
         statusEl.textContent = msg;
@@ -206,6 +328,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
         const msg = `刷新串口失败：${String(err)}`;
         if (statusHint) {
           statusHint.textContent = msg;
+          applyStatusTone(statusHint, "error");
         }
         if (statusEl) {
           statusEl.textContent = msg;
@@ -222,6 +345,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
           const msg = "请先选择串口";
           if (statusHint) {
             statusHint.textContent = msg;
+            applyStatusTone(statusHint, "error");
           }
           if (statusEl) {
             statusEl.textContent = msg;
@@ -238,6 +362,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
         const msg = `测试连接失败：${String(err)}`;
         if (statusHint) {
           statusHint.textContent = msg;
+          applyStatusTone(statusHint, "error");
         }
         if (statusEl) {
           statusEl.textContent = msg;
@@ -260,7 +385,10 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
       local.serial_path &&
       (!backend.serial_path ||
         backend.baud_rate !== local.baud_rate ||
-        backend.bucket_count !== local.bucket_count);
+        backend.max_fps !== local.max_fps ||
+        backend.bucket_count !== local.bucket_count ||
+        backend.include_time_samples !== local.include_time_samples ||
+        backend.freq_reversed !== local.freq_reversed);
     if (needsPush || local.enabled !== backend.enabled) {
       await pushConfig({
         enabled: local.enabled,
@@ -282,6 +410,7 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
   } catch (err) {
     if (statusHint) {
       statusHint.textContent = `加载外接屏配置失败：${String(err)}`;
+      applyStatusTone(statusHint, "error");
     }
   }
 }

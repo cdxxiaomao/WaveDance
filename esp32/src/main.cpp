@@ -11,6 +11,8 @@ namespace {
 SerialReceiver g_serial;
 SpectrumState g_spectrum;
 BarRenderer g_bar_renderer;
+VuRenderer g_vu_renderer;
+RadialRenderer g_radial_renderer;
 
 constexpr size_t kReadChunk = 128;
 uint8_t g_read_buf[kReadChunk];
@@ -19,6 +21,54 @@ uint32_t g_last_draw_ms = 0;
 uint32_t g_draw_interval_ms = 1000 / DISPLAY_FPS;
 bool g_display_ready = false;
 uint32_t g_last_init_attempt_ms = 0;
+DisplayMode g_display_mode = DEFAULT_MODE;
+
+bool g_boot_was_pressed = false;
+uint32_t g_boot_press_ms = 0;
+
+const char *mode_label(DisplayMode mode) {
+  switch (mode) {
+    case MODE_BAR:
+      return "BAR";
+    case MODE_VU:
+      return "VU";
+    case MODE_RADIAL:
+      return "RAD";
+    default:
+      return "?";
+  }
+}
+
+void cycle_display_mode() {
+  switch (g_display_mode) {
+    case MODE_BAR:
+      g_display_mode = MODE_VU;
+      break;
+    case MODE_VU:
+      g_display_mode = MODE_RADIAL;
+      break;
+    default:
+      g_display_mode = MODE_BAR;
+      break;
+  }
+}
+
+void poll_boot_button() {
+  const bool pressed = display_boot_pressed();
+  const uint32_t now = millis();
+
+  if (pressed && !g_boot_was_pressed) {
+    g_boot_press_ms = now;
+  }
+
+  if (!pressed && g_boot_was_pressed) {
+    if (now - g_boot_press_ms >= 50) {
+      cycle_display_mode();
+    }
+  }
+
+  g_boot_was_pressed = pressed;
+}
 
 void read_serial_stream() {
   while (Serial.available() > 0) {
@@ -53,6 +103,24 @@ void show_boot_splash() {
   gfx->println("Waiting for Mac...");
   gfx->setCursor(16, 164);
   gfx->println("Enable ESP push in settings");
+  gfx->setCursor(16, 180);
+  gfx->println("BOOT: switch display mode");
+}
+
+void render_current_mode(Arduino_GFX *gfx) {
+  const char *label = mode_label(g_display_mode);
+  switch (g_display_mode) {
+    case MODE_VU:
+      g_vu_renderer.render(gfx, g_spectrum, label);
+      break;
+    case MODE_RADIAL:
+      g_radial_renderer.render(gfx, g_spectrum, label);
+      break;
+    case MODE_BAR:
+    default:
+      g_bar_renderer.render(gfx, g_spectrum, label);
+      break;
+  }
 }
 
 void maybe_draw() {
@@ -69,7 +137,7 @@ void maybe_draw() {
     return;
   }
 
-  g_bar_renderer.render(gfx, g_spectrum);
+  render_current_mode(gfx);
 }
 
 bool try_init_display() {
@@ -83,6 +151,7 @@ bool try_init_display() {
   g_spectrum.silence = true;
   memset(g_spectrum.eased, 0, sizeof(g_spectrum.eased));
   memset(g_spectrum.targets, 0, sizeof(g_spectrum.targets));
+  g_display_mode = DEFAULT_MODE;
   show_boot_splash();
   g_last_draw_ms = millis();
   return true;
@@ -95,7 +164,7 @@ void setup() {
   delay(500);
 
 #ifdef DEBUG_LOG
-  Serial.println("WaveDance ESP32-C3-LCD-1.47 Phase2");
+  Serial.println("WaveDance ESP32-C3-LCD-1.47 Phase3");
 #endif
 
   g_draw_interval_ms = 1000 / DISPLAY_FPS;
@@ -112,6 +181,7 @@ void loop() {
     return;
   }
 
+  poll_boot_button();
   read_serial_stream();
   maybe_draw();
 }
