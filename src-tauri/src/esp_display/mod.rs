@@ -30,8 +30,11 @@ pub struct EspDisplayConfigResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct EspDisplayConfigInput {
     pub enabled: Option<bool>,
+    pub transport: Option<bridge::EspTransportMode>,
     pub serial_path: Option<String>,
     pub baud_rate: Option<u32>,
+    pub udp_host: Option<String>,
+    pub udp_port: Option<u16>,
     pub max_fps: Option<u32>,
     pub bucket_count: Option<usize>,
     pub include_time_samples: Option<bool>,

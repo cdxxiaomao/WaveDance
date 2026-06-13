@@ -5,8 +5,11 @@ export const STORAGE_KEY = "wavedance.espDisplayConfig";
 
 export const DEFAULT_CONFIG = {
   enabled: false,
+  transport: "serial",
   serial_path: "",
   baud_rate: 921600,
+  udp_host: "",
+  udp_port: 47001,
   max_fps: 30,
   bucket_count: 32,
   include_time_samples: false,
@@ -75,7 +78,12 @@ export function formatEspStatus(status) {
   let tone = "muted";
   if (status.ok && status.connected) {
     tone = "ok";
-  } else if (status.message && status.message !== "未连接" && status.message !== "请选择串口") {
+  } else if (
+    status.message &&
+    status.message !== "未连接" &&
+    !status.message.includes("请选择串口") &&
+    !status.message.includes("请填写 ESP IP")
+  ) {
     tone = "error";
   } else if (status.connected === false && status.message === "未连接") {
     tone = "muted";
@@ -116,19 +124,25 @@ export async function syncEspDisplayConfigFromStorage() {
     const response = await invoke("get_esp_display_config");
     const backend = response.config ?? {};
     const needsPush =
-      local.serial_path &&
-      (!backend.serial_path ||
-        backend.baud_rate !== local.baud_rate ||
-        backend.max_fps !== local.max_fps ||
-        backend.bucket_count !== local.bucket_count ||
-        backend.include_time_samples !== local.include_time_samples ||
-        backend.freq_reversed !== local.freq_reversed);
+      (local.serial_path &&
+        (!backend.serial_path ||
+          backend.baud_rate !== local.baud_rate ||
+          backend.max_fps !== local.max_fps ||
+          backend.bucket_count !== local.bucket_count ||
+          backend.include_time_samples !== local.include_time_samples ||
+          backend.freq_reversed !== local.freq_reversed)) ||
+      local.transport !== (backend.transport ?? "serial") ||
+      local.udp_host !== (backend.udp_host ?? "") ||
+      local.udp_port !== (backend.udp_port ?? 47001);
     if (needsPush || local.enabled !== backend.enabled) {
       await invoke("set_esp_display_config", {
         patch: {
           enabled: local.enabled,
+          transport: local.transport,
           serial_path: local.serial_path,
           baud_rate: local.baud_rate,
+          udp_host: local.udp_host,
+          udp_port: local.udp_port,
           max_fps: local.max_fps,
           bucket_count: local.bucket_count,
           include_time_samples: local.include_time_samples,
@@ -142,96 +156,112 @@ export async function syncEspDisplayConfigFromStorage() {
 }
 
 /**
- * 主设置页中的外接屏快捷入口（状态 + 打开独立设置窗）。
- * @param {{ statusEl?: HTMLElement | null, openBtn?: HTMLElement | null }} options
- */
-export async function initEspDisplayQuickPanel({ statusEl, openBtn } = {}) {
-  const showStatus = (status) => showEspStatusOn(statusEl, status);
-
-  openBtn?.addEventListener("click", () => {
-    void invoke("open_esp_display_settings_window").catch((err) => {
-      const msg = `打开外接屏设置失败：${String(err)}`;
-      if (statusEl) {
-        statusEl.textContent = msg;
-        applyStatusTone(statusEl, "error");
-      }
-    });
-  });
-
-  await listen("esp-display-status", (event) => {
-    showStatus(event.payload);
-  });
-
-  try {
-    const response = await invoke("get_esp_display_config");
-    showStatus(response.status);
-  } catch (err) {
-    if (statusEl) {
-      statusEl.textContent = `加载外接屏状态失败：${String(err)}`;
-      applyStatusTone(statusEl, "error");
-    }
-  }
-}
-
-/**
- * 初始化设置页「外接屏 (ESP32)」区块。
+ * 初始化独立外接屏设置窗口。
  * @param {{ statusEl?: HTMLElement | null }} options
  */
 export async function initEspDisplaySettings({ statusEl } = {}) {
   const enabledToggle = document.querySelector("#espDisplayEnabled");
+  const transportSelect = document.querySelector("#espDisplayTransport");
   const serialSelect = document.querySelector("#espDisplaySerial");
   const refreshPortsBtn = document.querySelector("#espDisplayRefreshPortsBtn");
   const testBtn = document.querySelector("#espDisplayTestBtn");
   const baudSelect = document.querySelector("#espDisplayBaud");
+  const udpHostInput = document.querySelector("#espDisplayUdpHost");
+  const udpPortInput = document.querySelector("#espDisplayUdpPort");
+  const serialFields = document.querySelector("#espDisplaySerialFields");
+  const udpFields = document.querySelector("#espDisplayUdpFields");
   const maxFpsSelect = document.querySelector("#espDisplayMaxFps");
   const bucketsSelect = document.querySelector("#espDisplayBuckets");
   const includeTimeToggle = document.querySelector("#espDisplayIncludeTime");
   const freqReversedToggle = document.querySelector("#espDisplayFreqReversed");
   const statusHint = document.querySelector("#espDisplayStatus");
 
-  if (!enabledToggle || !serialSelect) {
+  if (!enabledToggle || !transportSelect) {
     return;
   }
 
   let applying = false;
+
+  function usesSerial(transport) {
+    return transport === "serial" || transport === "both";
+  }
+
+  function usesUdp(transport) {
+    return transport === "udp" || transport === "both";
+  }
+
+  function updateTransportVisibility(transport) {
+    if (serialFields) {
+      serialFields.hidden = !usesSerial(transport);
+    }
+    if (udpFields) {
+      udpFields.hidden = !usesUdp(transport);
+    }
+  }
 
   function showEspStatus(status) {
     showEspStatusOn(statusHint, status);
   }
 
   function applyToForm(config) {
+    const transport = config.transport ?? DEFAULT_CONFIG.transport;
     enabledToggle.checked = Boolean(config.enabled);
+    transportSelect.value = transport;
+    updateTransportVisibility(transport);
     baudSelect.value = String(config.baud_rate ?? DEFAULT_CONFIG.baud_rate);
+    if (udpHostInput) {
+      udpHostInput.value = config.udp_host ?? "";
+    }
+    if (udpPortInput) {
+      udpPortInput.value = String(config.udp_port ?? DEFAULT_CONFIG.udp_port);
+    }
     maxFpsSelect.value = String(config.max_fps ?? DEFAULT_CONFIG.max_fps);
     bucketsSelect.value = String(config.bucket_count ?? DEFAULT_CONFIG.bucket_count);
     includeTimeToggle.checked = Boolean(config.include_time_samples);
     freqReversedToggle.checked = Boolean(config.freq_reversed);
-    if (config.serial_path) {
-      const hasOption = Array.from(serialSelect.options).some(
-        (opt) => opt.value === config.serial_path,
-      );
-      if (!hasOption) {
-        const missing = document.createElement("option");
-        missing.value = config.serial_path;
-        missing.textContent = `${config.serial_path}（未检测到）`;
-        serialSelect.appendChild(missing);
+    if (serialSelect) {
+      if (config.serial_path) {
+        const hasOption = Array.from(serialSelect.options).some(
+          (opt) => opt.value === config.serial_path,
+        );
+        if (!hasOption) {
+          const missing = document.createElement("option");
+          missing.value = config.serial_path;
+          missing.textContent = `${config.serial_path}（未检测到）`;
+          serialSelect.appendChild(missing);
+        }
+        serialSelect.value = config.serial_path;
+      } else {
+        serialSelect.value = "";
       }
-      serialSelect.value = config.serial_path;
-    } else {
-      serialSelect.value = "";
     }
   }
 
   function currentPatch() {
+    const transport = transportSelect.value || DEFAULT_CONFIG.transport;
     return {
       enabled: enabledToggle.checked,
-      serial_path: serialSelect.value.trim(),
+      transport,
+      serial_path: serialSelect?.value.trim() ?? "",
       baud_rate: Number(baudSelect.value),
+      udp_host: udpHostInput?.value.trim() ?? "",
+      udp_port: Number(udpPortInput?.value || DEFAULT_CONFIG.udp_port),
       max_fps: Number(maxFpsSelect.value),
       bucket_count: Number(bucketsSelect.value),
       include_time_samples: includeTimeToggle.checked,
       freq_reversed: freqReversedToggle.checked,
     };
+  }
+
+  function validateTransportConfig(patch) {
+    const transport = patch.transport || DEFAULT_CONFIG.transport;
+    if (usesSerial(transport) && !patch.serial_path) {
+      return "请先选择串口";
+    }
+    if (usesUdp(transport) && !patch.udp_host) {
+      return "请填写 ESP32 的 IP 地址";
+    }
+    return null;
   }
 
   async function refreshPortList(selectedPath) {
@@ -298,10 +328,20 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
   enabledToggle.addEventListener("change", () => {
     void syncFromControls();
   });
-  serialSelect.addEventListener("change", () => {
+  transportSelect.addEventListener("change", () => {
+    updateTransportVisibility(transportSelect.value);
+    void syncFromControls();
+  });
+  serialSelect?.addEventListener("change", () => {
     void syncFromControls();
   });
   baudSelect.addEventListener("change", () => {
+    void syncFromControls();
+  });
+  udpHostInput?.addEventListener("change", () => {
+    void syncFromControls();
+  });
+  udpPortInput?.addEventListener("change", () => {
     void syncFromControls();
   });
   maxFpsSelect.addEventListener("change", () => {
@@ -341,14 +381,14 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
     void (async () => {
       try {
         const patch = currentPatch();
-        if (!patch.serial_path) {
-          const msg = "请先选择串口";
+        const validationError = validateTransportConfig(patch);
+        if (validationError) {
           if (statusHint) {
-            statusHint.textContent = msg;
+            statusHint.textContent = validationError;
             applyStatusTone(statusHint, "error");
           }
           if (statusEl) {
-            statusEl.textContent = msg;
+            statusEl.textContent = validationError;
           }
           return;
         }
@@ -382,18 +422,24 @@ export async function initEspDisplaySettings({ statusEl } = {}) {
     const response = await invoke("get_esp_display_config");
     const backend = response.config ?? {};
     const needsPush =
-      local.serial_path &&
-      (!backend.serial_path ||
-        backend.baud_rate !== local.baud_rate ||
-        backend.max_fps !== local.max_fps ||
-        backend.bucket_count !== local.bucket_count ||
-        backend.include_time_samples !== local.include_time_samples ||
-        backend.freq_reversed !== local.freq_reversed);
+      local.transport !== (backend.transport ?? "serial") ||
+      local.udp_host !== (backend.udp_host ?? "") ||
+      local.udp_port !== (backend.udp_port ?? 47001) ||
+      (local.serial_path &&
+        (!backend.serial_path ||
+          backend.baud_rate !== local.baud_rate ||
+          backend.max_fps !== local.max_fps ||
+          backend.bucket_count !== local.bucket_count ||
+          backend.include_time_samples !== local.include_time_samples ||
+          backend.freq_reversed !== local.freq_reversed));
     if (needsPush || local.enabled !== backend.enabled) {
       await pushConfig({
         enabled: local.enabled,
+        transport: local.transport,
         serial_path: local.serial_path,
         baud_rate: local.baud_rate,
+        udp_host: local.udp_host,
+        udp_port: local.udp_port,
         max_fps: local.max_fps,
         bucket_count: local.bucket_count,
         include_time_samples: local.include_time_samples,

@@ -4,6 +4,7 @@
 #include "display_driver.h"
 #include "serial_receiver.h"
 #include "spectrum_state.h"
+#include "udp_receiver.h"
 #include "render/renderer.h"
 
 namespace {
@@ -87,6 +88,20 @@ void read_serial_stream() {
   }
 }
 
+void read_udp_stream() {
+#if WAVEDANCE_WIFI_UDP
+  WdfrFrame frame;
+  while (udp_receiver_poll_frame(&frame)) {
+    g_spectrum.apply_frame(frame, millis());
+  }
+#endif
+}
+
+void poll_incoming_frames() {
+  read_serial_stream();
+  read_udp_stream();
+}
+
 void show_boot_splash() {
   Arduino_GFX *gfx = display_gfx();
   if (gfx == nullptr) {
@@ -105,6 +120,16 @@ void show_boot_splash() {
   gfx->println("Enable ESP push in settings");
   gfx->setCursor(16, 180);
   gfx->println("BOOT: switch display mode");
+#if WAVEDANCE_WIFI_UDP
+  if (udp_receiver_ready()) {
+    gfx->setCursor(16, 196);
+    gfx->setTextColor(RGB565_GREEN);
+    gfx->print("UDP ");
+    gfx->print(udp_receiver_local_ip());
+    gfx->print(":");
+    gfx->print(WDFR_UDP_PORT);
+  }
+#endif
 }
 
 void render_current_mode(Arduino_GFX *gfx) {
@@ -169,6 +194,10 @@ void setup() {
 
   g_draw_interval_ms = 1000 / DISPLAY_FPS;
   g_display_ready = try_init_display();
+
+#if WAVEDANCE_WIFI_UDP
+  udp_receiver_init();
+#endif
 }
 
 void loop() {
@@ -182,6 +211,9 @@ void loop() {
   }
 
   poll_boot_button();
-  read_serial_stream();
+#if WAVEDANCE_WIFI_UDP
+  udp_receiver_service();
+#endif
+  poll_incoming_frames();
   maybe_draw();
 }

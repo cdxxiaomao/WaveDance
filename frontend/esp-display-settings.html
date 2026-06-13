@@ -13,7 +13,7 @@
           <span class="settings-header__mark" aria-hidden="true"></span>
           <div>
             <h1 class="settings-header__title">外接屏</h1>
-            <p class="settings-header__subtitle">ESP32 串口推送</p>
+            <p class="settings-header__subtitle">ESP32 串口 / WiFi UDP 推送</p>
           </div>
         </div>
       </header>
@@ -22,14 +22,23 @@
         <h2 id="sec-esp-display" class="settings-card__title">ESP32 外接屏</h2>
         <div class="settings-card__body settings-form" data-no-drag>
           <p class="settings-hint">
-            使用 Type-C 连接 ESP32-C3 开发板，通过 USB 串口推送频谱（无需 WiFi）。请先
-            <strong>开始采集</strong>，再启用推送。<strong>72×40 OLED</strong> 建议频谱桶数 <strong>16</strong>；BOOT 键切换 BAR / VU。
+            默认使用 Type-C USB 串口推送；可选 <strong>WiFi UDP</strong> 无线（ESP 需烧录 WiFi 版固件并填写 IP）。
+            请先 <strong>开始采集</strong>，再启用推送。<strong>72×40 OLED</strong> 建议频谱桶数 <strong>16</strong>；BOOT 键切换 BAR / VU。
           </p>
           <label class="settings-toggle settings-toggle--block">
             <input id="espDisplayEnabled" type="checkbox" />
             <span class="settings-toggle__ui" aria-hidden="true"></span>
-            <span>启用串口推送</span>
+            <span>启用推送</span>
           </label>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayTransport" class="settings-label">传输方式</label>
+            <select id="espDisplayTransport" class="settings-select">
+              <option value="serial" selected>USB 串口</option>
+              <option value="udp">WiFi UDP</option>
+              <option value="both">串口 + UDP</option>
+            </select>
+          </div>
+          <div id="espDisplaySerialFields">
           <div class="settings-field settings-field--row">
             <label for="espDisplaySerial" class="settings-label">串口</label>
             <select id="espDisplaySerial" class="settings-select">
@@ -40,9 +49,6 @@
             <button type="button" id="espDisplayRefreshPortsBtn" class="settings-btn settings-btn--ghost">
               刷新串口列表
             </button>
-            <button type="button" id="espDisplayTestBtn" class="settings-btn">
-              测试连接
-            </button>
           </div>
           <div class="settings-field settings-field--row">
             <label for="espDisplayBaud" class="settings-label">波特率</label>
@@ -51,6 +57,25 @@
               <option value="460800">460800</option>
               <option value="921600" selected>921600</option>
             </select>
+          </div>
+          </div>
+          <div id="espDisplayUdpFields" hidden>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayUdpHost" class="settings-label">ESP IP</label>
+            <input id="espDisplayUdpHost" class="settings-select" type="text" inputmode="decimal" placeholder="192.168.1.100" autocomplete="off" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayUdpPort" class="settings-label">UDP 端口</label>
+            <input id="espDisplayUdpPort" class="settings-select" type="number" min="1" max="65535" value="47001" />
+          </div>
+          <p class="settings-hint">
+            ESP 烧录 WiFi 版固件后，串口监视器会打印本机 IP；Mac 与 ESP 须在同一局域网。
+          </p>
+          </div>
+          <div class="settings-actions settings-actions--wrap">
+            <button type="button" id="espDisplayTestBtn" class="settings-btn">
+              测试连接
+            </button>
           </div>
           <div class="settings-field settings-field--row">
             <label for="espDisplayMaxFps" class="settings-label">推送帧率</label>

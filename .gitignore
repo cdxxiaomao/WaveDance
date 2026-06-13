@@ -16,6 +16,7 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+esp32/include/wifi_config.h
 
 # ===== Node / Vite =====
 node_modules/

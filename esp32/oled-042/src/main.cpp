@@ -4,6 +4,7 @@
 #include "oled_renderer.h"
 #include "serial_receiver.h"
 #include "spectrum_state.h"
+#include "udp_receiver.h"
 
 namespace {
 
@@ -60,6 +61,20 @@ void read_serial_stream() {
   }
 }
 
+void read_udp_stream() {
+#if WAVEDANCE_WIFI_UDP
+  WdfrFrame frame;
+  while (udp_receiver_poll_frame(&frame)) {
+    g_spectrum.apply_frame(frame, millis());
+  }
+#endif
+}
+
+void poll_incoming_frames() {
+  read_serial_stream();
+  read_udp_stream();
+}
+
 void render_current_mode() {
   U8G2 &display = oled_display();
   if (g_display_mode == MODE_VU) {
@@ -101,13 +116,33 @@ void setup() {
 
   g_draw_interval_ms = 1000 / DISPLAY_FPS;
   g_last_draw_ms = millis();
+
+#if WAVEDANCE_WIFI_UDP
+  {
+    U8G2 &display = oled_display();
+    display.clearBuffer();
+    display.setFont(u8g2_font_4x6_tr);
+    display.drawStr(0, 6, "WD WiFi...");
+    display.drawStr(0, 18, "starting");
+    display.sendBuffer();
+  }
+
+  udp_receiver_init();
+
+  g_last_draw_ms = 0;
   render_current_mode();
+#else
+  render_current_mode();
+#endif
 
   Serial.println("WaveDance ESP32-C3 0.42 OLED (72x40) ready");
 }
 
 void loop() {
   poll_boot_button();
-  read_serial_stream();
+#if WAVEDANCE_WIFI_UDP
+  udp_receiver_service();
+#endif
+  poll_incoming_frames();
   maybe_draw();
 }

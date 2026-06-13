@@ -39,6 +39,13 @@
 // USB CDC 串口（与 WaveDance 设置页默认一致）
 #define SERIAL_BAUD 921600
 
+// WiFi UDP（Phase 5 可选；编译时 -DWAVEDANCE_WIFI_UDP=1 启用）
+#ifndef WAVEDANCE_WIFI_UDP
+#define WAVEDANCE_WIFI_UDP 0
+#endif
+
+#define WDFR_UDP_PORT 47001
+
 // 屏幕刷新上限（Hz）
 #define DISPLAY_FPS 30
 

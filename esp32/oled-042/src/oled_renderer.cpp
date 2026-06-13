@@ -2,6 +2,10 @@
 
 #include <math.h>
 
+#if WAVEDANCE_WIFI_UDP
+#include "udp_receiver.h"
+#endif
+
 static U8G2_SSD1306_72X40_ER_F_HW_I2C s_display(
     U8G2_R0, U8X8_PIN_NONE, OLED_I2C_SCL, OLED_I2C_SDA);
 
@@ -42,6 +46,50 @@ void oled_draw_status(U8G2 &display, const SpectrumState &state, DisplayMode mod
 
   display.drawStr(44, 6, oled_mode_label(mode));
 }
+
+#if WAVEDANCE_WIFI_UDP
+
+bool oled_show_wifi_splash(const SpectrumState &state) {
+  return !state.has_frame;
+}
+
+void oled_draw_wifi_waiting(U8G2 &display, DisplayMode mode) {
+  display.clearBuffer();
+  display.setFont(u8g2_font_4x6_tr);
+  display.drawStr(0, 6, "WD");
+
+  if (udp_receiver_ready()) {
+    display.drawDisc(14, 2, 2);
+    display.drawStr(20, 6, "WiF");
+    const char *ip = udp_receiver_local_ip();
+    if (ip != nullptr && ip[0] != '\0') {
+      display.drawStr(0, 18, ip);
+    } else {
+      display.drawStr(0, 18, "no ip");
+    }
+    char port_line[16];
+    snprintf(port_line, sizeof(port_line), "UDP %u", (unsigned)WDFR_UDP_PORT);
+    display.drawStr(0, 28, port_line);
+  } else if (udp_receiver_connecting()) {
+    display.drawCircle(14, 2, 2);
+    display.drawStr(20, 6, "...");
+    display.drawStr(0, 18, "WiFi");
+    char attempt_line[16];
+    snprintf(attempt_line, sizeof(attempt_line), "try %u",
+             (unsigned)udp_receiver_attempt_count());
+    display.drawStr(0, 28, attempt_line);
+  } else {
+    display.drawCircle(14, 2, 2);
+    display.drawStr(20, 6, "...");
+    display.drawStr(0, 18, "retry");
+    display.drawStr(0, 28, "WiFi soon");
+  }
+
+  display.drawStr(44, 6, oled_mode_label(mode));
+  display.sendBuffer();
+}
+
+#endif
 
 void OledBarRenderer::update_eased(SpectrumState &state) {
   uint8_t n = state.point_count;
@@ -124,6 +172,13 @@ void OledBarRenderer::draw_bars(U8G2 &display, SpectrumState &state, bool live) 
 }
 
 void OledBarRenderer::render(U8G2 &display, SpectrumState &state, DisplayMode mode) {
+#if WAVEDANCE_WIFI_UDP
+  if (oled_show_wifi_splash(state)) {
+    oled_draw_wifi_waiting(display, mode);
+    return;
+  }
+#endif
+
   display.clearBuffer();
   oled_draw_status(display, state, mode);
 
@@ -168,6 +223,13 @@ void OledVuRenderer::draw_meter(U8G2 &display, int x, int y, int w, int h,
 }
 
 void OledVuRenderer::render(U8G2 &display, SpectrumState &state, DisplayMode mode) {
+#if WAVEDANCE_WIFI_UDP
+  if (oled_show_wifi_splash(state)) {
+    oled_draw_wifi_waiting(display, mode);
+    return;
+  }
+#endif
+
   display.clearBuffer();
   oled_draw_status(display, state, mode);
 

@@ -177,6 +177,50 @@ esp32/
 
 WaveDance 已占用串口。先关闭外接屏推送或退出 WaveDance，再烧录。
 
+## WiFi UDP 无线推送（Phase 5，可选）
+
+默认固件仍走 **USB 串口**。若需无线摆放 ESP32，可烧录 WiFi 版固件，Mac 端在设置页选择 **WiFi UDP** 或 **串口 + UDP**。
+
+### 1. 配置 ESP WiFi
+
+```bash
+cp esp32/include/wifi_config.example.h esp32/include/wifi_config.h
+# 编辑 wifi_config.h，填入 SSID 与密码（该文件已 gitignore）
+```
+
+### 2. 烧录 WiFi 版固件
+
+**0.42″ OLED：**
+
+```bash
+cd esp32
+chmod +x flash-oled-042-wifi.sh
+./flash-oled-042-wifi.sh
+```
+
+**1.47″ LCD：**
+
+```bash
+cd esp32
+source .venv/bin/activate   # 或 ./flash.sh 同款 venv
+pio run -e esp32-c3-lcd-147-wifi -t upload --upload-port /dev/cu.usbmodem*
+```
+
+烧录完成后，串口监视器（921600）会打印 `WiFi UDP ready on 192.168.x.x:47001`。  
+**小屏也会显示**：顶栏 `WD WiF` + 中间 IP + `UDP 47001`（收到 Mac 推送后切换为频谱）。
+
+> **注意**：打开串口监视器时，部分工具会通过 USB 复位开发板（等于重新上电）。已在 `platformio.ini` 设置 `monitor_dtr=0` 减轻此问题。  
+> 冷启动 WiFi 可能需要 **30 秒～2 分钟**（会自动重试）；若日志出现 `SSID not found` 请确认路由器 **2.4GHz** 与 `wifi_config.h` 中的名称一致。
+
+### 3. Mac 端设置
+
+1. 外接屏设置 → **传输方式** 选「WiFi UDP」或「串口 + UDP」
+2. **ESP IP** 填上一步打印的地址，端口默认 **47001**
+3. 开启推送 → 测试连接
+
+Mac 与 ESP 须在同一局域网；UDP 每包一帧 WDFR，与串口协议相同。
+
+---
 
 - 方案文档：`docs/ESP32_DISPLAY_PLAN.md`
 - 微雪 Demo 仓库：https://github.com/waveshareteam/ESP32-C3-LCD-1.47
