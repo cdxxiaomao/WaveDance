@@ -1,0 +1,117 @@
+#include <Arduino.h>
+
+#include "config.h"
+#include "display_driver.h"
+#include "serial_receiver.h"
+#include "spectrum_state.h"
+#include "render/renderer.h"
+
+namespace {
+
+SerialReceiver g_serial;
+SpectrumState g_spectrum;
+BarRenderer g_bar_renderer;
+
+constexpr size_t kReadChunk = 128;
+uint8_t g_read_buf[kReadChunk];
+
+uint32_t g_last_draw_ms = 0;
+uint32_t g_draw_interval_ms = 1000 / DISPLAY_FPS;
+bool g_display_ready = false;
+uint32_t g_last_init_attempt_ms = 0;
+
+void read_serial_stream() {
+  while (Serial.available() > 0) {
+    int n = Serial.readBytes(
+        (char *)g_read_buf,
+        Serial.available() > (int)kReadChunk ? (int)kReadChunk : Serial.available());
+    if (n <= 0) {
+      break;
+    }
+    g_serial.feed(g_read_buf, (size_t)n);
+
+    WdfrFrame frame;
+    while (g_serial.poll_frame(&frame)) {
+      g_spectrum.apply_frame(frame, millis());
+    }
+  }
+}
+
+void show_boot_splash() {
+  Arduino_GFX *gfx = display_gfx();
+  if (gfx == nullptr) {
+    return;
+  }
+  gfx->fillScreen(RGB565_BLACK);
+  gfx->setTextSize(2);
+  gfx->setTextColor(RGB565_CYAN);
+  gfx->setCursor(16, 120);
+  gfx->println("WaveDance");
+  gfx->setTextSize(1);
+  gfx->setTextColor(RGB565_DARKGREY);
+  gfx->setCursor(16, 148);
+  gfx->println("Waiting for Mac...");
+  gfx->setCursor(16, 164);
+  gfx->println("Enable ESP push in settings");
+}
+
+void maybe_draw() {
+  uint32_t now = millis();
+  if (now - g_last_draw_ms < g_draw_interval_ms) {
+    return;
+  }
+  g_last_draw_ms = now;
+
+  g_spectrum.tick_fade(now);
+
+  Arduino_GFX *gfx = display_gfx();
+  if (gfx == nullptr) {
+    return;
+  }
+
+  g_bar_renderer.render(gfx, g_spectrum);
+}
+
+bool try_init_display() {
+  g_last_init_attempt_ms = millis();
+  if (!display_init()) {
+    return false;
+  }
+
+  g_spectrum.point_count = SPECTRUM_BUCKETS;
+  g_spectrum.has_frame = false;
+  g_spectrum.silence = true;
+  memset(g_spectrum.eased, 0, sizeof(g_spectrum.eased));
+  memset(g_spectrum.targets, 0, sizeof(g_spectrum.targets));
+  show_boot_splash();
+  g_last_draw_ms = millis();
+  return true;
+}
+
+}  // namespace
+
+void setup() {
+  Serial.begin(SERIAL_BAUD);
+  delay(500);
+
+#ifdef DEBUG_LOG
+  Serial.println("WaveDance ESP32-C3-LCD-1.47 Phase2");
+#endif
+
+  g_draw_interval_ms = 1000 / DISPLAY_FPS;
+  g_display_ready = try_init_display();
+}
+
+void loop() {
+  if (!g_display_ready) {
+    uint32_t now = millis();
+    if (now - g_last_init_attempt_ms >= 1500) {
+      g_display_ready = try_init_display();
+    }
+    delay(10);
+    return;
+  }
+
+  read_serial_stream();
+  maybe_draw();
+}

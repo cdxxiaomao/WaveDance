@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 外接屏设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">外接屏</h1>
+            <p class="settings-header__subtitle">ESP32 串口推送</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-esp-display">
+        <h2 id="sec-esp-display" class="settings-card__title">ESP32 外接屏</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <p class="settings-hint">
+            使用 Type-C 连接 ESP32-C3 开发板，通过 USB 串口推送频谱（无需 WiFi）。请先
+            <strong>开始采集</strong>，再启用推送。
+          </p>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="espDisplayEnabled" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>启用串口推送</span>
+          </label>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplaySerial" class="settings-label">串口</label>
+            <select id="espDisplaySerial" class="settings-select">
+              <option value="">选择串口…</option>
+            </select>
+          </div>
+          <div class="settings-actions settings-actions--wrap">
+            <button type="button" id="espDisplayRefreshPortsBtn" class="settings-btn settings-btn--ghost">
+              刷新串口列表
+            </button>
+            <button type="button" id="espDisplayTestBtn" class="settings-btn">
+              测试连接
+            </button>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayBaud" class="settings-label">波特率</label>
+            <select id="espDisplayBaud" class="settings-select">
+              <option value="115200">115200</option>
+              <option value="460800">460800</option>
+              <option value="921600" selected>921600</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayMaxFps" class="settings-label">推送帧率</label>
+            <select id="espDisplayMaxFps" class="settings-select">
+              <option value="15">15 fps</option>
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="espDisplayBuckets" class="settings-label">频谱桶数</label>
+            <select id="espDisplayBuckets" class="settings-select">
+              <option value="16">16</option>
+              <option value="32" selected>32</option>
+              <option value="48">48</option>
+            </select>
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="espDisplayIncludeTime" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>携带时域波形（示波器模式需要）</span>
+          </label>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="espDisplayFreqReversed" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>反转频率方向（与主窗选项一致时可勾选）</span>
+          </label>
+          <p id="espDisplayStatus" class="settings-blackhole-hint" role="status">未连接</p>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/espDisplaySettingsWindow.js"></script>
+  </body>
+</html>

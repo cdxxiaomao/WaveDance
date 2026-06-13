@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod esp_display;
 mod lyrics;
 
 #[cfg(target_os = "macos")]
@@ -76,6 +77,8 @@ struct StreamState {
     cover_settings_target: Arc<Mutex<String>>,
     /// 歌曲信息设置页当前编辑的窗口 label（`songinfo-*`）。
     songinfo_settings_target: Arc<Mutex<String>>,
+    /// ESP32 外接屏串口推送（Type-C）。
+    esp_display: Arc<esp_display::EspDisplayState>,
 }
 
 impl Default for StreamState {
@@ -104,6 +107,7 @@ impl Default for StreamState {
             lyrics_search_target: Arc::new(Mutex::new(String::new())),
             cover_settings_target: Arc::new(Mutex::new(String::new())),
             songinfo_settings_target: Arc::new(Mutex::new(String::new())),
+            esp_display: Arc::new(esp_display::EspDisplayState::default()),
         }
     }
 }
@@ -113,6 +117,7 @@ const LYRICS_WINDOW_LABEL_PREFIX: &str = "lyrics-";
 const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
 const SONGINFO_WINDOW_LABEL_PREFIX: &str = "songinfo-";
 const WINDOW_MANAGER_LABEL: &str = "window-manager";
+const ESP_DISPLAY_SETTINGS_LABEL: &str = "esp-display-settings";
 const PASSTHROUGH_TOOLBAR_LABEL_PREFIX: &str = "ptb-";
 
 /// 浮层窗叠放层级：歌词 / 封面 / 歌曲信息须始终高于浮层频谱（`main` / `spectrum-*`）。
@@ -149,6 +154,7 @@ fn is_settings_window_label(label: &str) -> bool {
 
 fn is_internal_auxiliary_window_label(label: &str) -> bool {
     label == WINDOW_MANAGER_LABEL
+        || label == ESP_DISPLAY_SETTINGS_LABEL
         || label == "main-toolbar"
         || label.starts_with(PASSTHROUGH_TOOLBAR_LABEL_PREFIX)
 }
@@ -836,6 +842,7 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let high_tilt_percent = Arc::clone(&state.high_tilt_percent);
     let freq_min_hz = Arc::clone(&state.freq_min_hz);
     let freq_max_hz = Arc::clone(&state.freq_max_hz);
+    let esp_display = Arc::clone(&state.esp_display);
     thread::spawn(move || {
         const FFT_SIZE: usize = 2048;
         const SILENCE_RMS_GATE: f32 = 0.001;
@@ -891,7 +898,8 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
                         time_samples,
                     };
                     waveform.points = rebucket_points(&waveform.points, bucket);
-                    let _ = app.emit("waveform-frame", waveform);
+                    let _ = app.emit("waveform-frame", waveform.clone());
+                    esp_display::maybe_send_frame(&app, &esp_display, &waveform);
                 }
                 Err(err) => {
                     let _ = app.emit("waveform-error", format!("读取音频帧失败: {err}"));
@@ -2004,6 +2012,9 @@ fn set_overlay_pinned(
         if let Some(w) = app.get_webview_window(WINDOW_MANAGER_LABEL) {
             w.set_always_on_top(true).map_err(|e| e.to_string())?;
         }
+        if let Some(w) = app.get_webview_window(ESP_DISPLAY_SETTINGS_LABEL) {
+            w.set_always_on_top(true).map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }
@@ -3055,6 +3066,71 @@ fn open_window_manager_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
     open_window_manager_impl(app)
 }
 
+fn show_auxiliary_panel_window(label: &str, app: &tauri::AppHandle) -> Result<(), String> {
+    let Some(win) = app.get_webview_window(label) else {
+        return Ok(());
+    };
+    win.show().map_err(|e| e.to_string())?;
+    win.unminimize().ok();
+    configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        let w = win.clone();
+        win.run_on_main_thread(move || unsafe {
+            let ns_window: &NSWindow = &*w
+                .ns_window()
+                .expect("无法获取 macOS 窗口句柄")
+                .cast();
+            ns_window.orderFrontRegardless();
+        })
+        .map_err(|e| e.to_string())?;
+    }
+    win.set_focus().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn open_esp_display_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if app.get_webview_window(ESP_DISPLAY_SETTINGS_LABEL).is_some() {
+        show_auxiliary_panel_window(ESP_DISPLAY_SETTINGS_LABEL, app)?;
+        return Ok(());
+    }
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        ESP_DISPLAY_SETTINGS_LABEL,
+        WebviewUrl::App("esp-display-settings.html".into()),
+    )
+    .title("WaveDance 外接屏设置")
+    .inner_size(440.0, 560.0)
+    .resizable(true)
+    .decorations(true)
+    .shadow(true)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    win.show().map_err(|e| e.to_string())?;
+    configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+fn open_esp_display_settings_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_esp_display_settings_window_impl(app)
+}
+
+#[tauri::command]
+fn open_esp_display_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_esp_display_settings_window_impl(&app)
+}
+
 fn supports_window_edge_reveal(app: &tauri::AppHandle, label: &str) -> bool {
     if label == "main" {
         return true;
@@ -3343,6 +3419,8 @@ fn main() {
     let passthrough_shortcut_for_handler = passthrough_toggle_shortcut.clone();
     let recall_shortcut_for_setup = recall_shortcut.clone();
     let passthrough_shortcut_for_setup = passthrough_toggle_shortcut.clone();
+    let stream_state = StreamState::default();
+    let esp_display_state = Arc::clone(&stream_state.esp_display);
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -3363,7 +3441,8 @@ fn main() {
                 })
                 .build(),
         )
-        .manage(StreamState::default())
+        .manage(stream_state)
+        .manage(esp_display_state)
         .setup(move |app| -> Result<(), Box<dyn std::error::Error>> {
             #[cfg(target_os = "macos")]
             {
@@ -3384,6 +3463,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             {
                 const TRAY_MENU_SETTINGS: &str = "tray_settings";
+                const TRAY_MENU_ESP_DISPLAY: &str = "tray_esp_display";
                 const TRAY_MENU_WINDOW_MANAGER: &str = "tray_window_manager";
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
@@ -3397,6 +3477,7 @@ fn main() {
                 };
                 let menu = MenuBuilder::new(app.handle())
                     .text(TRAY_MENU_SETTINGS, "设置…")
+                    .text(TRAY_MENU_ESP_DISPLAY, "外接屏设置…")
                     .text(TRAY_MENU_WINDOW_MANAGER, "窗口管理…")
                     .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
                     .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
@@ -3415,6 +3496,8 @@ fn main() {
                     .on_menu_event(|app, event| {
                         if event.id() == TRAY_MENU_SETTINGS {
                             let _ = open_settings_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_ESP_DISPLAY {
+                            let _ = open_esp_display_settings_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_WINDOW_MANAGER {
                             let _ = open_window_manager_from_tray(app);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
@@ -3446,6 +3529,10 @@ fn main() {
             start_waveform_stream,
             stop_waveform_stream,
             get_waveform_stream_running,
+            esp_display::list_serial_ports,
+            esp_display::get_esp_display_config,
+            esp_display::set_esp_display_config,
+            esp_display::test_esp_display_ping,
             set_capture_source_mode,
             get_capture_source_mode,
             update_bucket_count,
@@ -3471,6 +3558,7 @@ fn main() {
             set_mouse_passthrough_locked,
             get_mouse_passthrough_locked,
             open_settings_window,
+            open_esp_display_settings_window,
             list_managed_windows,
             focus_managed_window,
             close_managed_window,

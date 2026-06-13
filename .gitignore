@@ -3,6 +3,7 @@
 Thumbs.db
 .idea/
 .vscode/
+.tmp/
 
 # ===== Logs =====
 *.log
