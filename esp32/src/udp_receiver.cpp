@@ -6,11 +6,14 @@
 #include <WiFiUdp.h>
 #include <esp_wifi.h>
 
+#include <string.h>
+
 #include "wifi_config.h"
 
 namespace {
 
 enum class Phase : uint8_t {
+  kBootWait,
   kNeedStart,
   kConnecting,
   kReady,
@@ -25,15 +28,18 @@ struct ApCandidate {
 };
 
 constexpr int kMaxApCandidates = 6;
+constexpr int kSimpleAttemptsBeforeScan = 8;
 
 WiFiUDP g_udp;
-Phase g_phase = Phase::kNeedStart;
+Phase g_phase = Phase::kBootWait;
 ApCandidate g_ap_candidates[kMaxApCandidates];
 int g_ap_candidate_count = 0;
 bool g_wifi_ready = false;
 bool g_logged_ready = false;
 bool g_got_ip = false;
 bool g_events_registered = false;
+bool g_mac_logged = false;
+uint32_t g_boot_ms = 0;
 uint32_t g_phase_started_ms = 0;
 uint32_t g_next_retry_ms = 0;
 uint32_t g_frames_ok = 0;
@@ -42,10 +48,11 @@ uint8_t g_attempt = 0;
 int g_last_disconnect_reason = 0;
 
 constexpr size_t kMaxPacket = 512;
-constexpr uint32_t kConnectTimeoutMs = 30000;
-constexpr uint32_t kRetryIntervalMs = 4000;
-constexpr uint32_t kAuthFailCooldownMs = 15000;
-constexpr uint32_t kRadioWarmupMs = 500;
+constexpr uint32_t kBootDelayMs = 2500;
+constexpr uint32_t kConnectTimeoutMs = 45000;
+constexpr uint32_t kRetryIntervalMs = 5000;
+constexpr uint32_t kAuthFailCooldownMs = 20000;
+constexpr uint32_t kRadioWarmupMs = 400;
 
 const char *wifi_status_name(wl_status_t status) {
   switch (status) {
@@ -120,10 +127,32 @@ void apply_wifi_tuning() {
   WiFi.setSleep(false);
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
 #if defined(WIFI_AUTH_WPA_PSK)
-  // 允许 WPA/WPA2，兼容老路由与混合加密
   WiFi.setMinSecurity(WIFI_AUTH_WPA_PSK);
 #endif
   esp_wifi_set_ps(WIFI_PS_NONE);
+
+  wifi_country_t country = {};
+  strncpy(country.cc, "CN", sizeof(country.cc));
+  country.schan = 1;
+  country.nchan = 13;
+  country.policy = WIFI_COUNTRY_POLICY_AUTO;
+  esp_wifi_set_country(&country);
+}
+
+void log_mac_once() {
+  if (g_mac_logged) {
+    return;
+  }
+  g_mac_logged = true;
+  Serial.print("ESP MAC (for router whitelist): ");
+  Serial.println(WiFi.macAddress());
+}
+
+void log_creds_meta() {
+  Serial.print("  creds ssid_len=");
+  Serial.print(strlen(WAVEDANCE_WIFI_SSID));
+  Serial.print(" pass_len=");
+  Serial.println(strlen(WAVEDANCE_WIFI_PASS));
 }
 
 void reset_wifi_radio_full() {
@@ -134,6 +163,7 @@ void reset_wifi_radio_full() {
   WiFi.mode(WIFI_STA);
   delay(200);
   apply_wifi_tuning();
+  log_mac_once();
 }
 
 void insert_ap_candidate(int8_t rssi, uint8_t channel, const uint8_t *bssid,
@@ -174,8 +204,7 @@ bool collect_ap_candidates() {
   Serial.println(" networks");
 
   for (int i = 0; i < count; ++i) {
-    const String ssid = WiFi.SSID(i);
-    if (ssid != WAVEDANCE_WIFI_SSID) {
+    if (WiFi.SSID(i) != WAVEDANCE_WIFI_SSID) {
       continue;
     }
     insert_ap_candidate((int8_t)WiFi.RSSI(i), (uint8_t)WiFi.channel(i),
@@ -204,8 +233,11 @@ bool collect_ap_candidates() {
   return true;
 }
 
-bool begin_plain() {
-  Serial.println("Mode: auto AP (no BSSID lock)");
+bool begin_simple() {
+  Serial.println("Mode: simple WiFi.begin (mesh / auto AP pick)");
+  log_creds_meta();
+  WiFi.disconnect(false);
+  delay(200);
   WiFi.begin(WAVEDANCE_WIFI_SSID, WAVEDANCE_WIFI_PASS);
   return true;
 }
@@ -215,7 +247,7 @@ bool begin_with_candidate(int rank) {
     return false;
   }
   const ApCandidate &ap = g_ap_candidates[rank];
-  Serial.print("Mode: AP #");
+  Serial.print("Mode: locked AP #");
   Serial.print(rank + 1);
   Serial.print(" ch=");
   Serial.print(ap.channel);
@@ -223,26 +255,25 @@ bool begin_with_candidate(int rank) {
   Serial.print(ap.rssi);
   Serial.print(" ");
   Serial.println(auth_mode_name(ap.auth));
+  log_creds_meta();
 
-  if (ap.auth == WIFI_AUTH_WPA3_PSK) {
-    Serial.println("Warning: WPA3-only AP; router should use WPA2/WPA3 mixed");
-  }
-
+  WiFi.disconnect(false);
+  delay(200);
   WiFi.begin(WAVEDANCE_WIFI_SSID, WAVEDANCE_WIFI_PASS, ap.channel, ap.bssid);
   return true;
 }
 
-bool scan_and_begin() {
+bool start_wifi_connect() {
+  // mesh 环境：前几次只用 WiFi.begin，不锁 BSSID（成功率更高）
+  if (g_attempt <= kSimpleAttemptsBeforeScan) {
+    return begin_simple();
+  }
+
   if (!collect_ap_candidates()) {
-    return false;
+    return begin_simple();
   }
 
-  // 每 4 次尝试一次不锁 BSSID；其余轮询各 AP
-  if (g_attempt % 4 == 0) {
-    return begin_plain();
-  }
-
-  const int rank = (g_attempt - 1) % g_ap_candidate_count;
+  const int rank = (g_attempt - kSimpleAttemptsBeforeScan - 1) % g_ap_candidate_count;
   return begin_with_candidate(rank);
 }
 
@@ -255,9 +286,9 @@ void schedule_retry() {
 
   uint32_t cooldown = kRetryIntervalMs;
   if (g_last_disconnect_reason == 2 || g_last_disconnect_reason == 15 ||
-      g_last_disconnect_reason == 202) {
+      g_last_disconnect_reason == 39 || g_last_disconnect_reason == 202) {
     cooldown = kAuthFailCooldownMs;
-    Serial.println("Auth failed: waiting longer before retry (router anti-flood?)");
+    Serial.println("Retry cooldown extended (auth/assoc issue or router limit)");
   }
 
   g_phase = Phase::kCooldown;
@@ -275,12 +306,10 @@ void start_connect_attempt() {
   if (g_attempt == 1) {
     reset_wifi_radio_full();
   } else {
-    WiFi.disconnect(false);
-    delay(500);
     apply_wifi_tuning();
   }
 
-  if (!scan_and_begin()) {
+  if (!start_wifi_connect()) {
     schedule_retry();
     return;
   }
@@ -315,16 +344,18 @@ void log_connect_timeout() {
     Serial.print("  last_reason=");
     Serial.println(g_last_disconnect_reason);
   }
-  Serial.println("  hints: 2=auth fail, 15=handshake, 202=bad password");
+  Serial.println("  hints: 2=bad pass/auth, 39=assoc timeout, 202=bad password");
 }
 
 }  // namespace
 
 void udp_receiver_init() {
-  g_phase = Phase::kNeedStart;
+  g_phase = Phase::kBootWait;
+  g_boot_ms = millis();
   g_wifi_ready = false;
   g_logged_ready = false;
   g_got_ip = false;
+  g_mac_logged = false;
   g_attempt = 0;
   g_ap_candidate_count = 0;
   g_frames_ok = 0;
@@ -336,6 +367,12 @@ void udp_receiver_service() {
   const uint32_t now = millis();
 
   switch (g_phase) {
+    case Phase::kBootWait:
+      if (now - g_boot_ms >= kBootDelayMs) {
+        g_phase = Phase::kNeedStart;
+      }
+      break;
+
     case Phase::kNeedStart:
       start_connect_attempt();
       break;
@@ -365,8 +402,8 @@ void udp_receiver_service() {
 }
 
 bool udp_receiver_connecting() {
-  return g_phase == Phase::kNeedStart || g_phase == Phase::kConnecting ||
-         g_phase == Phase::kCooldown;
+  return g_phase == Phase::kBootWait || g_phase == Phase::kNeedStart ||
+         g_phase == Phase::kConnecting || g_phase == Phase::kCooldown;
 }
 
 bool udp_receiver_ready() {

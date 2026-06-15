@@ -53,39 +53,63 @@ bool oled_show_wifi_splash(const SpectrumState &state) {
   return !state.has_frame;
 }
 
-void oled_draw_wifi_waiting(U8G2 &display, DisplayMode mode) {
-  display.clearBuffer();
-  display.setFont(u8g2_font_4x6_tr);
-  display.drawStr(0, 6, "WD");
-
-  if (udp_receiver_ready()) {
-    display.drawDisc(14, 2, 2);
-    display.drawStr(20, 6, "WiF");
-    const char *ip = udp_receiver_local_ip();
-    if (ip != nullptr && ip[0] != '\0') {
-      display.drawStr(0, 18, ip);
-    } else {
-      display.drawStr(0, 18, "no ip");
-    }
-    char port_line[16];
-    snprintf(port_line, sizeof(port_line), "UDP %u", (unsigned)WDFR_UDP_PORT);
-    display.drawStr(0, 28, port_line);
-  } else if (udp_receiver_connecting()) {
-    display.drawCircle(14, 2, 2);
-    display.drawStr(20, 6, "...");
-    display.drawStr(0, 18, "WiFi");
-    char attempt_line[16];
-    snprintf(attempt_line, sizeof(attempt_line), "try %u",
-             (unsigned)udp_receiver_attempt_count());
-    display.drawStr(0, 28, attempt_line);
-  } else {
-    display.drawCircle(14, 2, 2);
-    display.drawStr(20, 6, "...");
-    display.drawStr(0, 18, "retry");
-    display.drawStr(0, 28, "WiFi soon");
+void oled_draw_ip_large(U8G2 &display, const char *ip) {
+  if (ip == nullptr || ip[0] == '\0') {
+    display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(0, 28, "no ip");
+    return;
   }
 
-  display.drawStr(44, 6, oled_mode_label(mode));
+  // 72px 宽：5x8 字体可完整显示 192.168.1.xxx
+  display.setFont(u8g2_font_5x8_tf);
+  const int w = display.getStrWidth(ip);
+  int x = w < DISPLAY_WIDTH ? (DISPLAY_WIDTH - w) / 2 : 0;
+  display.drawStr(x, 28, ip);
+}
+
+void oled_draw_wifi_waiting(U8G2 &display, DisplayMode mode) {
+  display.clearBuffer();
+
+  if (udp_receiver_ready()) {
+    display.setFont(u8g2_font_4x6_tr);
+    display.drawStr(0, 6, "WiFi OK");
+    display.drawDisc(36, 2, 2);
+
+    oled_draw_ip_large(display, udp_receiver_local_ip());
+
+    display.setFont(u8g2_font_4x6_tr);
+    char port_line[16];
+    snprintf(port_line, sizeof(port_line), "UDP %u", (unsigned)WDFR_UDP_PORT);
+    const int pw = display.getStrWidth(port_line);
+    display.drawStr(pw < DISPLAY_WIDTH ? (DISPLAY_WIDTH - pw) / 2 : 0, 38,
+                   port_line);
+    (void)mode;
+  } else {
+    display.setFont(u8g2_font_4x6_tr);
+    display.drawStr(0, 6, "WD");
+
+    if (udp_receiver_connecting()) {
+      display.drawCircle(14, 2, 2);
+      display.drawStr(20, 6, "...");
+      display.setFont(u8g2_font_5x8_tf);
+      display.drawStr(0, 22, "WiFi");
+      display.setFont(u8g2_font_4x6_tr);
+      char attempt_line[16];
+      snprintf(attempt_line, sizeof(attempt_line), "try %u",
+               (unsigned)udp_receiver_attempt_count());
+      display.drawStr(0, 36, attempt_line);
+    } else {
+      display.drawCircle(14, 2, 2);
+      display.drawStr(20, 6, "...");
+      display.setFont(u8g2_font_5x8_tf);
+      display.drawStr(0, 22, "retry");
+      display.setFont(u8g2_font_4x6_tr);
+      display.drawStr(0, 36, "WiFi soon");
+    }
+
+    display.drawStr(44, 6, oled_mode_label(mode));
+  }
+
   display.sendBuffer();
 }
 
