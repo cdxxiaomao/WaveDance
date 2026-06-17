@@ -12,6 +12,7 @@ export default defineConfig({
         songinfo: resolve(__dirname, "songinfo.html"),
         songinfoSettings: resolve(__dirname, "songinfo-settings.html"),
         lyricsSettings: resolve(__dirname, "lyrics-settings.html"),
+        lyricsSearch: resolve(__dirname, "lyrics-search.html"),
         settings: resolve(__dirname, "settings.html"),
         espDisplaySettings: resolve(__dirname, "esp-display-settings.html"),
         windowManager: resolve(__dirname, "window-manager.html"),
