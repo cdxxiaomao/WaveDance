@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::process::Command;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU64, AtomicU8, AtomicU32, AtomicUsize, Ordering},
     Arc, Mutex,
 };
 use std::thread;
@@ -24,7 +24,7 @@ use objc2_app_kit::{
 #[cfg(target_os = "macos")]
 use window_vibrancy::clear_vibrancy;
 use rustfft::{num_complex::Complex, FftPlanner};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
@@ -38,6 +38,14 @@ use wavedance::audio_processing::{
     downsample_time_domain, WaveformFrame, TIME_DOMAIN_SAMPLE_COUNT,
 };
 use wavedance::platform::PlatformService;
+
+fn gate_to_micro(gate: f32) -> u32 {
+    (gate.clamp(0.0, 0.05) * 1_000_000.0).round() as u32
+}
+
+fn micro_to_gate(micro: u32) -> f32 {
+    micro as f32 / 1_000_000.0
+}
 
 struct StreamState {
     running: Arc<AtomicBool>,
@@ -54,6 +62,10 @@ struct StreamState {
     high_tilt_percent: Arc<AtomicUsize>,
     freq_min_hz: Arc<AtomicUsize>,
     freq_max_hz: Arc<AtomicUsize>,
+    /// 静默 Peak 门限，固定小数 6 位（例：100 → 0.0001）。
+    silence_peak_gate_micro: Arc<AtomicU32>,
+    /// 静默 RMS 门限，固定小数 6 位（例：100 → 0.0001）。
+    silence_rms_gate_micro: Arc<AtomicU32>,
     waveform_color_hex: Arc<Mutex<String>>,
     /// 波形线宽（逻辑像素），由前端用多条竖直偏移的 LINE_STRIP 模拟；WebGL 的 lineWidth 在浏览器中常无效。
     waveform_line_width_px: Arc<AtomicUsize>,
@@ -95,6 +107,12 @@ impl Default for StreamState {
             high_tilt_percent: Arc::new(AtomicUsize::new(35)),
             freq_min_hz: Arc::new(AtomicUsize::new(480)),
             freq_max_hz: Arc::new(AtomicUsize::new(7_600)),
+            silence_peak_gate_micro: Arc::new(AtomicU32::new(gate_to_micro(
+                wavedance::esp_display::protocol::DEFAULT_SILENCE_PEAK_GATE,
+            ))),
+            silence_rms_gate_micro: Arc::new(AtomicU32::new(gate_to_micro(
+                wavedance::esp_display::protocol::DEFAULT_SILENCE_RMS_GATE,
+            ))),
             waveform_color_hex: Arc::new(Mutex::new("#c4a574".to_string())),
             waveform_line_width_px: Arc::new(AtomicUsize::new(2)),
             spectrum_window_counter: Arc::new(AtomicU64::new(0)),
@@ -843,10 +861,10 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let freq_min_hz = Arc::clone(&state.freq_min_hz);
     let freq_max_hz = Arc::clone(&state.freq_max_hz);
     let esp_display = Arc::clone(&state.esp_display);
+    let silence_peak_gate_micro = Arc::clone(&state.silence_peak_gate_micro);
+    let silence_rms_gate_micro = Arc::clone(&state.silence_rms_gate_micro);
     thread::spawn(move || {
         const FFT_SIZE: usize = 2048;
-        const SILENCE_RMS_GATE: f32 = 0.001;
-        const SILENCE_PEAK_GATE: f32 = 0.003;
         let source_mode = capture_source_mode.load(Ordering::Relaxed);
         let preferred = if source_mode == 1 {
             None
@@ -872,7 +890,12 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
                     let tilt_percent = high_tilt_percent.load(Ordering::Relaxed);
                     let min_hz = freq_min_hz.load(Ordering::Relaxed);
                     let max_hz = freq_max_hz.load(Ordering::Relaxed);
-                    let spectrum = if rms < SILENCE_RMS_GATE && peak < SILENCE_PEAK_GATE {
+                    let silence_peak_gate =
+                        micro_to_gate(silence_peak_gate_micro.load(Ordering::Relaxed));
+                    let silence_rms_gate =
+                        micro_to_gate(silence_rms_gate_micro.load(Ordering::Relaxed));
+                    let is_silent = rms < silence_rms_gate && peak < silence_peak_gate;
+                    let spectrum = if is_silent {
                         vec![0.0; bucket.clamp(8, 500)]
                     } else {
                         spectrum_bands_from_frame(
@@ -886,7 +909,7 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
                             max_hz,
                         )
                     };
-                    let time_samples = if rms < SILENCE_RMS_GATE && peak < SILENCE_PEAK_GATE {
+                    let time_samples = if is_silent {
                         vec![0.0; TIME_DOMAIN_SAMPLE_COUNT]
                     } else {
                         downsample_time_domain(&mono, TIME_DOMAIN_SAMPLE_COUNT)
@@ -992,6 +1015,41 @@ fn update_high_tilt_percent(state: State<'_, StreamState>, percent: usize) -> Re
 #[tauri::command]
 fn get_high_tilt_percent(state: State<'_, StreamState>) -> usize {
     state.high_tilt_percent.load(Ordering::SeqCst)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SilenceGateConfig {
+    peak_gate: f32,
+    rms_gate: f32,
+}
+
+#[tauri::command]
+fn update_silence_gates(
+    state: State<'_, StreamState>,
+    peak_gate: f32,
+    rms_gate: f32,
+) -> Result<(), String> {
+    if !(0.0..=0.05).contains(&peak_gate) || !(0.0..=0.05).contains(&rms_gate) {
+        return Err("静默门限须在 0 到 0.05 之间".to_string());
+    }
+    let peak_micro = gate_to_micro(peak_gate);
+    let rms_micro = gate_to_micro(rms_gate);
+    state
+        .silence_peak_gate_micro
+        .store(peak_micro, Ordering::SeqCst);
+    state.silence_rms_gate_micro.store(rms_micro, Ordering::SeqCst);
+    if let Ok(mut bridge) = state.esp_display.bridge.lock() {
+        bridge.set_silence_gates(peak_gate, rms_gate);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn get_silence_gates(state: State<'_, StreamState>) -> SilenceGateConfig {
+    SilenceGateConfig {
+        peak_gate: micro_to_gate(state.silence_peak_gate_micro.load(Ordering::SeqCst)),
+        rms_gate: micro_to_gate(state.silence_rms_gate_micro.load(Ordering::SeqCst)),
+    }
 }
 
 #[tauri::command]
@@ -3541,6 +3599,8 @@ fn main() {
             get_bucket_mode,
             update_high_tilt_percent,
             get_high_tilt_percent,
+            update_silence_gates,
+            get_silence_gates,
             update_frequency_range,
             get_frequency_range,
             set_waveform_color,

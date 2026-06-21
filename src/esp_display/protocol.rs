@@ -13,8 +13,8 @@ pub const FLAG_FREQ_REVERSED: u8 = 0x04;
 pub const MAX_POINT_COUNT: usize = 64;
 pub const MAX_TIME_COUNT: usize = 256;
 
-pub const DEFAULT_SILENCE_PEAK_GATE: f32 = 0.003;
-pub const DEFAULT_SILENCE_RMS_GATE: f32 = 0.001;
+pub const DEFAULT_SILENCE_PEAK_GATE: f32 = 0.0001;
+pub const DEFAULT_SILENCE_RMS_GATE: f32 = 0.0001;
 
 #[derive(Debug, Clone)]
 pub struct EncodeOptions {
@@ -179,7 +179,7 @@ mod tests {
     fn silence_flag() {
         let points = vec![0.0; 16];
         let mut opt = EncodeOptions::default();
-        let buf = encode_frame(2, 0.001, 0.0005, &points, &[], &opt).unwrap();
+        let buf = encode_frame(2, 0.00005, 0.00005, &points, &[], &opt).unwrap();
         assert_eq!(buf[5] & FLAG_SILENCE, FLAG_SILENCE);
 
         opt.silence_peak_gate = 0.0001;

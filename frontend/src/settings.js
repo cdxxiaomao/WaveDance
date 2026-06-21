@@ -34,6 +34,11 @@ const freqMinValue = document.querySelector("#freqMinValue");
 const freqMaxRange = document.querySelector("#freqMaxRange");
 const freqMaxValue = document.querySelector("#freqMaxValue");
 const freqReversedToggle = document.querySelector("#freqReversedToggle");
+const silencePeakGateRange = document.querySelector("#silencePeakGateRange");
+const silencePeakGateValue = document.querySelector("#silencePeakGateValue");
+const silenceRmsGateRange = document.querySelector("#silenceRmsGateRange");
+const silenceRmsGateValue = document.querySelector("#silenceRmsGateValue");
+const SILENCE_GATE_SLIDER_SCALE = 10000;
 const displayModeSelect = document.querySelector("#displayMode");
 const panelStyleModeSelect = document.querySelector("#panelStyleMode");
 
@@ -853,8 +858,8 @@ const openMidiSetupBtn = document.querySelector("#openMidiSetupBtn");
 const openSoundSettingsBtn = document.querySelector("#openSoundSettingsBtn");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
 const NO_FRAME_TIMEOUT_MS = 4000;
-const ACTIVE_PEAK_THRESHOLD = 0.003;
-const ACTIVE_RMS_THRESHOLD = 0.0015;
+let silencePeakGate = DEFAULT_CONFIG.silencePeakGate;
+let silenceRmsGate = DEFAULT_CONFIG.silenceRmsGate;
 const ACTIVE_POINTS_THRESHOLD = 0.01;
 let blackholeInstalled = false;
 let captureTransportRunning = false;
@@ -862,6 +867,40 @@ let lastWaveformFrameAt = 0;
 let captureSourceMode = "blackhole";
 let displayMode = DEFAULT_CONFIG.displayMode;
 let panelStyleMode = DEFAULT_CONFIG.panelStyleMode;
+
+function gateFromSilenceSlider(sliderValue) {
+  return Number(sliderValue) / SILENCE_GATE_SLIDER_SCALE;
+}
+
+function sliderFromSilenceGate(gate) {
+  const n = Number(gate);
+  if (!Number.isFinite(n)) {
+    return 0;
+  }
+  return Math.min(500, Math.max(0, Math.round(n * SILENCE_GATE_SLIDER_SCALE)));
+}
+
+function formatSilenceGate(gate) {
+  return Number(gate).toFixed(4);
+}
+
+async function syncSilenceGates(peakGate, rmsGate, windowLabel) {
+  silencePeakGate = peakGate;
+  silenceRmsGate = rmsGate;
+  if (silencePeakGateValue) {
+    silencePeakGateValue.textContent = formatSilenceGate(peakGate);
+  }
+  if (silenceRmsGateValue) {
+    silenceRmsGateValue.textContent = formatSilenceGate(rmsGate);
+  }
+  try {
+    await invoke("update_silence_gates", { peakGate, rmsGate });
+    writeWindowStorageString(window.localStorage, windowLabel, "silencePeakGate", String(peakGate));
+    writeWindowStorageString(window.localStorage, windowLabel, "silenceRmsGate", String(rmsGate));
+  } catch (err) {
+    statusEl.textContent = `更新静默门限失败：${String(err)}`;
+  }
+}
 
 function setupStatusFlashOnChange() {
   if (!statusEl) {
@@ -5317,10 +5356,10 @@ function hasEffectiveWaveformData(payload) {
   }
   const peak = Number(payload.peak ?? 0);
   const rms = Number(payload.rms ?? 0);
-  if (Number.isFinite(peak) && peak >= ACTIVE_PEAK_THRESHOLD) {
+  if (Number.isFinite(peak) && peak >= silencePeakGate) {
     return true;
   }
-  if (Number.isFinite(rms) && rms >= ACTIVE_RMS_THRESHOLD) {
+  if (Number.isFinite(rms) && rms >= silenceRmsGate) {
     return true;
   }
   const points = Array.isArray(payload.points) ? payload.points : [];
@@ -10143,6 +10182,18 @@ async function init() {
     }
   });
 
+  silencePeakGateRange?.addEventListener("input", async (event) => {
+    const peakGate = gateFromSilenceSlider(event.target.value);
+    const rmsGate = gateFromSilenceSlider(silenceRmsGateRange?.value ?? sliderFromSilenceGate(silenceRmsGate));
+    await syncSilenceGates(peakGate, rmsGate, visualTargetLabel);
+  });
+
+  silenceRmsGateRange?.addEventListener("input", async (event) => {
+    const rmsGate = gateFromSilenceSlider(event.target.value);
+    const peakGate = gateFromSilenceSlider(silencePeakGateRange?.value ?? sliderFromSilenceGate(silencePeakGate));
+    await syncSilenceGates(peakGate, rmsGate, visualTargetLabel);
+  });
+
   try {
     const [
       currentBucket,
@@ -10152,6 +10203,7 @@ async function init() {
       overlayPinned,
       streamRunning,
       sourceMode,
+      silenceGates,
     ] = await Promise.all([
       invoke("get_bucket_count"),
       invoke("get_bucket_mode"),
@@ -10160,6 +10212,7 @@ async function init() {
       invoke("get_overlay_pinned"),
       invoke("get_waveform_stream_running"),
       invoke("get_capture_source_mode"),
+      invoke("get_silence_gates"),
     ]);
     bucketRange.value = String(currentBucket);
     bucketValue.textContent = String(currentBucket);
@@ -10180,6 +10233,27 @@ async function init() {
     if (captureSourceModeSelect) {
       captureSourceModeSelect.value = captureSourceMode;
     }
+
+    const savedPeakGate = readWindowStorageString(window.localStorage, visualTargetLabel, "silencePeakGate");
+    const savedRmsGate = readWindowStorageString(window.localStorage, visualTargetLabel, "silenceRmsGate");
+    let peakGate = Number(
+      savedPeakGate ?? silenceGates?.peak_gate ?? silenceGates?.peakGate ?? DEFAULT_CONFIG.silencePeakGate,
+    );
+    let rmsGate = Number(
+      savedRmsGate ?? silenceGates?.rms_gate ?? silenceGates?.rmsGate ?? DEFAULT_CONFIG.silenceRmsGate,
+    );
+    if (!Number.isFinite(peakGate)) peakGate = DEFAULT_CONFIG.silencePeakGate;
+    if (!Number.isFinite(rmsGate)) rmsGate = DEFAULT_CONFIG.silenceRmsGate;
+    peakGate = Math.min(0.05, Math.max(0, peakGate));
+    rmsGate = Math.min(0.05, Math.max(0, rmsGate));
+    if (silencePeakGateRange) {
+      silencePeakGateRange.value = String(sliderFromSilenceGate(peakGate));
+    }
+    if (silenceRmsGateRange) {
+      silenceRmsGateRange.value = String(sliderFromSilenceGate(rmsGate));
+    }
+    await syncSilenceGates(peakGate, rmsGate, visualTargetLabel);
+
     refreshMidiSetupVisibility();
 
     let lineHex = readWindowStorageString(window.localStorage, visualTargetLabel, "lineColor");

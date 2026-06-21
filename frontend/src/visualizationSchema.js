@@ -4,6 +4,8 @@ export const STORAGE_KEYS = {
   displayMode: "wavedance.displayMode",
   panelStyleMode: "wavedance.panelStyleMode",
   freqReversed: "wavedance.freqReversed",
+  silencePeakGate: "wavedance.silencePeakGate",
+  silenceRmsGate: "wavedance.silenceRmsGate",
   lineColor: "wavedance.lineColor",
   lineWidth: "wavedance.lineWidthPx",
   barColor: "wavedance.barColor",
@@ -440,6 +442,8 @@ export const DEFAULT_CONFIG = {
   displayMode: DISPLAY_MODES.line,
   panelStyleMode: PANEL_STYLES.pro,
   freqReversed: false,
+  silencePeakGate: 0.0001,
+  silenceRmsGate: 0.0001,
   line: {
     color: "#c4a574",
     lineWidthPx: 2,

@@ -85,6 +85,8 @@ struct UdpTarget {
 
 pub struct EspDisplayBridge {
     pub config: EspDisplayConfig,
+    silence_peak_gate: f32,
+    silence_rms_gate: f32,
     seq: u16,
     last_send: Option<Instant>,
     port: Option<Box<dyn serialport::SerialPort>>,
@@ -100,6 +102,8 @@ impl Default for EspDisplayBridge {
     fn default() -> Self {
         Self {
             config: EspDisplayConfig::default(),
+            silence_peak_gate: wavedance::esp_display::protocol::DEFAULT_SILENCE_PEAK_GATE,
+            silence_rms_gate: wavedance::esp_display::protocol::DEFAULT_SILENCE_RMS_GATE,
             seq: 0,
             last_send: None,
             port: None,
@@ -114,6 +118,11 @@ impl Default for EspDisplayBridge {
 }
 
 impl EspDisplayBridge {
+    pub fn set_silence_gates(&mut self, peak_gate: f32, rms_gate: f32) {
+        self.silence_peak_gate = peak_gate.clamp(0.0, 0.05);
+        self.silence_rms_gate = rms_gate.clamp(0.0, 0.05);
+    }
+
     fn any_connected(&self) -> bool {
         let t = self.config.transport;
         (t.uses_serial() && self.serial_connected) || (t.uses_udp() && self.udp_connected)
@@ -242,8 +251,8 @@ impl EspDisplayBridge {
             freq_reversed: self.config.freq_reversed,
             include_time_samples: self.config.include_time_samples,
             time_sample_count: self.config.time_sample_count,
-            silence_peak_gate: wavedance::esp_display::protocol::DEFAULT_SILENCE_PEAK_GATE,
-            silence_rms_gate: wavedance::esp_display::protocol::DEFAULT_SILENCE_RMS_GATE,
+            silence_peak_gate: self.silence_peak_gate,
+            silence_rms_gate: self.silence_rms_gate,
         }
     }
 
