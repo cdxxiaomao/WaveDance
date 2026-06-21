@@ -9,7 +9,7 @@ use tauri::{AppHandle, Emitter};
 
 const LRCLIB_BASE: &str = "https://lrclib.net/api";
 const LRC_CX_DEFAULT_BASE: &str = "https://api.lrc.cx";
-const USER_AGENT: &str = "WaveDance/0.1.0 (https://github.com/wavedance)";
+const USER_AGENT: &str = "WaveDance/0.2.1 (https://github.com/wavedance)";
 /// 单个歌词源检索超时；超时或失败则切换下一源（国内优先）。
 const LYRICS_SOURCE_SEARCH_TIMEOUT: Duration = Duration::from_secs(5);
 
