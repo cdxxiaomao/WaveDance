@@ -30,7 +30,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     window::{Effect, EffectState, EffectsBuilder},
     ActivationPolicy, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize,
-    Position, RunEvent, Size, State, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+    Position, RunEvent, Size, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 #[cfg(target_os = "macos")]
 use tauri::{menu::MenuBuilder, tray::TrayIconBuilder};
@@ -2329,6 +2329,17 @@ fn refresh_blur_for_label(app: &tauri::AppHandle, label: &str) -> tauri::Result<
     if label == "main" {
         return refresh_main_overlay_window(app);
     }
+    if label == MUSIC_PLAYER_LABEL {
+        let Some(win) = app.get_webview_window(label) else {
+            return Ok(());
+        };
+        let state = app.state::<StreamState>();
+        let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+        let blur_enabled = label_blur_enabled(&state, label);
+        configure_cover_overlay_window(win, pinned, blur_enabled)?;
+        raise_now_playing_overlay_windows(app)?;
+        return Ok(());
+    }
     if !label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
         return Ok(());
     }
@@ -2443,6 +2454,45 @@ fn sync_lyrics_for_now_playing(
     );
 }
 
+/// 托盘「新建」或无锚点窗时：在光标所在显示器的工作区居中。
+fn center_webview_on_cursor_monitor(
+    app: &tauri::AppHandle,
+    win: &WebviewWindow,
+) -> Result<(), String> {
+    let cursor = app.cursor_position().map_err(|e| e.to_string())?;
+    let monitor = app
+        .monitor_from_point(cursor.x, cursor.y)
+        .map_err(|e| e.to_string())?
+        .or_else(|| app.primary_monitor().ok().flatten());
+
+    let Some(monitor) = monitor else {
+        return win.center().map_err(|e| e.to_string());
+    };
+
+    let outer = win.outer_size().map_err(|e| e.to_string())?;
+    let work = monitor.work_area();
+    let px = work.position.x + (work.size.width as i32 - outer.width as i32) / 2;
+    let py = work.position.y + (work.size.height as i32 - outer.height as i32) / 2;
+
+    win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
+        .map_err(|e| e.to_string())
+}
+
+fn position_extra_overlay_window(
+    app: &tauri::AppHandle,
+    win: &WebviewWindow,
+    anchor_opt: &Option<WebviewWindow>,
+    beside_px: i32,
+    beside_py: i32,
+) -> Result<(), String> {
+    if anchor_opt.is_some() {
+        win.set_position(Position::Physical(PhysicalPosition::new(beside_px, beside_py)))
+            .map_err(|e| e.to_string())
+    } else {
+        center_webview_on_cursor_monitor(app, win)
+    }
+}
+
 fn open_extra_spectrum_window_impl(
     app: &tauri::AppHandle,
     anchor_label: Option<String>,
@@ -2453,13 +2503,10 @@ fn open_extra_spectrum_window_impl(
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string);
+    // 仅显式指定锚点时才贴边；托盘「新建」传 None 时不回退到 main
     let anchor_opt = anchor_key
         .as_ref()
-        .and_then(|l| app.get_webview_window(l))
-        .or_else(|| app.get_webview_window("main"));
-
-    // 托盘「新建」或无任何锚点窗时：在当前工作区/主屏居中（与锚点相邻的逻辑见下分支）
-    let use_center = anchor_opt.is_none();
+        .and_then(|l| app.get_webview_window(l));
 
     let state = app.state::<StreamState>();
     let n = state
@@ -2509,12 +2556,7 @@ fn open_extra_spectrum_window_impl(
         }
     }
     .map_err(|e| e.to_string())?;
-    if use_center {
-        win.center().map_err(|e| e.to_string())?;
-    } else {
-        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
-            .map_err(|e| e.to_string())?;
-    }
+    position_extra_overlay_window(app, &win, &anchor_opt, px, py)?;
 
     if overlay_mode {
         #[cfg(target_os = "macos")]
@@ -2564,10 +2606,7 @@ fn open_extra_lyrics_window_impl(
         .map(str::to_string);
     let anchor_opt = anchor_key
         .as_ref()
-        .and_then(|l| app.get_webview_window(l))
-        .or_else(|| app.get_webview_window("main"));
-
-    let use_center = anchor_opt.is_none();
+        .and_then(|l| app.get_webview_window(l));
 
     let state = app.state::<StreamState>();
     let n = state
@@ -2604,12 +2643,7 @@ fn open_extra_lyrics_window_impl(
         .build()
         .map_err(|e| e.to_string())?;
 
-    if use_center {
-        win.center().map_err(|e| e.to_string())?;
-    } else {
-        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
-            .map_err(|e| e.to_string())?;
-    }
+    position_extra_overlay_window(app, &win, &anchor_opt, px, py)?;
 
     #[cfg(target_os = "macos")]
     configure_overlay_window(
@@ -2648,10 +2682,7 @@ fn open_extra_cover_window_impl(
         .map(str::to_string);
     let anchor_opt = anchor_key
         .as_ref()
-        .and_then(|l| app.get_webview_window(l))
-        .or_else(|| app.get_webview_window("main"));
-
-    let use_center = anchor_opt.is_none();
+        .and_then(|l| app.get_webview_window(l));
 
     let state = app.state::<StreamState>();
     let n = state
@@ -2688,12 +2719,7 @@ fn open_extra_cover_window_impl(
         .build()
         .map_err(|e| e.to_string())?;
 
-    if use_center {
-        win.center().map_err(|e| e.to_string())?;
-    } else {
-        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
-            .map_err(|e| e.to_string())?;
-    }
+    position_extra_overlay_window(app, &win, &anchor_opt, px, py)?;
 
     configure_cover_overlay_window(win.clone(), pinned, blur_enabled).map_err(|e| e.to_string())?;
 
@@ -2721,10 +2747,7 @@ fn open_extra_songinfo_window_impl(
         .map(str::to_string);
     let anchor_opt = anchor_key
         .as_ref()
-        .and_then(|l| app.get_webview_window(l))
-        .or_else(|| app.get_webview_window("main"));
-
-    let use_center = anchor_opt.is_none();
+        .and_then(|l| app.get_webview_window(l));
 
     let state = app.state::<StreamState>();
     let n = state
@@ -2761,12 +2784,7 @@ fn open_extra_songinfo_window_impl(
         .build()
         .map_err(|e| e.to_string())?;
 
-    if use_center {
-        win.center().map_err(|e| e.to_string())?;
-    } else {
-        win.set_position(Position::Physical(PhysicalPosition::new(px, py)))
-            .map_err(|e| e.to_string())?;
-    }
+    position_extra_overlay_window(app, &win, &anchor_opt, px, py)?;
 
     #[cfg(target_os = "macos")]
     configure_overlay_window(
@@ -3602,7 +3620,10 @@ fn open_music_player_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     });
 
     #[cfg(target_os = "macos")]
-    configure_cover_overlay_window(win.clone(), pinned, true).map_err(|e| e.to_string())?;
+    {
+        let blur_enabled = label_blur_enabled(&state, MUSIC_PLAYER_LABEL);
+        configure_cover_overlay_window(win.clone(), pinned, blur_enabled).map_err(|e| e.to_string())?;
+    }
 
     win.show().map_err(|e| e.to_string())?;
 
