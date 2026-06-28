@@ -2,12 +2,12 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "default permissions for WaveDance desktop",
-  "windows": ["main", "settings", "window-manager", "lyrics-settings", "cover-settings", "songinfo-settings", "main-toolbar", "spectrum-*", "lyrics-*", "cover-*", "songinfo-*", "ptb-*"],
   "permissions": [
     "core:default",
     "core:event:default",
     "global-shortcut:allow-is-registered",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister"
-  ]
+  ],
+  "windows": ["main", "settings", "window-manager", "music-platform-login", "music-playlist", "qq-music-login", "lyrics-settings", "cover-settings", "songinfo-settings", "main-toolbar", "spectrum-*", "lyrics-*", "cover-*", "songinfo-*", "ptb-*"]
 }

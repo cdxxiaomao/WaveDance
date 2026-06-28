@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 音乐平台登录</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window music-platform-login-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">音乐平台登录</h1>
+            <p class="settings-header__subtitle">管理 QQ 音乐与网易云音乐账号</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card mpl-card" aria-labelledby="sec-netease">
+        <h2 id="sec-netease" class="settings-card__title">网易云音乐</h2>
+        <div class="settings-card__body">
+          <div class="mpl-status-row">
+            <span id="neteaseStatusBadge" class="mpl-status-badge mpl-status-badge--idle">未登录</span>
+            <span id="neteaseQrHint" class="settings-muted">使用手机网易云 App 扫码登录</span>
+          </div>
+          <div class="mpl-qr-wrap">
+            <img id="neteaseQrImage" class="mpl-qr-image" alt="网易云登录二维码" hidden />
+            <div id="neteaseQrPlaceholder" class="mpl-qr-placeholder">正在准备二维码…</div>
+          </div>
+          <div id="neteaseProfile" class="mpl-profile" hidden>
+            <img id="neteaseAvatar" class="mpl-avatar" alt="" hidden />
+            <div>
+              <div id="neteaseNickname" class="mpl-nickname"></div>
+              <div id="neteaseUserId" class="settings-muted mpl-user-id"></div>
+            </div>
+          </div>
+          <div class="mpl-actions">
+            <button type="button" id="neteaseRefreshQrBtn" class="settings-btn settings-btn--ghost">刷新二维码</button>
+            <button type="button" id="neteaseLogoutBtn" class="settings-btn settings-btn--ghost" hidden>登出</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card mpl-card" aria-labelledby="sec-qq">
+        <h2 id="sec-qq" class="settings-card__title">QQ 音乐</h2>
+        <div class="settings-card__body">
+          <div class="mpl-status-row">
+            <span id="qqStatusBadge" class="mpl-status-badge mpl-status-badge--idle">未登录</span>
+          </div>
+          <p id="qqHint" class="settings-hint">
+            点击「QQ 音乐登录」将打开独立窗口，请在网页中完成 QQ 或微信登录。
+          </p>
+          <p id="qqPlaybackWarn" class="settings-hint mpl-warn" hidden>
+            账号已同步，完整播放授权未就绪。请保持在播放器页稍候，或重新登录。
+          </p>
+          <div id="qqProfile" class="mpl-profile" hidden>
+            <img id="qqAvatar" class="mpl-avatar" alt="" hidden />
+            <div>
+              <div id="qqNickname" class="mpl-nickname"></div>
+              <div id="qqUserId" class="settings-muted mpl-user-id"></div>
+            </div>
+          </div>
+          <div class="mpl-actions">
+            <button type="button" id="qqLoginBtn" class="settings-btn settings-btn--primary">QQ 音乐登录</button>
+            <button type="button" id="qqLogoutBtn" class="settings-btn settings-btn--ghost" hidden>登出</button>
+          </div>
+        </div>
+      </section>
+
+      <p id="mplToast" class="mpl-toast" role="status" aria-live="polite" hidden></p>
+    </div>
+    <script type="module" src="/src/musicPlatformLogin.js"></script>
+  </body>
+</html>

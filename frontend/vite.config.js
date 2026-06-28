@@ -16,6 +16,8 @@ export default defineConfig({
         settings: resolve(__dirname, "settings.html"),
         espDisplaySettings: resolve(__dirname, "esp-display-settings.html"),
         windowManager: resolve(__dirname, "window-manager.html"),
+        musicPlatformLogin: resolve(__dirname, "music-platform-login.html"),
+        musicPlaylist: resolve(__dirname, "music-playlist.html"),
         toolbar: resolve(__dirname, "toolbar.html"),
       },
     },

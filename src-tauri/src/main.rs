@@ -4,6 +4,8 @@ mod esp_display;
 mod lyrics;
 
 #[cfg(target_os = "macos")]
+mod music_platform;
+#[cfg(target_os = "macos")]
 mod now_playing;
 
 use std::collections::{HashMap, HashSet};
@@ -136,6 +138,12 @@ const COVER_WINDOW_LABEL_PREFIX: &str = "cover-";
 const SONGINFO_WINDOW_LABEL_PREFIX: &str = "songinfo-";
 const WINDOW_MANAGER_LABEL: &str = "window-manager";
 const ESP_DISPLAY_SETTINGS_LABEL: &str = "esp-display-settings";
+#[cfg(target_os = "macos")]
+const MUSIC_PLATFORM_LOGIN_LABEL: &str = music_platform::MUSIC_PLATFORM_LOGIN_LABEL;
+#[cfg(target_os = "macos")]
+const MUSIC_PLAYLIST_LABEL: &str = music_platform::MUSIC_PLAYLIST_LABEL;
+#[cfg(target_os = "macos")]
+const QQ_MUSIC_LOGIN_LABEL: &str = music_platform::QQ_MUSIC_LOGIN_LABEL;
 const PASSTHROUGH_TOOLBAR_LABEL_PREFIX: &str = "ptb-";
 
 /// 浮层窗叠放层级：歌词 / 封面 / 歌曲信息须始终高于浮层频谱（`main` / `spectrum-*`）。
@@ -175,6 +183,17 @@ fn is_internal_auxiliary_window_label(label: &str) -> bool {
         || label == ESP_DISPLAY_SETTINGS_LABEL
         || label == "main-toolbar"
         || label.starts_with(PASSTHROUGH_TOOLBAR_LABEL_PREFIX)
+        || {
+            #[cfg(target_os = "macos")]
+            {
+                label == QQ_MUSIC_LOGIN_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = label;
+                false
+            }
+        }
 }
 
 fn suffix_number(label: &str, prefix: &str) -> u32 {
@@ -262,6 +281,17 @@ fn managed_window_display_name(state: &StreamState, label: &str) -> String {
             let n = l.strip_prefix(SONGINFO_WINDOW_LABEL_PREFIX).unwrap_or(l);
             format!("歌曲信息 · {n}")
         }
+        l if {
+            #[cfg(target_os = "macos")]
+            {
+                l == MUSIC_PLAYLIST_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = l;
+                false
+            }
+        } => "歌单".to_string(),
         other => other.to_string(),
     }
 }
@@ -278,6 +308,17 @@ fn is_now_playing_overlay_label(label: &str) -> bool {
     label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
         || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
         || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+        || {
+            #[cfg(target_os = "macos")]
+            {
+                label == MUSIC_PLAYLIST_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = label;
+                false
+            }
+        }
 }
 
 #[cfg(target_os = "macos")]
@@ -531,6 +572,17 @@ fn is_passthrough_capable_label(label: &str) -> bool {
         || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
         || label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
         || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+        || {
+            #[cfg(target_os = "macos")]
+            {
+                label == MUSIC_PLAYLIST_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = label;
+                false
+            }
+        }
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -579,6 +631,17 @@ fn spectrum_is_overlay_mode(state: &StreamState, label: &str) -> bool {
 fn overlay_uses_edge_reveal_unlock(state: &StreamState, label: &str) -> bool {
     label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
         || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+        || {
+            #[cfg(target_os = "macos")]
+            {
+                label == MUSIC_PLAYLIST_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = label;
+                false
+            }
+        }
         || (label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) && spectrum_is_overlay_mode(state, label))
 }
 
@@ -677,6 +740,31 @@ fn refresh_lyrics_clone_windows(app: &tauri::AppHandle) -> tauri::Result<()> {
             win.set_always_on_top(pinned)?;
             let _ = win.set_ignore_cursor_events(locked);
         }
+    }
+    Ok(())
+}
+
+/// 歌单浮层窗：跟随全局置顶/模糊与穿透状态。
+fn refresh_playlist_window(app: &tauri::AppHandle) -> tauri::Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let Some(win) = app.get_webview_window(MUSIC_PLAYLIST_LABEL) else {
+            return Ok(());
+        };
+        let state = app.state::<StreamState>();
+        let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+        let locked = label_passthrough_locked(&state, MUSIC_PLAYLIST_LABEL);
+        configure_overlay_window(
+            win,
+            OverlayWindowStackTier::NowPlayingInfo,
+            pinned,
+            true,
+            locked,
+        )?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
     }
     Ok(())
 }
@@ -1788,6 +1876,17 @@ fn sync_floating_toolbar_window(app: &tauri::AppHandle) -> Result<(), String> {
         if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
             || label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
             || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+            || {
+                #[cfg(target_os = "macos")]
+                {
+                    label == MUSIC_PLAYLIST_LABEL
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let _ = label;
+                    false
+                }
+            }
         {
             let locked = label_passthrough_locked(&state, &label);
             sync_spectrum_floating_toolbar(app, &label, locked)?;
@@ -1825,6 +1924,7 @@ fn apply_mouse_passthrough_locked_change(
     refresh_lyrics_clone_windows(app).map_err(|e| e.to_string())?;
     refresh_cover_clone_windows(app).map_err(|e| e.to_string())?;
     refresh_songinfo_clone_windows(app).map_err(|e| e.to_string())?;
+    refresh_playlist_window(app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(app).map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -2016,6 +2116,17 @@ fn recall_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
             || label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
             || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
             || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+            || {
+                #[cfg(target_os = "macos")]
+                {
+                    label == MUSIC_PLAYLIST_LABEL
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    let _ = label;
+                    false
+                }
+            }
         {
             w.show()?;
         }
@@ -2036,6 +2147,7 @@ fn set_overlay_pinned(
     refresh_lyrics_clone_windows(&app).map_err(|e| e.to_string())?;
     refresh_cover_clone_windows(&app).map_err(|e| e.to_string())?;
     refresh_songinfo_clone_windows(&app).map_err(|e| e.to_string())?;
+    refresh_playlist_window(&app).map_err(|e| e.to_string())?;
     sync_floating_toolbar_window(&app).map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
@@ -2071,6 +2183,10 @@ fn set_overlay_pinned(
             w.set_always_on_top(true).map_err(|e| e.to_string())?;
         }
         if let Some(w) = app.get_webview_window(ESP_DISPLAY_SETTINGS_LABEL) {
+            w.set_always_on_top(true).map_err(|e| e.to_string())?;
+        }
+        #[cfg(target_os = "macos")]
+        if let Some(w) = app.get_webview_window(MUSIC_PLATFORM_LOGIN_LABEL) {
             w.set_always_on_top(true).map_err(|e| e.to_string())?;
         }
     }
@@ -2160,7 +2276,7 @@ fn set_mouse_passthrough_locked(
 ) -> Result<(), String> {
     let label = label.trim().to_string();
     if !is_passthrough_capable_label(&label) {
-        return Err("仅主窗口、频谱窗口、歌词窗口与歌曲信息窗口支持穿透锁定".to_string());
+        return Err("仅主窗口、频谱窗口、歌词窗口、歌曲信息窗口与歌单窗口支持穿透锁定".to_string());
     }
     if locked && app.get_webview_window(&label).is_none() {
         return Err("窗口不存在或已关闭".to_string());
@@ -3189,6 +3305,127 @@ fn open_esp_display_settings_window(app: tauri::AppHandle) -> Result<(), String>
     open_esp_display_settings_window_impl(&app)
 }
 
+const MUSIC_PLAYLIST_RELOAD_EVENT: &str = "music-playlist-should-reload";
+
+fn notify_playlist_window_reload(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window(MUSIC_PLAYLIST_LABEL) {
+        let _ = win.emit(MUSIC_PLAYLIST_RELOAD_EVENT, ());
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_playlist_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(MUSIC_PLAYLIST_LABEL) {
+        win.show().map_err(|e| e.to_string())?;
+        win.unminimize().ok();
+        win.set_focus().map_err(|e| e.to_string())?;
+        refresh_playlist_window(app).map_err(|e| e.to_string())?;
+        notify_playlist_window_reload(app);
+        return Ok(());
+    }
+
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        MUSIC_PLAYLIST_LABEL,
+        WebviewUrl::App("music-playlist.html".into()),
+    )
+    .title("WaveDance 歌单")
+    .inner_size(507.0, 520.0)
+    .min_inner_size(427.0, 240.0)
+    .resizable(true)
+    .transparent(true)
+    .decorations(false)
+    .shadow(false)
+    .always_on_top(pinned)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    #[cfg(target_os = "macos")]
+    configure_overlay_window(
+        win.clone(),
+        OverlayWindowStackTier::NowPlayingInfo,
+        pinned,
+        true,
+        false,
+    )
+    .map_err(|e| e.to_string())?;
+
+    win.show().map_err(|e| e.to_string())?;
+    notify_playlist_window_reload(app);
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_playlist_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_music_playlist_window_impl(app)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_music_playlist_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_music_playlist_window_impl(&app)
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_platform_login_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(MUSIC_PLATFORM_LOGIN_LABEL) {
+        win.show().map_err(|e| e.to_string())?;
+        win.unminimize().ok();
+        configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+        win.set_focus().map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        MUSIC_PLATFORM_LOGIN_LABEL,
+        WebviewUrl::App("music-platform-login.html".into()),
+    )
+    .title("WaveDance 音乐平台登录")
+    .inner_size(520.0, 640.0)
+    .resizable(true)
+    .decorations(true)
+    .shadow(true)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    win.show().map_err(|e| e.to_string())?;
+    configure_window_manager_level(&win).map_err(|e| e.to_string())?;
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_platform_login_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_music_platform_login_window_impl(app)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_music_platform_login_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_music_platform_login_window_impl(&app)
+}
+
 fn supports_window_edge_reveal(app: &tauri::AppHandle, label: &str) -> bool {
     if label == "main" {
         return true;
@@ -3196,6 +3433,17 @@ fn supports_window_edge_reveal(app: &tauri::AppHandle, label: &str) -> bool {
     if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX)
         || label.starts_with(COVER_WINDOW_LABEL_PREFIX)
         || label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX)
+        || {
+            #[cfg(target_os = "macos")]
+            {
+                label == MUSIC_PLAYLIST_LABEL
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                let _ = label;
+                false
+            }
+        }
     {
         return true;
     }
@@ -3421,6 +3669,8 @@ fn resize_window_by_delta(
     let label = window.label();
     let (min_width, min_height) = if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
         (260, 96)
+    } else if label == "music-playlist" {
+        (427, 240)
     } else if label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX) {
         (220, 96)
     } else if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
@@ -3523,6 +3773,8 @@ fn main() {
                 const TRAY_MENU_SETTINGS: &str = "tray_settings";
                 const TRAY_MENU_ESP_DISPLAY: &str = "tray_esp_display";
                 const TRAY_MENU_WINDOW_MANAGER: &str = "tray_window_manager";
+                const TRAY_MENU_MUSIC_LOGIN: &str = "tray_music_login";
+                const TRAY_MENU_MUSIC_PLAYLIST: &str = "tray_music_playlist";
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
                 const TRAY_MENU_NEW_LYRICS: &str = "tray_new_lyrics";
@@ -3537,6 +3789,8 @@ fn main() {
                     .text(TRAY_MENU_SETTINGS, "设置…")
                     .text(TRAY_MENU_ESP_DISPLAY, "外接屏设置…")
                     .text(TRAY_MENU_WINDOW_MANAGER, "窗口管理…")
+                    .text(TRAY_MENU_MUSIC_LOGIN, "登录音乐平台…")
+                    .text(TRAY_MENU_MUSIC_PLAYLIST, "查看歌单…")
                     .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
                     .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
                     .text(TRAY_MENU_NEW_LYRICS, "新建浮层歌词窗口")
@@ -3558,6 +3812,10 @@ fn main() {
                             let _ = open_esp_display_settings_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_WINDOW_MANAGER {
                             let _ = open_window_manager_from_tray(app);
+                        } else if event.id() == TRAY_MENU_MUSIC_LOGIN {
+                            let _ = open_music_platform_login_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_MUSIC_PLAYLIST {
+                            let _ = open_music_playlist_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
                             let _ = open_extra_spectrum_window_impl(app, None, true);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
@@ -3577,6 +3835,7 @@ fn main() {
 
             #[cfg(target_os = "macos")]
             {
+                app.manage(std::sync::Arc::new(music_platform::QqLoginCoordinator::default()));
                 app.manage(lyrics::LyricsFetcher::default());
                 app.manage(now_playing::spawn_monitor(app.handle().clone()));
             }
@@ -3652,7 +3911,31 @@ fn main() {
             #[cfg(target_os = "macos")]
             get_now_playing_snapshot,
             #[cfg(target_os = "macos")]
-            sync_lyrics_for_now_playing
+            sync_lyrics_for_now_playing,
+            #[cfg(target_os = "macos")]
+            open_music_platform_login_window,
+            #[cfg(target_os = "macos")]
+            music_platform::music_platform_get_status,
+            #[cfg(target_os = "macos")]
+            music_platform::netease_qr_start,
+            #[cfg(target_os = "macos")]
+            music_platform::netease_qr_poll,
+            #[cfg(target_os = "macos")]
+            music_platform::netease_logout,
+            #[cfg(target_os = "macos")]
+            music_platform::qq_login_open_webview,
+            #[cfg(target_os = "macos")]
+            music_platform::qq_login_close_webview,
+            #[cfg(target_os = "macos")]
+            music_platform::qq_logout,
+            #[cfg(target_os = "macos")]
+            open_music_playlist_window,
+            #[cfg(target_os = "macos")]
+            music_platform::music_playlist_get_context,
+            #[cfg(target_os = "macos")]
+            music_platform::music_playlist_list,
+            #[cfg(target_os = "macos")]
+            music_platform::music_playlist_tracks
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

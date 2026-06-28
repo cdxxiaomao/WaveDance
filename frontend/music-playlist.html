@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 歌单</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="playlist-clone">
+    <div class="app playlist-only">
+      <div class="playlist-toolbar" data-no-drag>
+        <button type="button" id="refreshPlaylistBtn" class="playlist-toolbar-text" title="刷新歌单" aria-label="刷新歌单">刷新</button>
+        <button
+          type="button"
+          id="mousePassthroughLockBtn"
+          title="开启后本窗口鼠标穿透到下层"
+          aria-pressed="false"
+          aria-label="穿透锁定"
+        >
+          <img
+            class="toolbar-icon"
+            data-lock-icon
+            src="/icons/passthrough-idle.svg"
+            alt=""
+            width="14"
+            height="14"
+            decoding="async"
+          />
+        </button>
+        <button type="button" id="openMusicLoginBtn" title="音乐平台登录" aria-label="音乐平台登录">
+          <img
+            class="toolbar-icon"
+            src="/icons/settings.svg"
+            alt=""
+            width="14"
+            height="14"
+            decoding="async"
+          />
+        </button>
+      </div>
+
+      <div class="playlist-window-body">
+        <div id="playlistTabs" class="playlist-tabs" hidden>
+          <button type="button" class="playlist-tab is-active" data-provider="qq">QQ 音乐</button>
+          <button type="button" class="playlist-tab" data-provider="netease">网易云音乐</button>
+        </div>
+
+        <div id="playlistStatus" class="playlist-status">正在加载…</div>
+
+        <div id="playlistSplit" class="playlist-split" hidden>
+          <aside class="playlist-pane playlist-pane--list">
+            <ul id="playlistList" class="playlist-list"></ul>
+          </aside>
+          <section id="playlistTracksPane" class="playlist-pane playlist-pane--tracks" aria-hidden="true">
+            <header id="playlistTracksHeader" class="playlist-tracks-header" hidden>
+              <div id="playlistTracksTitle" class="playlist-tracks-header__title"></div>
+              <div id="playlistTracksMeta" class="playlist-tracks-header__meta"></div>
+            </header>
+            <div id="playlistTracksSearchWrap" class="playlist-tracks-search" hidden>
+              <input
+                id="playlistTracksSearch"
+                class="playlist-tracks-search__input"
+                type="search"
+                placeholder="搜索歌曲、歌手…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="搜索歌曲"
+                data-no-drag
+              />
+            </div>
+            <div id="playlistTracksStatus" class="playlist-tracks-status" hidden></div>
+            <ul id="playlistTrackList" class="playlist-track-list"></ul>
+          </section>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/musicPlaylistWindow.js"></script>
+  </body>
+</html>
