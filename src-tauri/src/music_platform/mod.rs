@@ -1,16 +1,21 @@
+pub mod audio_proxy;
 mod cookie_store;
 mod netease;
+pub mod player;
 mod playlists;
 mod qq;
 mod qq_login;
+mod song_url;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
+pub use player::{MusicPlayerState, MUSIC_PLAYER_LABEL, MUSIC_PLAYER_STATE_EVENT};
 pub use qq_login::{QQ_MUSIC_LOGIN_LABEL, QqLoginCoordinator};
 
 pub const MUSIC_PLATFORM_LOGIN_LABEL: &str = "music-platform-login";
 pub const MUSIC_PLAYLIST_LABEL: &str = "music-playlist";
+pub const MUSIC_PLAYER_QUEUE_LABEL: &str = "music-player-queue";
 
 #[derive(Clone, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -134,4 +139,23 @@ pub async fn music_playlist_tracks(
     playlist_id: String,
 ) -> Result<Vec<playlists::PlaylistTrackItem>, String> {
     playlists::fetch_tracks(&app, provider.trim(), playlist_id.trim()).await
+}
+
+#[tauri::command]
+pub async fn music_song_url(
+    app: AppHandle,
+    provider: String,
+    id: String,
+    media_mid: Option<String>,
+    quality: Option<String>,
+) -> Result<song_url::SongUrlResponse, String> {
+    let q = quality.unwrap_or_else(|| "lossless".into());
+    song_url::fetch_song_url(
+        &app,
+        provider.trim(),
+        id.trim(),
+        media_mid.as_deref(),
+        q.trim(),
+    )
+    .await
 }

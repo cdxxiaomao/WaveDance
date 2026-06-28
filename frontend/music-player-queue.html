@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 播放列表</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="player-queue-clone">
+    <div class="app player-queue-only">
+      <header class="overlay-window-titlebar" aria-label="播放列表窗口">
+        <span class="overlay-window-titlebar__title">播放列表</span>
+      </header>
+
+      <div class="player-queue-window-body">
+        <div id="playerQueueStatus" class="playlist-status">暂无播放队列</div>
+        <ul id="playerQueueList" class="player-queue-window-list" hidden></ul>
+      </div>
+    </div>
+    <script type="module" src="/src/musicPlayerQueueWindow.js"></script>
+  </body>
+</html>

@@ -9,5 +9,5 @@
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister"
   ],
-  "windows": ["main", "settings", "window-manager", "music-platform-login", "music-playlist", "qq-music-login", "lyrics-settings", "cover-settings", "songinfo-settings", "main-toolbar", "spectrum-*", "lyrics-*", "cover-*", "songinfo-*", "ptb-*"]
+  "windows": ["main", "settings", "window-manager", "music-platform-login", "music-playlist", "music-player", "music-player-queue", "player-settings", "qq-music-login", "lyrics-settings", "cover-settings", "songinfo-settings", "main-toolbar", "spectrum-*", "lyrics-*", "cover-*", "songinfo-*", "ptb-*"]
 }

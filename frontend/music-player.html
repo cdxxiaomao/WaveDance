@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 播放控制</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="player-clone">
+    <div class="app player-only">
+      <div class="player-toolbar" data-no-drag>
+        <button type="button" id="openPlayerSettingsBtn" title="播放控制设置" aria-label="播放控制设置">
+          <img class="toolbar-icon" src="/icons/settings.svg" alt="" width="14" height="14" decoding="async" />
+        </button>
+      </div>
+
+      <div id="playerWindowBody" class="player-window-body">
+        <div id="playerError" class="player-error" hidden></div>
+
+        <div class="player-progress" data-no-drag>
+          <span id="playerCurrentTime" class="player-time">0:00</span>
+          <div class="player-progress__bar">
+            <div class="player-progress__track" aria-hidden="true">
+              <div id="playerProgressBuffer" class="player-progress__buffer"></div>
+              <div id="playerProgressFill" class="player-progress__fill"></div>
+            </div>
+            <input id="playerProgress" class="player-progress__range" type="range" min="0" max="1000" value="0" step="1" aria-label="播放进度" />
+          </div>
+          <span id="playerDuration" class="player-time">0:00</span>
+        </div>
+
+        <div class="player-controls" data-no-drag>
+          <button type="button" id="playerLoopBtn" class="player-btn player-btn--ghost" title="循环模式" aria-label="循环模式">
+            <svg id="playerLoopIcon" class="player-btn__icon player-btn__icon--stroke" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"></svg>
+          </button>
+          <button type="button" id="playerPrevBtn" class="player-btn" title="上一曲" aria-label="上一曲">
+            <svg class="player-btn__icon player-btn__icon--media" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M6 8h2v8H6V8z" />
+              <path d="M17 8L17 16 10 12z" />
+            </svg>
+          </button>
+          <button type="button" id="playerPlayBtn" class="player-btn player-btn--primary" title="播放" aria-label="播放">
+            <svg id="playerPlayIcon" class="player-btn__icon player-btn__icon--play" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M8 5.14v13.72c0 .79.87 1.27 1.54.84l9.14-6.86a1 1 0 0 0 0-1.68l-9.14-6.86A1 1 0 0 0 8 5.14z" />
+            </svg>
+          </button>
+          <button type="button" id="playerNextBtn" class="player-btn" title="下一曲" aria-label="下一曲">
+            <svg class="player-btn__icon player-btn__icon--media" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+              <path d="M7 8L7 16 14 12z" />
+              <path d="M16 8h2v8h-2V8z" />
+            </svg>
+          </button>
+          <select id="playerQuality" class="player-quality" title="音质" aria-label="音质">
+            <option value="hires">Hi-Res</option>
+            <option value="lossless" selected>无损</option>
+            <option value="exhigh">320k</option>
+            <option value="standard">128k</option>
+          </select>
+        </div>
+      </div>
+
+      <audio id="playerAudio" crossorigin="anonymous" preload="auto"></audio>
+    </div>
+    <script type="module" src="/src/musicPlayerWindow.js"></script>
+  </body>
+</html>

@@ -12,7 +12,7 @@ pub(crate) const QQ_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 1
 const QQ_HTTP_TIMEOUT: Duration = Duration::from_secs(15);
 const QQ_HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
-fn qq_http_client() -> Result<reqwest::Client, String> {
+pub(crate) fn qq_http_client() -> Result<reqwest::Client, String> {
     static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
     Ok(CLIENT
         .get_or_init(|| {
@@ -121,6 +121,21 @@ pub fn qq_g_tk(map: &HashMap<String, String>) -> u64 {
     (hash & 0x7fff_ffff) as u64
 }
 
+fn looks_like_binary(text: &str) -> bool {
+    let sample: Vec<char> = text.chars().take(512).collect();
+    if sample.is_empty() {
+        return false;
+    }
+    let suspicious = sample
+        .iter()
+        .filter(|c| {
+            **c == '\0'
+                || ((**c as u32) < 32 && **c != '\n' && **c != '\r' && **c != '\t')
+        })
+        .count();
+    suspicious * 4 > sample.len()
+}
+
 pub fn parse_json_text(text: &str) -> Result<Value, String> {
     let raw = text.trim();
     if raw.is_empty() {
@@ -131,11 +146,16 @@ pub fn parse_json_text(text: &str) -> Result<Value, String> {
     }
     if let Some(start) = raw.find('(') {
         if let Some(end) = raw.rfind(')') {
-            let inner = raw[start + 1..end].trim();
-            if !inner.is_empty() {
-                return serde_json::from_str(inner).map_err(|e| format!("JSONP 解析失败: {e}"));
+            if end > start {
+                let inner = raw[start + 1..end].trim();
+                if inner.starts_with('{') || inner.starts_with('[') {
+                    return serde_json::from_str(inner).map_err(|e| format!("JSONP 解析失败: {e}"));
+                }
             }
         }
+    }
+    if looks_like_binary(raw) {
+        return Err("QQ 接口返回非文本数据，可能是网络异常或响应未正确解压".into());
     }
     serde_json::from_str(raw).map_err(|e| {
         let preview: String = raw.chars().take(80).collect();
@@ -365,5 +385,15 @@ mod tests {
     fn parse_pure_json() {
         let body = parse_json_text(r#"{"code":0}"#).unwrap();
         assert_eq!(body["code"], 0);
+    }
+
+    #[test]
+    fn parse_jsonp_does_not_panic_when_paren_order_invalid() {
+        let mut garbage = "y".repeat(564);
+        garbage.push(')');
+        garbage.push_str(&"x".repeat(103));
+        garbage.push('(');
+        let err = parse_json_text(&garbage).unwrap_err();
+        assert!(err.contains("响应解析失败") || err.contains("非文本数据"));
     }
 }

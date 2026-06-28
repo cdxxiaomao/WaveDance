@@ -26,8 +26,9 @@
           <div class="settings-field settings-field--row" data-no-drag>
             <label for="captureSourceMode" class="settings-label">采集模式</label>
             <select id="captureSourceMode" class="settings-select">
-              <option value="blackhole" selected>BlackHole（系统声音）</option>
+              <option value="blackhole">BlackHole（系统声音）</option>
               <option value="microphone">麦克风（默认输入）</option>
+              <option value="internal_player" selected>内部播放器</option>
             </select>
           </div>
           <p id="blackholeHint" class="settings-blackhole-hint" role="status"></p>
@@ -130,6 +131,10 @@
               <option value="minimal">简约风格</option>
             </select>
           </div>
+          <p id="spectrumInternalPlayerHint" class="settings-blackhole-hint" hidden>
+            内部播放器模式下，分桶、频率范围与静默门限等采集参数不可用；请切换至 BlackHole 或麦克风以自定义。
+          </p>
+          <div id="spectrumCaptureConfig" class="settings-form__group" data-capture-only>
           <div class="settings-field">
             <label for="bucketRange" class="settings-label">分桶数量 <span class="settings-value" id="bucketValue">256</span></label>
             <input id="bucketRange" type="range" min="8" max="500" step="1" value="256" />
@@ -153,11 +158,6 @@
             <label for="freqMaxRange" class="settings-label">频率上限 <span class="settings-value" id="freqMaxValue">7600</span> Hz</label>
             <input id="freqMaxRange" type="range" min="100" max="24000" step="10" value="7600" />
           </div>
-          <label class="settings-toggle settings-toggle--block">
-            <input id="freqReversedToggle" type="checkbox" />
-            <span class="settings-toggle__ui" aria-hidden="true"></span>
-            <span>反转频率方向（高音/低音对调）</span>
-          </label>
           <div class="settings-field">
             <label for="silencePeakGateRange" class="settings-label">静默 Peak 门限 <span class="settings-value" id="silencePeakGateValue">0.0001</span></label>
             <input id="silencePeakGateRange" type="range" min="0" max="500" step="1" value="1" />
@@ -167,6 +167,12 @@
             <input id="silenceRmsGateRange" type="range" min="0" max="500" step="1" value="1" />
           </div>
           <p class="settings-blackhole-hint">Peak 与 RMS 同时低于门限时视为静默（频谱置零）。设为 0 可关闭对应门限；调低可让小声也触发效果。</p>
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="freqReversedToggle" type="checkbox" />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>反转频率方向（高音/低音对调）</span>
+          </label>
         </div>
       </section>
 

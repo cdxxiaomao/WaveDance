@@ -854,6 +854,8 @@ const blackholeHint = document.querySelector("#blackholeHint");
 const blackholeInstallBtn = document.querySelector("#blackholeInstallBtn");
 const blackholeRefreshBtn = document.querySelector("#blackholeRefreshBtn");
 const captureSourceModeSelect = document.querySelector("#captureSourceMode");
+const spectrumCaptureConfig = document.querySelector("#spectrumCaptureConfig");
+const spectrumInternalPlayerHint = document.querySelector("#spectrumInternalPlayerHint");
 const openMidiSetupBtn = document.querySelector("#openMidiSetupBtn");
 const openSoundSettingsBtn = document.querySelector("#openSoundSettingsBtn");
 const closeSettingsBtn = document.querySelector("#closeSettingsBtn");
@@ -864,7 +866,7 @@ const ACTIVE_POINTS_THRESHOLD = 0.01;
 let blackholeInstalled = false;
 let captureTransportRunning = false;
 let lastWaveformFrameAt = 0;
-let captureSourceMode = "blackhole";
+let captureSourceMode = "internal_player";
 let displayMode = DEFAULT_CONFIG.displayMode;
 let panelStyleMode = DEFAULT_CONFIG.panelStyleMode;
 
@@ -5350,6 +5352,16 @@ function refreshMidiSetupVisibility() {
   }
 }
 
+function refreshCaptureSourceDependentUi() {
+  const isInternalPlayer = captureSourceMode === "internal_player";
+  if (spectrumCaptureConfig) {
+    spectrumCaptureConfig.hidden = isInternalPlayer;
+  }
+  if (spectrumInternalPlayerHint) {
+    spectrumInternalPlayerHint.hidden = !isInternalPlayer;
+  }
+}
+
 function hasEffectiveWaveformData(payload) {
   if (!payload || typeof payload !== "object") {
     return false;
@@ -5660,12 +5672,18 @@ async function init() {
   });
 
   captureSourceModeSelect?.addEventListener("change", async (event) => {
-    const mode = String(event.target.value || "blackhole");
+    const mode = String(event.target.value || "internal_player");
     try {
       await invoke("set_capture_source_mode", { mode });
       captureSourceMode = mode;
       refreshMidiSetupVisibility();
-      statusEl.textContent = mode === "microphone" ? "采集模式已切换为麦克风" : "采集模式已切换为 BlackHole";
+      refreshCaptureSourceDependentUi();
+      const modeLabels = {
+        microphone: "麦克风",
+        blackhole: "BlackHole",
+        internal_player: "内部播放器",
+      };
+      statusEl.textContent = `采集模式已切换为 ${modeLabels[mode] ?? mode}`;
       if (captureTransportRunning) {
         await invoke("stop_waveform_stream");
         await invoke("start_waveform_stream");
@@ -10227,12 +10245,13 @@ async function init() {
     pinToggle.checked = Boolean(overlayPinned);
     blurToggle.checked = readBlurEnabled(visualTargetLabel);
     setCaptureTransportRunning(Boolean(streamRunning));
-    if (sourceMode === "microphone" || sourceMode === "blackhole") {
+    if (sourceMode === "microphone" || sourceMode === "blackhole" || sourceMode === "internal_player") {
       captureSourceMode = sourceMode;
     }
     if (captureSourceModeSelect) {
       captureSourceModeSelect.value = captureSourceMode;
     }
+    refreshCaptureSourceDependentUi();
 
     const savedPeakGate = readWindowStorageString(window.localStorage, visualTargetLabel, "silencePeakGate");
     const savedRmsGate = readWindowStorageString(window.localStorage, visualTargetLabel, "silenceRmsGate");

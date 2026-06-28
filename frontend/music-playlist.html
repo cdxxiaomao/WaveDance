@@ -8,36 +8,31 @@
   </head>
   <body class="playlist-clone">
     <div class="app playlist-only">
-      <div class="playlist-toolbar" data-no-drag>
-        <button type="button" id="refreshPlaylistBtn" class="playlist-toolbar-text" title="刷新歌单" aria-label="刷新歌单">刷新</button>
-        <button
-          type="button"
-          id="mousePassthroughLockBtn"
-          title="开启后本窗口鼠标穿透到下层"
-          aria-pressed="false"
-          aria-label="穿透锁定"
-        >
-          <img
-            class="toolbar-icon"
-            data-lock-icon
-            src="/icons/passthrough-idle.svg"
-            alt=""
-            width="14"
-            height="14"
-            decoding="async"
-          />
-        </button>
-        <button type="button" id="openMusicLoginBtn" title="音乐平台登录" aria-label="音乐平台登录">
-          <img
-            class="toolbar-icon"
-            src="/icons/settings.svg"
-            alt=""
-            width="14"
-            height="14"
-            decoding="async"
-          />
-        </button>
-      </div>
+      <header class="overlay-window-titlebar" aria-label="歌单窗口">
+        <span class="overlay-window-titlebar__title">歌单</span>
+        <div class="overlay-window-titlebar__actions" data-no-drag>
+          <button type="button" id="refreshPlaylistBtn" title="刷新歌单" aria-label="刷新歌单">
+            <img
+              class="toolbar-icon"
+              src="/icons/refresh.svg"
+              alt=""
+              width="14"
+              height="14"
+              decoding="async"
+            />
+          </button>
+          <button type="button" id="openMusicLoginBtn" title="音乐平台登录" aria-label="音乐平台登录">
+            <img
+              class="toolbar-icon"
+              src="/icons/settings.svg"
+              alt=""
+              width="14"
+              height="14"
+              decoding="async"
+            />
+          </button>
+        </div>
+      </header>
 
       <div class="playlist-window-body">
         <div id="playlistTabs" class="playlist-tabs" hidden>

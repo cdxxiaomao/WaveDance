@@ -91,6 +91,8 @@ struct StreamState {
     cover_settings_target: Arc<Mutex<String>>,
     /// 歌曲信息设置页当前编辑的窗口 label（`songinfo-*`）。
     songinfo_settings_target: Arc<Mutex<String>>,
+    /// 播放控制设置页所关联的窗口 label（`music-player`）。
+    player_settings_target: Arc<Mutex<String>>,
     /// ESP32 外接屏串口推送（Type-C）。
     esp_display: Arc<esp_display::EspDisplayState>,
 }
@@ -99,7 +101,7 @@ impl Default for StreamState {
     fn default() -> Self {
         Self {
             running: Arc::new(AtomicBool::new(false)),
-            capture_source_mode: Arc::new(AtomicU8::new(0)),
+            capture_source_mode: Arc::new(AtomicU8::new(2)),
             overlay_pinned: Arc::new(AtomicBool::new(true)),
             overlay_blur_by_label: Arc::new(Mutex::new(HashMap::new())),
             mouse_passthrough_by_label: Arc::new(Mutex::new(HashMap::new())),
@@ -127,6 +129,7 @@ impl Default for StreamState {
             lyrics_search_target: Arc::new(Mutex::new(String::new())),
             cover_settings_target: Arc::new(Mutex::new(String::new())),
             songinfo_settings_target: Arc::new(Mutex::new(String::new())),
+            player_settings_target: Arc::new(Mutex::new(String::new())),
             esp_display: Arc::new(esp_display::EspDisplayState::default()),
         }
     }
@@ -142,6 +145,10 @@ const ESP_DISPLAY_SETTINGS_LABEL: &str = "esp-display-settings";
 const MUSIC_PLATFORM_LOGIN_LABEL: &str = music_platform::MUSIC_PLATFORM_LOGIN_LABEL;
 #[cfg(target_os = "macos")]
 const MUSIC_PLAYLIST_LABEL: &str = music_platform::MUSIC_PLAYLIST_LABEL;
+const MUSIC_PLAYER_QUEUE_LABEL: &str = music_platform::MUSIC_PLAYER_QUEUE_LABEL;
+const PLAYER_SETTINGS_LABEL: &str = "player-settings";
+#[cfg(target_os = "macos")]
+const MUSIC_PLAYER_LABEL: &str = music_platform::MUSIC_PLAYER_LABEL;
 #[cfg(target_os = "macos")]
 const QQ_MUSIC_LOGIN_LABEL: &str = music_platform::QQ_MUSIC_LOGIN_LABEL;
 const PASSTHROUGH_TOOLBAR_LABEL_PREFIX: &str = "ptb-";
@@ -174,7 +181,7 @@ const WINDOW_MANAGER_ABOVE_SETTINGS_LEVEL_OFFSET: isize = 10;
 fn is_settings_window_label(label: &str) -> bool {
     matches!(
         label,
-        "settings" | "lyrics-settings" | "cover-settings" | "songinfo-settings" | "lyrics-search"
+        "settings" | "lyrics-settings" | "cover-settings" | "songinfo-settings" | "player-settings" | "lyrics-search"
     )
 }
 
@@ -247,8 +254,11 @@ fn managed_window_sort_key(label: &str) -> (u8, u32, String) {
     if label == "songinfo-settings" {
         return (5, 3, String::new());
     }
-    if label == "lyrics-search" {
+    if label == "player-settings" {
         return (5, 4, String::new());
+    }
+    if label == "lyrics-search" {
+        return (5, 5, String::new());
     }
     (6, 0, label.to_string())
 }
@@ -260,6 +270,7 @@ fn managed_window_display_name(state: &StreamState, label: &str) -> String {
         "lyrics-settings" => "歌词设置".to_string(),
         "cover-settings" => "封面设置".to_string(),
         "songinfo-settings" => "歌曲信息设置".to_string(),
+        "player-settings" => "播放控制设置".to_string(),
         "lyrics-search" => "歌词加载".to_string(),
         l if l.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) => {
             let n = l.strip_prefix(SPECTRUM_WINDOW_LABEL_PREFIX).unwrap_or(l);
@@ -284,14 +295,29 @@ fn managed_window_display_name(state: &StreamState, label: &str) -> String {
         l if {
             #[cfg(target_os = "macos")]
             {
-                l == MUSIC_PLAYLIST_LABEL
+                l == MUSIC_PLAYLIST_LABEL || l == MUSIC_PLAYER_LABEL || l == MUSIC_PLAYER_QUEUE_LABEL
             }
             #[cfg(not(target_os = "macos"))]
             {
                 let _ = l;
                 false
             }
-        } => "歌单".to_string(),
+        } => {
+            #[cfg(target_os = "macos")]
+            {
+                if l == MUSIC_PLAYER_LABEL {
+                    "播放控制".to_string()
+                } else if l == MUSIC_PLAYER_QUEUE_LABEL {
+                    "播放列表".to_string()
+                } else {
+                    "歌单".to_string()
+                }
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                l.to_string()
+            }
+        }
         other => other.to_string(),
     }
 }
@@ -311,7 +337,7 @@ fn is_now_playing_overlay_label(label: &str) -> bool {
         || {
             #[cfg(target_os = "macos")]
             {
-                label == MUSIC_PLAYLIST_LABEL
+                is_music_overlay_label(label)
             }
             #[cfg(not(target_os = "macos"))]
             {
@@ -567,6 +593,12 @@ fn wire_cover_window_square_resize(win: tauri::WebviewWindow) {
     });
 }
 
+fn is_music_overlay_label(label: &str) -> bool {
+    label == MUSIC_PLAYLIST_LABEL
+        || label == MUSIC_PLAYER_LABEL
+        || label == MUSIC_PLAYER_QUEUE_LABEL
+}
+
 fn is_passthrough_capable_label(label: &str) -> bool {
     label == "main"
         || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
@@ -575,7 +607,7 @@ fn is_passthrough_capable_label(label: &str) -> bool {
         || {
             #[cfg(target_os = "macos")]
             {
-                label == MUSIC_PLAYLIST_LABEL
+                is_music_overlay_label(label)
             }
             #[cfg(not(target_os = "macos"))]
             {
@@ -601,7 +633,9 @@ fn label_passthrough_locked(state: &StreamState, label: &str) -> bool {
 }
 
 fn is_blur_capable_label(label: &str) -> bool {
-    label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+    label == "main"
+        || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+        || label == MUSIC_PLAYER_LABEL
 }
 
 fn label_blur_enabled(state: &StreamState, label: &str) -> bool {
@@ -634,7 +668,7 @@ fn overlay_uses_edge_reveal_unlock(state: &StreamState, label: &str) -> bool {
         || {
             #[cfg(target_os = "macos")]
             {
-                label == MUSIC_PLAYLIST_LABEL
+                is_music_overlay_label(label)
             }
             #[cfg(not(target_os = "macos"))]
             {
@@ -935,6 +969,79 @@ fn spectrum_bands_from_frame(
     bands
 }
 
+const WAVEFORM_FFT_SIZE: usize = 2048;
+
+struct WaveformSpectrumConfig {
+    bucket: usize,
+    log_mode: bool,
+    tilt_percent: usize,
+    min_hz: usize,
+    max_hz: usize,
+    silence_peak_gate: f32,
+    silence_rms_gate: f32,
+}
+
+impl WaveformSpectrumConfig {
+    fn from_state(state: &StreamState) -> Self {
+        Self {
+            bucket: state.bucket_count.load(Ordering::Relaxed),
+            log_mode: state.bucket_mode.load(Ordering::Relaxed) == 0,
+            tilt_percent: state.high_tilt_percent.load(Ordering::Relaxed),
+            min_hz: state.freq_min_hz.load(Ordering::Relaxed),
+            max_hz: state.freq_max_hz.load(Ordering::Relaxed),
+            silence_peak_gate: micro_to_gate(
+                state.silence_peak_gate_micro.load(Ordering::Relaxed),
+            ),
+            silence_rms_gate: micro_to_gate(state.silence_rms_gate_micro.load(Ordering::Relaxed)),
+        }
+    }
+}
+
+fn build_waveform_frame_from_mono(
+    mono: &[f32],
+    sample_rate: u32,
+    config: &WaveformSpectrumConfig,
+) -> WaveformFrame {
+    let (peak, rms) = compute_peak_rms(mono);
+    let bucket = config.bucket.clamp(8, 500);
+    let is_silent = rms < config.silence_rms_gate && peak < config.silence_peak_gate;
+    let spectrum = if is_silent {
+        vec![0.0; bucket]
+    } else {
+        spectrum_bands_from_frame(
+            mono,
+            sample_rate,
+            bucket,
+            WAVEFORM_FFT_SIZE,
+            config.log_mode,
+            config.tilt_percent,
+            config.min_hz,
+            config.max_hz,
+        )
+    };
+    let time_samples = if is_silent {
+        vec![0.0; TIME_DOMAIN_SAMPLE_COUNT]
+    } else {
+        downsample_time_domain(mono, TIME_DOMAIN_SAMPLE_COUNT)
+    };
+    let mut waveform = WaveformFrame {
+        peak,
+        rms,
+        points: spectrum,
+        time_samples,
+    };
+    waveform.points = rebucket_points(&waveform.points, bucket);
+    waveform
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PlayerWaveformInput {
+    /// mono 时域样本，长度建议为 2048（与 FFT 窗一致）。
+    samples: Vec<f32>,
+    sample_rate: u32,
+}
+
 #[tauri::command]
 fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -> Result<(), String> {
     if state.running.swap(true, Ordering::SeqCst) {
@@ -952,8 +1059,16 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
     let silence_peak_gate_micro = Arc::clone(&state.silence_peak_gate_micro);
     let silence_rms_gate_micro = Arc::clone(&state.silence_rms_gate_micro);
     thread::spawn(move || {
-        const FFT_SIZE: usize = 2048;
         let source_mode = capture_source_mode.load(Ordering::Relaxed);
+        if source_mode == 2 {
+            let _ = app.emit("waveform-status", "内部播放器采集已启动（由播放控制窗推送频谱）");
+            while running.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_millis(25));
+            }
+            let _ = app.emit("waveform-status", "内部播放器采集已停止");
+            running.store(false, Ordering::SeqCst);
+            return;
+        }
         let preferred = if source_mode == 1 {
             None
         } else {
@@ -969,46 +1084,24 @@ fn start_waveform_stream(app: tauri::AppHandle, state: State<'_, StreamState>) -
 
         let _ = app.emit("waveform-status", "系统音频采集已启动");
         while running.load(Ordering::SeqCst) {
-            match source.read_frame(FFT_SIZE) {
+            match source.read_frame(WAVEFORM_FFT_SIZE) {
                 Ok(frame) => {
                     let mono = mono_from_interleaved(&frame.samples, frame.channels as usize);
-                    let (peak, rms) = compute_peak_rms(&mono);
-                    let bucket = bucket_count.load(Ordering::Relaxed);
-                    let log_mode = bucket_mode.load(Ordering::Relaxed) == 0;
-                    let tilt_percent = high_tilt_percent.load(Ordering::Relaxed);
-                    let min_hz = freq_min_hz.load(Ordering::Relaxed);
-                    let max_hz = freq_max_hz.load(Ordering::Relaxed);
-                    let silence_peak_gate =
-                        micro_to_gate(silence_peak_gate_micro.load(Ordering::Relaxed));
-                    let silence_rms_gate =
-                        micro_to_gate(silence_rms_gate_micro.load(Ordering::Relaxed));
-                    let is_silent = rms < silence_rms_gate && peak < silence_peak_gate;
-                    let spectrum = if is_silent {
-                        vec![0.0; bucket.clamp(8, 500)]
-                    } else {
-                        spectrum_bands_from_frame(
-                            &mono,
-                            frame.sample_rate,
-                            bucket,
-                            FFT_SIZE,
-                            log_mode,
-                            tilt_percent,
-                            min_hz,
-                            max_hz,
-                        )
+                    let config = WaveformSpectrumConfig {
+                        bucket: bucket_count.load(Ordering::Relaxed),
+                        log_mode: bucket_mode.load(Ordering::Relaxed) == 0,
+                        tilt_percent: high_tilt_percent.load(Ordering::Relaxed),
+                        min_hz: freq_min_hz.load(Ordering::Relaxed),
+                        max_hz: freq_max_hz.load(Ordering::Relaxed),
+                        silence_peak_gate: micro_to_gate(
+                            silence_peak_gate_micro.load(Ordering::Relaxed),
+                        ),
+                        silence_rms_gate: micro_to_gate(
+                            silence_rms_gate_micro.load(Ordering::Relaxed),
+                        ),
                     };
-                    let time_samples = if is_silent {
-                        vec![0.0; TIME_DOMAIN_SAMPLE_COUNT]
-                    } else {
-                        downsample_time_domain(&mono, TIME_DOMAIN_SAMPLE_COUNT)
-                    };
-                    let mut waveform = WaveformFrame {
-                        peak,
-                        rms,
-                        points: spectrum,
-                        time_samples,
-                    };
-                    waveform.points = rebucket_points(&waveform.points, bucket);
+                    let waveform =
+                        build_waveform_frame_from_mono(&mono, frame.sample_rate, &config);
                     let _ = app.emit("waveform-frame", waveform.clone());
                     esp_display::maybe_send_frame(&app, &esp_display, &waveform);
                 }
@@ -1032,7 +1125,8 @@ fn set_capture_source_mode(state: State<'_, StreamState>, mode: String) -> Resul
     let value = match normalized.as_str() {
         "blackhole" => 0_u8,
         "microphone" => 1_u8,
-        _ => return Err("采集模式必须是 blackhole 或 microphone".to_string()),
+        "internal_player" | "internal-player" | "player" => 2_u8,
+        _ => return Err("采集模式必须是 blackhole、microphone 或 internal_player".to_string()),
     };
     state.capture_source_mode.store(value, Ordering::SeqCst);
     Ok(())
@@ -1040,11 +1134,41 @@ fn set_capture_source_mode(state: State<'_, StreamState>, mode: String) -> Resul
 
 #[tauri::command]
 fn get_capture_source_mode(state: State<'_, StreamState>) -> String {
-    if state.capture_source_mode.load(Ordering::SeqCst) == 1 {
-        "microphone".to_string()
-    } else {
-        "blackhole".to_string()
+    match state.capture_source_mode.load(Ordering::SeqCst) {
+        1 => "microphone".to_string(),
+        2 => "internal_player".to_string(),
+        _ => "blackhole".to_string(),
     }
+}
+
+#[tauri::command]
+fn submit_player_waveform_frame(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    input: PlayerWaveformInput,
+) -> Result<(), String> {
+    if state.capture_source_mode.load(Ordering::SeqCst) != 2 {
+        return Ok(());
+    }
+    if !state.running.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+    if input.samples.is_empty() {
+        return Ok(());
+    }
+    let sample_rate = input.sample_rate.max(8_000);
+    let mut mono = input.samples;
+    if mono.len() > WAVEFORM_FFT_SIZE {
+        mono.truncate(WAVEFORM_FFT_SIZE);
+    } else if mono.len() < WAVEFORM_FFT_SIZE {
+        mono.resize(WAVEFORM_FFT_SIZE, 0.0);
+    }
+    let config = WaveformSpectrumConfig::from_state(&state);
+    let waveform = build_waveform_frame_from_mono(&mono, sample_rate, &config);
+    let esp_display = Arc::clone(&state.esp_display);
+    let _ = app.emit("waveform-frame", waveform.clone());
+    esp_display::maybe_send_frame(&app, &esp_display, &waveform);
+    Ok(())
 }
 
 #[tauri::command]
@@ -2157,6 +2281,7 @@ fn set_overlay_pinned(
             "lyrics-settings",
             "cover-settings",
             "songinfo-settings",
+            "player-settings",
             "lyrics-search",
         ] {
             if let Some(w) = app.get_webview_window(label) {
@@ -2173,6 +2298,7 @@ fn set_overlay_pinned(
             "lyrics-settings",
             "cover-settings",
             "songinfo-settings",
+            "player-settings",
             "lyrics-search",
         ] {
             if let Some(w) = app.get_webview_window(label) {
@@ -2242,7 +2368,7 @@ fn set_overlay_blur_enabled(
 ) -> Result<(), String> {
     let label = label.trim().to_string();
     if !is_blur_capable_label(&label) {
-        return Err("仅主窗口与频谱窗口支持毛玻璃".to_string());
+        return Err("仅主窗口、频谱窗口与播放控制窗支持毛玻璃".to_string());
     }
     if app.get_webview_window(&label).is_none() {
         return Err("窗口不存在或已关闭".to_string());
@@ -3031,6 +3157,71 @@ fn get_cover_settings_target(state: State<'_, StreamState>) -> String {
         .unwrap_or_default()
 }
 
+#[cfg(target_os = "macos")]
+fn open_player_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    let parent = app
+        .get_webview_window(MUSIC_PLAYER_LABEL)
+        .ok_or_else(|| "播放控制窗口不存在或已关闭".to_string())?;
+    let pinned = app
+        .state::<StreamState>()
+        .overlay_pinned
+        .load(Ordering::SeqCst);
+
+    parent.set_focus().map_err(|e| e.to_string())?;
+
+    if let Some(settings) = app.get_webview_window(PLAYER_SETTINGS_LABEL) {
+        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        show_settings_window(app, &settings, pinned)?;
+        return Ok(());
+    }
+
+    let settings = WebviewWindowBuilder::new(
+        app,
+        PLAYER_SETTINGS_LABEL,
+        WebviewUrl::App("player-settings.html".into()),
+    )
+    .title("WaveDance 播放控制设置")
+    .inner_size(420.0, 360.0)
+    .decorations(true)
+    .parent(&parent)
+    .map_err(|e| e.to_string())?
+    .always_on_top(pinned)
+    .resizable(true)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    show_settings_window(app, &settings, pinned)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_player_settings_window(
+    app: tauri::AppHandle,
+    state: State<'_, StreamState>,
+    window: tauri::WebviewWindow,
+) -> Result<(), String> {
+    if window.label() != MUSIC_PLAYER_LABEL {
+        return Err("仅播放控制窗可打开播放控制设置".to_string());
+    }
+    if let Ok(mut g) = state.player_settings_target.lock() {
+        *g = MUSIC_PLAYER_LABEL.to_string();
+    }
+    open_player_settings_window_impl(&app)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn close_player_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(settings) = app.get_webview_window(PLAYER_SETTINGS_LABEL) {
+        let _ = settings.hide();
+    }
+    if let Some(w) = app.get_webview_window(MUSIC_PLAYER_LABEL) {
+        w.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn notify_songinfo_settings_target(app: &tauri::AppHandle) {
     let label = app
         .state::<StreamState>()
@@ -3373,6 +3564,131 @@ fn open_music_playlist_window_from_tray(app: &tauri::AppHandle) -> Result<(), St
 }
 
 #[cfg(target_os = "macos")]
+fn open_music_player_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(MUSIC_PLAYER_LABEL) {
+        win.show().map_err(|e| e.to_string())?;
+        win.unminimize().ok();
+        win.set_focus().map_err(|e| e.to_string())?;
+        let snapshot = app.state::<music_platform::MusicPlayerState>().snapshot();
+        let _ = win.emit(music_platform::MUSIC_PLAYER_STATE_EVENT, snapshot);
+        return Ok(());
+    }
+
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        MUSIC_PLAYER_LABEL,
+        WebviewUrl::App("music-player.html".into()),
+    )
+    .title("WaveDance 播放控制")
+    .inner_size(600.0, 168.0)
+    .min_inner_size(520.0, 148.0)
+    .resizable(true)
+    .transparent(true)
+    .decorations(false)
+    .shadow(false)
+    .always_on_top(pinned)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    #[cfg(target_os = "macos")]
+    configure_cover_overlay_window(win.clone(), pinned, true).map_err(|e| e.to_string())?;
+
+    win.show().map_err(|e| e.to_string())?;
+
+    let snapshot = app.state::<music_platform::MusicPlayerState>().snapshot();
+    let _ = win.emit(music_platform::MUSIC_PLAYER_STATE_EVENT, snapshot);
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_player_queue_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(MUSIC_PLAYER_QUEUE_LABEL) {
+        win.show().map_err(|e| e.to_string())?;
+        win.unminimize().ok();
+        win.set_focus().map_err(|e| e.to_string())?;
+        let snapshot = app.state::<music_platform::MusicPlayerState>().snapshot();
+        let _ = win.emit(music_platform::MUSIC_PLAYER_STATE_EVENT, snapshot);
+        return Ok(());
+    }
+
+    let state = app.state::<StreamState>();
+    let pinned = state.overlay_pinned.load(Ordering::SeqCst);
+
+    let win = WebviewWindowBuilder::new(
+        app,
+        MUSIC_PLAYER_QUEUE_LABEL,
+        WebviewUrl::App("music-player-queue.html".into()),
+    )
+    .title("WaveDance 播放列表")
+    .inner_size(507.0, 520.0)
+    .min_inner_size(427.0, 240.0)
+    .resizable(true)
+    .transparent(true)
+    .decorations(false)
+    .shadow(false)
+    .always_on_top(pinned)
+    .center()
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            sync_app_activation_policy(&handle);
+        }
+    });
+
+    configure_overlay_window(
+        win.clone(),
+        OverlayWindowStackTier::NowPlayingInfo,
+        pinned,
+        true,
+        false,
+    )
+    .map_err(|e| e.to_string())?;
+
+    win.show().map_err(|e| e.to_string())?;
+    let snapshot = app.state::<music_platform::MusicPlayerState>().snapshot();
+    let _ = win.emit(music_platform::MUSIC_PLAYER_STATE_EVENT, snapshot);
+    sync_app_activation_policy(app);
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_player_queue_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_music_player_queue_window_impl(app)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_music_player_queue_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_music_player_queue_window_impl(&app)
+}
+
+#[cfg(target_os = "macos")]
+fn open_music_player_window_from_tray(app: &tauri::AppHandle) -> Result<(), String> {
+    open_music_player_window_impl(app)
+}
+
+#[cfg(target_os = "macos")]
+#[tauri::command]
+fn open_music_player_window(app: tauri::AppHandle) -> Result<(), String> {
+    open_music_player_window_impl(&app)
+}
+
+#[cfg(target_os = "macos")]
 #[tauri::command]
 fn open_music_playlist_window(app: tauri::AppHandle) -> Result<(), String> {
     open_music_playlist_window_impl(&app)
@@ -3436,7 +3752,7 @@ fn supports_window_edge_reveal(app: &tauri::AppHandle, label: &str) -> bool {
         || {
             #[cfg(target_os = "macos")]
             {
-                label == MUSIC_PLAYLIST_LABEL
+                is_music_overlay_label(label)
             }
             #[cfg(not(target_os = "macos"))]
             {
@@ -3669,8 +3985,10 @@ fn resize_window_by_delta(
     let label = window.label();
     let (min_width, min_height) = if label.starts_with(LYRICS_WINDOW_LABEL_PREFIX) {
         (260, 96)
-    } else if label == "music-playlist" {
+    } else if label == "music-playlist" || label == MUSIC_PLAYER_QUEUE_LABEL {
         (427, 240)
+    } else if label == "music-player" {
+        (520, 148)
     } else if label.starts_with(SONGINFO_WINDOW_LABEL_PREFIX) {
         (220, 96)
     } else if label.starts_with(COVER_WINDOW_LABEL_PREFIX) {
@@ -3729,7 +4047,17 @@ fn main() {
     let passthrough_shortcut_for_setup = passthrough_toggle_shortcut.clone();
     let stream_state = StreamState::default();
     let esp_display_state = Arc::clone(&stream_state.esp_display);
-    tauri::Builder::default()
+    let mut app_builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    {
+        app_builder = app_builder.register_asynchronous_uri_scheme_protocol(
+            "audio-proxy",
+            |_ctx, request, responder| {
+                music_platform::audio_proxy::handle_request(request, responder);
+            },
+        );
+    }
+    app_builder
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
@@ -3775,6 +4103,8 @@ fn main() {
                 const TRAY_MENU_WINDOW_MANAGER: &str = "tray_window_manager";
                 const TRAY_MENU_MUSIC_LOGIN: &str = "tray_music_login";
                 const TRAY_MENU_MUSIC_PLAYLIST: &str = "tray_music_playlist";
+                const TRAY_MENU_MUSIC_PLAYER_QUEUE: &str = "tray_music_player_queue";
+                const TRAY_MENU_MUSIC_PLAYER: &str = "tray_music_player";
                 const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
                 const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
                 const TRAY_MENU_NEW_LYRICS: &str = "tray_new_lyrics";
@@ -3791,6 +4121,8 @@ fn main() {
                     .text(TRAY_MENU_WINDOW_MANAGER, "窗口管理…")
                     .text(TRAY_MENU_MUSIC_LOGIN, "登录音乐平台…")
                     .text(TRAY_MENU_MUSIC_PLAYLIST, "查看歌单…")
+                    .text(TRAY_MENU_MUSIC_PLAYER, "播放控制…")
+                    .text(TRAY_MENU_MUSIC_PLAYER_QUEUE, "播放列表…")
                     .text(TRAY_MENU_NEW_SPECTRUM, "新建浮层频谱窗口")
                     .text(TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, "新建传统频谱窗口")
                     .text(TRAY_MENU_NEW_LYRICS, "新建浮层歌词窗口")
@@ -3816,6 +4148,10 @@ fn main() {
                             let _ = open_music_platform_login_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_MUSIC_PLAYLIST {
                             let _ = open_music_playlist_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_MUSIC_PLAYER {
+                            let _ = open_music_player_window_from_tray(app);
+                        } else if event.id() == TRAY_MENU_MUSIC_PLAYER_QUEUE {
+                            let _ = open_music_player_queue_window_from_tray(app);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
                             let _ = open_extra_spectrum_window_impl(app, None, true);
                         } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
@@ -3836,6 +4172,7 @@ fn main() {
             #[cfg(target_os = "macos")]
             {
                 app.manage(std::sync::Arc::new(music_platform::QqLoginCoordinator::default()));
+                app.manage(music_platform::MusicPlayerState::default());
                 app.manage(lyrics::LyricsFetcher::default());
                 app.manage(now_playing::spawn_monitor(app.handle().clone()));
             }
@@ -3852,6 +4189,7 @@ fn main() {
             esp_display::test_esp_display_ping,
             set_capture_source_mode,
             get_capture_source_mode,
+            submit_player_waveform_frame,
             update_bucket_count,
             get_bucket_count,
             update_bucket_mode,
@@ -3931,11 +4269,51 @@ fn main() {
             #[cfg(target_os = "macos")]
             open_music_playlist_window,
             #[cfg(target_os = "macos")]
+            open_music_player_window,
+            #[cfg(target_os = "macos")]
+            open_music_player_queue_window,
+            #[cfg(target_os = "macos")]
+            open_player_settings_window,
+            #[cfg(target_os = "macos")]
+            close_player_settings_window,
+            #[cfg(target_os = "macos")]
             music_platform::music_playlist_get_context,
             #[cfg(target_os = "macos")]
             music_platform::music_playlist_list,
             #[cfg(target_os = "macos")]
-            music_platform::music_playlist_tracks
+            music_platform::music_playlist_tracks,
+            #[cfg(target_os = "macos")]
+            music_platform::music_song_url,
+            #[cfg(target_os = "macos")]
+            music_platform::audio_proxy::music_audio_playback_url,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_get_state,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_set_queue,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_toggle,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_pause,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_play,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_next,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_prev,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_set_loop_mode,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_set_quality,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_seek,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_report_progress,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_set_loading,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_set_error,
+            #[cfg(target_os = "macos")]
+            music_platform::player::music_player_play_index
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

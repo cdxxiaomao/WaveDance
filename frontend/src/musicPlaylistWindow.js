@@ -1,7 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { initWindowEdgeHint } from "./windowEdgeHint.js";
+
+const MUSIC_PLAYER_STATE_EVENT = "music-player-state-update";
 
 const playlistTabs = document.querySelector("#playlistTabs");
 const playlistStatus = document.querySelector("#playlistStatus");
@@ -16,7 +17,6 @@ const playlistTracksSearch = document.querySelector("#playlistTracksSearch");
 const playlistTracksStatus = document.querySelector("#playlistTracksStatus");
 const playlistTrackList = document.querySelector("#playlistTrackList");
 const refreshPlaylistBtn = document.querySelector("#refreshPlaylistBtn");
-const mousePassthroughLockBtn = document.querySelector("#mousePassthroughLockBtn");
 const openMusicLoginBtn = document.querySelector("#openMusicLoginBtn");
 
 /** @type {"qq" | "netease"} */
@@ -25,7 +25,7 @@ let activeProvider = "qq";
 let selectedKey = null;
 /** @type {Map<string, Array<Record<string, unknown>>>} */
 const tracksCache = new Map();
-/** @type {string | null} 当前 UI 播放态（播放器接入前占位） */
+/** @type {string | null} 当前 UI 播放态 trackKey */
 let playingTrackKey = null;
 let trackSearchQuery = "";
 
@@ -96,14 +96,78 @@ function syncPlayingTrackUi() {
   }
 }
 
-function toggleTrackPlayback(trackKey) {
-  if (playingTrackKey === trackKey) {
+function trackToPlayerItem(track, provider, playlistKey) {
+  return {
+    provider,
+    id: String(track.id ?? ""),
+    mediaMid: track.mediaMid ?? track.media_mid ?? null,
+    name: String(track.name ?? "未知曲目"),
+    artist: String(track.artist ?? ""),
+    album: track.album ? String(track.album) : null,
+    cover: track.cover ? String(track.cover) : null,
+    durationMs: typeof track.durationMs === "number" ? track.durationMs : null,
+    playlistKey,
+  };
+}
+
+function syncPlayingFromPlayerState(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
     playingTrackKey = null;
-  } else {
-    playingTrackKey = trackKey;
+    syncPlayingTrackUi();
+    return;
   }
+  const idx = snapshot.currentIndex;
+  const queue = Array.isArray(snapshot.queue) ? snapshot.queue : [];
+  if (typeof idx !== "number" || !queue[idx]) {
+    playingTrackKey = null;
+    syncPlayingTrackUi();
+    return;
+  }
+  const track = queue[idx];
+  const pk = track.playlistKey ? String(track.playlistKey) : selectedKey;
+  playingTrackKey = trackRowKey(pk ?? selectedKey ?? "queue", String(track.id ?? idx));
   syncPlayingTrackUi();
-  // TODO: 接入 QQ / 网易云播放器
+}
+
+async function playTrackAtIndex(trackIndex, tracks, provider, playlistKey) {
+  const playerTracks = tracks.map((track) => trackToPlayerItem(track, provider, playlistKey));
+  await invoke("open_music_player_window");
+  await invoke("music_player_set_queue", {
+    tracks: playerTracks,
+    startIndex: trackIndex,
+  });
+  playingTrackKey = trackRowKey(playlistKey, String(tracks[trackIndex]?.id ?? trackIndex));
+  syncPlayingTrackUi();
+}
+
+async function toggleTrackPlayback(trackKey, trackIndex) {
+  try {
+    const snap = await invoke("music_player_get_state");
+    const idx = snap?.currentIndex;
+    const queue = Array.isArray(snap?.queue) ? snap.queue : [];
+    const current = typeof idx === "number" ? queue[idx] : null;
+    const currentKey = current
+      ? trackRowKey(String(current.playlistKey ?? selectedKey ?? "queue"), String(current.id ?? idx))
+      : null;
+
+    if (currentKey === trackKey && snap?.playing) {
+      await invoke("music_player_toggle");
+      return;
+    }
+
+    if (currentKey === trackKey && !snap?.playing) {
+      await invoke("music_player_play");
+      playingTrackKey = trackKey;
+      syncPlayingTrackUi();
+      return;
+    }
+
+    if (!selectedKey) return;
+    const tracks = tracksCache.get(selectedKey) || [];
+    await playTrackAtIndex(trackIndex, tracks, activeProvider, selectedKey);
+  } catch (err) {
+    console.error("toggleTrackPlayback failed:", err);
+  }
 }
 
 function createPlayingIndicator() {
@@ -119,7 +183,7 @@ function createPlayingIndicator() {
   return indicator;
 }
 
-function createTrackPlayButton(trackKey) {
+function createTrackPlayButton(trackKey, trackIndex) {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "playlist-track__play";
@@ -129,7 +193,7 @@ function createTrackPlayButton(trackKey) {
   btn.appendChild(createTrackPlayIcon(false));
   btn.addEventListener("click", (event) => {
     event.stopPropagation();
-    toggleTrackPlayback(trackKey);
+    toggleTrackPlayback(trackKey, trackIndex).catch(console.error);
   });
   return btn;
 }
@@ -241,9 +305,10 @@ function renderTrackRows(tracks, options = {}) {
     const trackLi = document.createElement("li");
     trackLi.className = "playlist-track";
     trackLi.dataset.trackKey = rowKey;
+    trackLi.dataset.trackIndex = String(index);
     if (playing) trackLi.classList.add("is-playing");
 
-    const playBtn = createTrackPlayButton(rowKey);
+    const playBtn = createTrackPlayButton(rowKey, index);
     if (playing) {
       playBtn.setAttribute("aria-label", "暂停");
       playBtn.setAttribute("aria-pressed", "true");
@@ -463,7 +528,6 @@ async function loadContextAndRender() {
 }
 
 async function init() {
-  const windowLabel = getCurrentWebviewWindow().label;
   document.body.classList.add("playlist-dedicated", "overlay-edge-hint-window");
 
   document.body.addEventListener("mousedown", async (event) => {
@@ -485,52 +549,10 @@ async function init() {
   };
 
   await listen("music-playlist-should-reload", reloadPlaylists);
+  await listen(MUSIC_PLAYER_STATE_EVENT, (event) => {
+    syncPlayingFromPlayerState(event.payload);
+  });
   await loadContextAndRender();
-
-  const applyMousePassthroughLockUi = (locked) => {
-    const on = Boolean(locked);
-    document.body.classList.toggle("mouse-passthrough-locked", on);
-    if (!mousePassthroughLockBtn) return;
-    mousePassthroughLockBtn.setAttribute("aria-pressed", on ? "true" : "false");
-    mousePassthroughLockBtn.classList.toggle("is-locked", on);
-    mousePassthroughLockBtn.title = on
-      ? "已穿透：点击关闭穿透"
-      : "开启后本窗口鼠标穿透到下层";
-    const lockImg = mousePassthroughLockBtn.querySelector("img[data-lock-icon]");
-    if (lockImg) {
-      lockImg.src = on ? "/icons/passthrough-active.svg" : "/icons/passthrough-idle.svg";
-    }
-  };
-
-  await listen("mouse-passthrough-changed", (event) => {
-    const p = event.payload;
-    const lbl =
-      p && typeof p === "object" && p.label != null ? String(p.label) : "";
-    const locked =
-      p && typeof p === "object" && typeof p.locked === "boolean"
-        ? p.locked
-        : Boolean(p);
-    if (lbl !== windowLabel) return;
-    applyMousePassthroughLockUi(locked);
-  });
-
-  try {
-    const locked = await invoke("get_mouse_passthrough_locked", { label: windowLabel });
-    applyMousePassthroughLockUi(locked);
-  } catch {
-    applyMousePassthroughLockUi(false);
-  }
-
-  mousePassthroughLockBtn?.addEventListener("click", async () => {
-    try {
-      const cur = await invoke("get_mouse_passthrough_locked", { label: windowLabel });
-      const next = !cur;
-      await invoke("set_mouse_passthrough_locked", { label: windowLabel, locked: next });
-      applyMousePassthroughLockUi(next);
-    } catch (err) {
-      console.error("mouse passthrough toggle failed:", err);
-    }
-  });
 
   refreshPlaylistBtn?.addEventListener("click", reloadPlaylists);
 

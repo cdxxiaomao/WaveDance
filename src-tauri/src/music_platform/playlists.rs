@@ -27,6 +27,9 @@ pub struct PlaylistTrackItem {
     pub album: Option<String>,
     pub cover: Option<String>,
     pub duration_ms: Option<u64>,
+    /// QQ 音乐文件级 MID，换 vkey 更准确
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_mid: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -281,6 +284,11 @@ async fn fetch_qq_tracks(cookie: &str, disstid: &str) -> Result<Vec<PlaylistTrac
                 .as_u64()
                 .map(|sec| sec * 1000)
                 .or_else(|| song["duration"].as_u64());
+            let media_mid = song["file"]["media_mid"]
+                .as_str()
+                .or_else(|| song["strMediaMid"].as_str())
+                .or_else(|| song["media_mid"].as_str())
+                .map(str::to_string);
             Some(PlaylistTrackItem {
                 id,
                 name,
@@ -288,6 +296,7 @@ async fn fetch_qq_tracks(cookie: &str, disstid: &str) -> Result<Vec<PlaylistTrac
                 album,
                 cover,
                 duration_ms,
+                media_mid,
             })
         })
         .collect())
@@ -377,6 +386,7 @@ async fn fetch_netease_tracks(app: &AppHandle, playlist_id: &str) -> Result<Vec<
                 album,
                 cover,
                 duration_ms,
+                media_mid: None,
             })
         })
         .collect())

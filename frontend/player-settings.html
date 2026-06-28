@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaveDance 播放控制设置</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="settings-window">
+    <div class="settings-app">
+      <header class="settings-header">
+        <div class="settings-header__brand">
+          <span class="settings-header__mark" aria-hidden="true"></span>
+          <div>
+            <h1 class="settings-header__title">播放控制</h1>
+            <p class="settings-header__subtitle">窗口外观</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="settings-card" aria-labelledby="sec-player-display">
+        <h2 id="sec-player-display" class="settings-card__title">叠加显示</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="playerBgColor" class="settings-label">叠加背景色</label>
+            <input id="playerBgColor" type="color" value="#080a12" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label for="playerBgAlpha" class="settings-label">
+              透明度 <span class="settings-value" id="playerBgAlphaVal">72</span>%
+            </label>
+            <input id="playerBgAlpha" type="range" min="0" max="100" step="1" value="72" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="playerBlurToggle" class="settings-label">系统毛玻璃</label>
+            <label class="settings-toggle">
+              <input id="playerBlurToggle" type="checkbox" checked />
+              <span class="settings-toggle__ui" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="sec-player-app">
+        <h2 id="sec-player-app" class="settings-card__title">窗口</h2>
+        <div class="settings-card__body">
+          <p class="settings-muted">以上选项仅作用于播放控制浮层窗。下方按钮将关闭播放控制窗与本设置面板。</p>
+          <div class="settings-actions" data-no-drag>
+            <button type="button" id="closePlayerSettingsBtn" class="settings-btn settings-btn--ghost">
+              关闭播放控制与设置
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="/src/playerSettingsWindow.js"></script>
+  </body>
+</html>

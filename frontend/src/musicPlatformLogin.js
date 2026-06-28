@@ -167,8 +167,7 @@ async function pollNeteaseOnce() {
   if (code === 802 && neteaseQrHint) {
     neteaseQrHint.textContent = "已扫码，请在手机上确认";
     setBadge(neteaseStatusBadge, "pending", "待确认");
-  } else if (code === 801 && neteaseQrHint) {
-    neteaseQrHint.textContent = "等待扫码…";
+  } else if (code === 801) {
     setBadge(neteaseStatusBadge, "pending", "等待扫码");
   } else if (code === 800) {
     showToast("二维码已过期，正在刷新");
@@ -187,6 +186,7 @@ async function startNeteaseQr() {
 
   if (typeof data.qrImgBase64 === "string" && data.qrImgBase64) {
     showNeteaseQrImage(data.qrImgBase64);
+    setBadge(neteaseStatusBadge, "pending", "等待扫码");
   } else {
     showNeteaseQrLoading("二维码生成失败");
     return;
