@@ -62,6 +62,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.helix3d]: "helix3dConfigPanel",
   [DISPLAY_MODES.threePlasmaField]: "threePlasmaFieldConfigPanel",
   [DISPLAY_MODES.threeParticleGalaxy]: "threeParticleGalaxyConfigPanel",
+  [DISPLAY_MODES.threeCoverParticle]: "threeCoverParticleConfigPanel",
   [DISPLAY_MODES.threeBloomTunnel]: "threeBloomTunnelConfigPanel",
   [DISPLAY_MODES.threeEnergySphere]: "threeEnergySphereConfigPanel",
   [DISPLAY_MODES.threeKaleidoscope]: "threeKaleidoscopeConfigPanel",
@@ -846,6 +847,32 @@ const threeKnotOrganicSoftClipRange = document.querySelector("#threeKnotOrganicS
 const threeKnotOrganicSoftClipValue = document.querySelector("#threeKnotOrganicSoftClipValue");
 const threeKnotOrganicFallEaseRange = document.querySelector("#threeKnotOrganicFallEaseRange");
 const threeKnotOrganicFallEaseValue = document.querySelector("#threeKnotOrganicFallEaseValue");
+const threeCoverPresetSelect = document.querySelector("#threeCoverPresetSelect");
+const threeCoverResolutionRange = document.querySelector("#threeCoverResolutionRange");
+const threeCoverResolutionValue = document.querySelector("#threeCoverResolutionValue");
+const threeCoverGridValue = document.querySelector("#threeCoverGridValue");
+const threeCoverIntensityRange = document.querySelector("#threeCoverIntensityRange");
+const threeCoverIntensityValue = document.querySelector("#threeCoverIntensityValue");
+const threeCoverDepthRange = document.querySelector("#threeCoverDepthRange");
+const threeCoverDepthValue = document.querySelector("#threeCoverDepthValue");
+const threeCoverSpeedRange = document.querySelector("#threeCoverSpeedRange");
+const threeCoverSpeedValue = document.querySelector("#threeCoverSpeedValue");
+const threeCoverPointScaleRange = document.querySelector("#threeCoverPointScaleRange");
+const threeCoverPointScaleValue = document.querySelector("#threeCoverPointScaleValue");
+const threeCoverBloomToggle = document.querySelector("#threeCoverBloomToggle");
+const threeCoverBloomStrengthRange = document.querySelector("#threeCoverBloomStrengthRange");
+const threeCoverBloomStrengthValue = document.querySelector("#threeCoverBloomStrengthValue");
+const threeCoverAutoRotateToggle = document.querySelector("#threeCoverAutoRotateToggle");
+const threeCoverAutoRotateSpeedRange = document.querySelector("#threeCoverAutoRotateSpeedRange");
+const threeCoverAutoRotateSpeedValue = document.querySelector("#threeCoverAutoRotateSpeedValue");
+const threeCoverGainRange = document.querySelector("#threeCoverGainRange");
+const threeCoverGainValue = document.querySelector("#threeCoverGainValue");
+const threeCoverSmoothRange = document.querySelector("#threeCoverSmoothRange");
+const threeCoverSmoothValue = document.querySelector("#threeCoverSmoothValue");
+const threeCoverSoftClipRange = document.querySelector("#threeCoverSoftClipRange");
+const threeCoverSoftClipValue = document.querySelector("#threeCoverSoftClipValue");
+const threeCoverFallEaseRange = document.querySelector("#threeCoverFallEaseRange");
+const threeCoverFallEaseValue = document.querySelector("#threeCoverFallEaseValue");
 const bodyBgColor = document.querySelector("#bodyBgColor");
 const bodyBgAlpha = document.querySelector("#bodyBgAlpha");
 const bodyBgAlphaValue = document.querySelector("#bodyBgAlphaValue");
@@ -2506,6 +2533,138 @@ function applyThreeGalaxyFormFromStorage(v) {
         : DEFAULT_CONFIG.threeParticleGalaxy.bloomStrength;
     threeGalaxyBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
     if (threeGalaxyBloomStrengthValue) threeGalaxyBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+}
+
+/** @param {number} resolution */
+function coverParticleGridLabel(resolution) {
+  const normalized = Math.min(1.55, Math.max(0.75, Number(resolution) || 1));
+  let grid = Math.round(118 * normalized);
+  grid = Math.min(183, Math.max(88, grid));
+  if (grid % 2 === 0) grid += 1;
+  return `${grid}×${grid}`;
+}
+
+function updateThreeCoverResolutionUi(resolution) {
+  const res = Math.min(1.55, Math.max(0.75, Number(resolution) || 1));
+  if (threeCoverResolutionValue) threeCoverResolutionValue.textContent = res.toFixed(2);
+  if (threeCoverGridValue) threeCoverGridValue.textContent = coverParticleGridLabel(res);
+}
+
+function readThreeCoverShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeCoverShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return {
+      gainPercent: clampInt(parsed?.gainPercent, 10, 150),
+      smoothPercent: clampInt(parsed?.smoothPercent, 0, 400),
+      softClipPercent: clampInt(parsed?.softClipPercent, 0, 100),
+      fallEasePercent: clampInt(parsed?.fallEasePercent, 0, 100),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeCoverShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeCoverGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeCoverSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeCoverSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeCoverFallEaseRange?.value, 0, 100),
+  };
+  if (threeCoverGainValue) threeCoverGainValue.textContent = String(config.gainPercent);
+  if (threeCoverSmoothValue) threeCoverSmoothValue.textContent = String(config.smoothPercent);
+  if (threeCoverSoftClipValue) threeCoverSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeCoverFallEaseValue) threeCoverFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(window.localStorage, visualTargetLabel, "threeCoverShape", JSON.stringify(config));
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-cover-shape-config", config);
+  } catch {
+    // ignore emit failures
+  }
+}
+
+function applyThreeCoverFormFromStorage(v) {
+  const sg = readThreeCoverShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeCoverParticle.shape };
+  if (threeCoverGainRange) threeCoverGainRange.value = String(sg.gainPercent);
+  if (threeCoverSmoothRange) threeCoverSmoothRange.value = String(sg.smoothPercent);
+  if (threeCoverSoftClipRange) threeCoverSoftClipRange.value = String(sg.softClipPercent);
+  if (threeCoverFallEaseRange) threeCoverFallEaseRange.value = String(sg.fallEasePercent);
+  if (threeCoverGainValue) threeCoverGainValue.textContent = String(sg.gainPercent);
+  if (threeCoverSmoothValue) threeCoverSmoothValue.textContent = String(sg.smoothPercent);
+  if (threeCoverSoftClipValue) threeCoverSoftClipValue.textContent = String(sg.softClipPercent);
+  if (threeCoverFallEaseValue) threeCoverFallEaseValue.textContent = String(sg.fallEasePercent);
+
+  const savedPreset = readWindowStorageString(window.localStorage, v, "threeCoverPreset");
+  if (threeCoverPresetSelect) {
+    const preset =
+      savedPreset != null && savedPreset !== "" ? Math.round(Number(savedPreset)) : DEFAULT_CONFIG.threeCoverParticle.preset;
+    threeCoverPresetSelect.value = preset === 4 ? "4" : "0";
+  }
+
+  const savedResolution = readWindowStorageString(window.localStorage, v, "threeCoverResolution");
+  if (threeCoverResolutionRange) {
+    const resolution =
+      savedResolution != null && savedResolution !== ""
+        ? Math.min(1.55, Math.max(0.75, Number(savedResolution)))
+        : DEFAULT_CONFIG.threeCoverParticle.coverResolution;
+    threeCoverResolutionRange.value = String(Math.round(resolution * 100));
+    updateThreeCoverResolutionUi(resolution);
+  }
+
+  const intKeys = [
+    ["threeCoverIntensity", threeCoverIntensityRange, threeCoverIntensityValue, "intensity"],
+    ["threeCoverDepth", threeCoverDepthRange, threeCoverDepthValue, "depth"],
+    ["threeCoverSpeed", threeCoverSpeedRange, threeCoverSpeedValue, "speed"],
+    ["threeCoverPointScale", threeCoverPointScaleRange, threeCoverPointScaleValue, "pointScale"],
+  ];
+  for (const [storageKey, rangeEl, valueEl, defaultKey] of intKeys) {
+    const saved = readWindowStorageString(window.localStorage, v, storageKey);
+    if (!rangeEl) continue;
+    const n =
+      saved != null && saved !== "" ? clampInt(saved, 0, 100) : DEFAULT_CONFIG.threeCoverParticle[defaultKey];
+    rangeEl.value = String(n);
+    if (valueEl) valueEl.textContent = String(n);
+  }
+
+  if (threeCoverBloomToggle) {
+    threeCoverBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeCoverBloom"),
+      DEFAULT_CONFIG.threeCoverParticle.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeCoverBloomStrength");
+  if (threeCoverBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeCoverParticle.bloomStrength;
+    threeCoverBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeCoverBloomStrengthValue) threeCoverBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+  }
+
+  if (threeCoverAutoRotateToggle) {
+    threeCoverAutoRotateToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeCoverAutoRotate"),
+      DEFAULT_CONFIG.threeCoverParticle.autoRotateEnabled,
+    );
+  }
+
+  const savedAutoRotateSpeed = readWindowStorageString(window.localStorage, v, "threeCoverAutoRotateSpeed");
+  if (threeCoverAutoRotateSpeedRange) {
+    const speed =
+      savedAutoRotateSpeed != null && savedAutoRotateSpeed !== ""
+        ? clampInt(savedAutoRotateSpeed, 0, 12)
+        : DEFAULT_CONFIG.threeCoverParticle.autoRotateSpeedDeg;
+    threeCoverAutoRotateSpeedRange.value = String(speed);
+    if (threeCoverAutoRotateSpeedValue) threeCoverAutoRotateSpeedValue.textContent = String(speed);
   }
 }
 
@@ -5525,6 +5684,7 @@ async function init() {
     applyHelix3dFormFromStorage(v);
     applyThreePlasmaFormFromStorage(v);
     applyThreeGalaxyFormFromStorage(v);
+    applyThreeCoverFormFromStorage(v);
     applyThreeTunnelFormFromStorage(v);
     applyThreeSphereFormFromStorage(v);
     applyThreeKaleidoscopeFormFromStorage(v);
@@ -7487,6 +7647,105 @@ async function init() {
   });
   threeGalaxyFallEaseRange?.addEventListener("input", () => {
     void syncThreeGalaxyShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeCoverPresetSelect?.addEventListener("change", async (event) => {
+    const preset = Math.round(Number(event.target.value)) === 4 ? 4 : 0;
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeCoverPreset", String(preset));
+      await emitVisual("waveform-three-cover-preset", preset);
+    } catch (err) {
+      statusEl.textContent = `更新封面预设失败：${String(err)}`;
+    }
+  });
+  threeCoverResolutionRange?.addEventListener("input", async (event) => {
+    const resolution = Math.min(1.55, Math.max(0.75, Number(event.target.value) / 100));
+    updateThreeCoverResolutionUi(resolution);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeCoverResolution", String(resolution));
+      await emitVisual("waveform-three-cover-resolution", resolution);
+    } catch (err) {
+      statusEl.textContent = `更新封面清晰度失败：${String(err)}`;
+    }
+  });
+  const bindCoverInt = (rangeEl, valueEl, storageKey, eventName) => {
+    rangeEl?.addEventListener("input", async (event) => {
+      const n = clampInt(event.target.value, 0, 100);
+      if (valueEl) valueEl.textContent = String(n);
+      try {
+        writeWindowStorageString(window.localStorage, visualTargetLabel, storageKey, String(n));
+        await emitVisual(eventName, n);
+      } catch (err) {
+        statusEl.textContent = `更新封面粒子配置失败：${String(err)}`;
+      }
+    });
+  };
+  bindCoverInt(threeCoverIntensityRange, threeCoverIntensityValue, "threeCoverIntensity", "waveform-three-cover-intensity");
+  bindCoverInt(threeCoverDepthRange, threeCoverDepthValue, "threeCoverDepth", "waveform-three-cover-depth");
+  bindCoverInt(threeCoverSpeedRange, threeCoverSpeedValue, "threeCoverSpeed", "waveform-three-cover-speed");
+  bindCoverInt(threeCoverPointScaleRange, threeCoverPointScaleValue, "threeCoverPointScale", "waveform-three-cover-point-scale");
+  threeCoverBloomToggle?.addEventListener("change", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCoverBloom",
+        String(threeCoverBloomToggle.checked),
+      );
+      await emitVisual("waveform-three-cover-bloom-enabled", threeCoverBloomToggle.checked);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeCoverBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeCoverBloomStrengthValue) threeCoverBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCoverBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-cover-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeCoverAutoRotateToggle?.addEventListener("change", async () => {
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeCoverAutoRotate",
+        String(threeCoverAutoRotateToggle.checked),
+      );
+      await emitVisual("waveform-three-cover-auto-rotate-enabled", threeCoverAutoRotateToggle.checked);
+    } catch (err) {
+      statusEl.textContent = `更新自转开关失败：${String(err)}`;
+    }
+  });
+  threeCoverAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const speed = clampInt(event.target.value, 0, 12);
+    if (threeCoverAutoRotateSpeedValue) threeCoverAutoRotateSpeedValue.textContent = String(speed);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeCoverAutoRotateSpeed", String(speed));
+      await emitVisual("waveform-three-cover-auto-rotate-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新自转速度失败：${String(err)}`;
+    }
+  });
+  threeCoverGainRange?.addEventListener("input", () => {
+    void syncThreeCoverShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCoverSmoothRange?.addEventListener("input", () => {
+    void syncThreeCoverShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCoverSoftClipRange?.addEventListener("input", () => {
+    void syncThreeCoverShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeCoverFallEaseRange?.addEventListener("input", () => {
+    void syncThreeCoverShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeTunnelWallColorLow?.addEventListener("input", async () => {

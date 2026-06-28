@@ -349,6 +349,23 @@ export const STORAGE_KEYS = {
   threeKnotOrganicBloom: "wavedance.threeKnotOrganicBloomEnabled",
   threeKnotOrganicBloomStrength: "wavedance.threeKnotOrganicBloomStrength",
   threeKnotOrganicShape: "wavedance.threeKnotOrganicShapeConfig",
+  threeCoverPreset: "wavedance.threeCoverParticlePreset",
+  threeCoverResolution: "wavedance.threeCoverParticleResolution",
+  threeCoverIntensity: "wavedance.threeCoverParticleIntensity",
+  threeCoverDepth: "wavedance.threeCoverParticleDepth",
+  threeCoverPointScale: "wavedance.threeCoverParticlePointScale",
+  threeCoverSpeed: "wavedance.threeCoverParticleSpeed",
+  threeCoverTwist: "wavedance.threeCoverParticleTwist",
+  threeCoverScatter: "wavedance.threeCoverParticleScatter",
+  threeCoverColorBoost: "wavedance.threeCoverParticleColorBoost",
+  threeCoverBloom: "wavedance.threeCoverParticleBloomEnabled",
+  threeCoverBloomStrength: "wavedance.threeCoverParticleBloomStrength",
+  threeCoverBloomSize: "wavedance.threeCoverParticleBloomSize",
+  threeCoverCameraDistance: "wavedance.threeCoverParticleCameraDistance",
+  threeCoverCameraFov: "wavedance.threeCoverParticleCameraFovDeg",
+  threeCoverAutoRotate: "wavedance.threeCoverParticleAutoRotateEnabled",
+  threeCoverAutoRotateSpeed: "wavedance.threeCoverParticleAutoRotateSpeedDeg",
+  threeCoverShape: "wavedance.threeCoverParticleShapeConfig",
   mainBgColor: "wavedance.mainBgColor",
   mainBgAlpha: "wavedance.mainBgAlpha",
   overlayBlur: "wavedance.overlayBlurEnabled",
@@ -391,10 +408,12 @@ export const DISPLAY_MODES = {
   threeHoloPrism: "threeHoloPrism",
   threeNebulaVolume: "threeNebulaVolume",
   threeKnotOrganic: "threeKnotOrganic",
+  threeCoverParticle: "threeCoverParticle",
 };
 
 /** Three.js 高阶模式 id 列表（Phase 16 起逐步实现）。 */
 export const THREE_DISPLAY_MODES = [
+  DISPLAY_MODES.threeCoverParticle,
   DISPLAY_MODES.threePlasmaField,
   DISPLAY_MODES.threeParticleGalaxy,
   DISPLAY_MODES.threeBloomTunnel,
@@ -1038,6 +1057,32 @@ export const DEFAULT_CONFIG = {
       fallEasePercent: 55,
     },
   },
+  threeCoverParticle: {
+    preset: 0,
+    coverResolution: 1.0,
+    intensity: 55,
+    depth: 50,
+    pointScale: 100,
+    speed: 50,
+    twist: 0,
+    scatter: 0,
+    colorBoost: 50,
+    bloomEnabled: true,
+    bloomStrength: 0.85,
+    bloomSize: 2.65,
+    cameraDistance: 6.6,
+    cameraFovDeg: 45,
+    autoRotateEnabled: true,
+    autoRotateSpeedDeg: 3,
+    pointerInteractionEnabled: false, // 暂关：与主窗拖拽冲突
+    colorMixDurationMs: 1400,
+    shape: {
+      gainPercent: 55,
+      smoothPercent: 24,
+      softClipPercent: 14,
+      fallEasePercent: 58,
+    },
+  },
 };
 
 /** @param {string} mode */
@@ -1078,6 +1123,7 @@ export function normalizeDisplayMode(mode) {
   if (s === DISPLAY_MODES.threeHoloPrism) return DISPLAY_MODES.threeHoloPrism;
   if (s === DISPLAY_MODES.threeNebulaVolume) return DISPLAY_MODES.threeNebulaVolume;
   if (s === DISPLAY_MODES.threeKnotOrganic) return DISPLAY_MODES.threeKnotOrganic;
+  if (s === DISPLAY_MODES.threeCoverParticle) return DISPLAY_MODES.threeCoverParticle;
   return DISPLAY_MODES.line;
 }
 
@@ -1532,6 +1578,23 @@ export function windowStorageKeys(windowLabel) {
     threeKnotOrganicBloom: `${pre}.threeKnotOrganicBloomEnabled`,
     threeKnotOrganicBloomStrength: `${pre}.threeKnotOrganicBloomStrength`,
     threeKnotOrganicShape: `${pre}.threeKnotOrganicShapeConfig`,
+    threeCoverPreset: `${pre}.threeCoverParticlePreset`,
+    threeCoverResolution: `${pre}.threeCoverParticleResolution`,
+    threeCoverIntensity: `${pre}.threeCoverParticleIntensity`,
+    threeCoverDepth: `${pre}.threeCoverParticleDepth`,
+    threeCoverPointScale: `${pre}.threeCoverParticlePointScale`,
+    threeCoverSpeed: `${pre}.threeCoverParticleSpeed`,
+    threeCoverTwist: `${pre}.threeCoverParticleTwist`,
+    threeCoverScatter: `${pre}.threeCoverParticleScatter`,
+    threeCoverColorBoost: `${pre}.threeCoverParticleColorBoost`,
+    threeCoverBloom: `${pre}.threeCoverParticleBloomEnabled`,
+    threeCoverBloomStrength: `${pre}.threeCoverParticleBloomStrength`,
+    threeCoverBloomSize: `${pre}.threeCoverParticleBloomSize`,
+    threeCoverCameraDistance: `${pre}.threeCoverParticleCameraDistance`,
+    threeCoverCameraFov: `${pre}.threeCoverParticleCameraFovDeg`,
+    threeCoverAutoRotate: `${pre}.threeCoverParticleAutoRotateEnabled`,
+    threeCoverAutoRotateSpeed: `${pre}.threeCoverParticleAutoRotateSpeedDeg`,
+    threeCoverShape: `${pre}.threeCoverParticleShapeConfig`,
     mainBgColor: `${pre}.mainBgColor`,
     mainBgAlpha: `${pre}.mainBgAlpha`,
     overlayBlur: `${pre}.overlayBlurEnabled`,

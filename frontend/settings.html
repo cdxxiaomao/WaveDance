@@ -97,6 +97,7 @@
               <option value="terrain3d">3D 频谱地形</option>
               <option value="helix3d">3D 螺旋频谱</option>
               <optgroup label="Three 高阶">
+                <option value="threeCoverParticle">封面粒子</option>
                 <option value="threePlasmaField">等离子场</option>
                 <option value="threeParticleGalaxy">粒子银河</option>
                 <option value="threeBloomTunnel">能量隧道</option>
@@ -1143,6 +1144,73 @@
           <div class="settings-field">
             <label for="threeGalaxyFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeGalaxyFallEaseValue">55</span>%</label>
             <input id="threeGalaxyFallEaseRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeCoverParticleConfigPanel" aria-labelledby="sec-three-cover-display" hidden>
+        <h2 id="sec-three-cover-display" class="settings-card__title">封面粒子配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-cover" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="threeCoverPresetSelect" class="settings-label">视觉预设</label>
+            <select id="threeCoverPresetSelect" class="settings-select">
+              <option value="0" selected>丝绸 SILK</option>
+              <option value="4">唱片 VINYL</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverResolutionRange" class="settings-label">封面清晰度 <span class="settings-value" id="threeCoverResolutionValue">1.00</span> · <span class="settings-value" id="threeCoverGridValue">118×118</span></label>
+            <input id="threeCoverResolutionRange" type="range" min="75" max="155" step="1" value="100" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverIntensityRange" class="settings-label">强度 <span class="settings-value" id="threeCoverIntensityValue">55</span>%</label>
+            <input id="threeCoverIntensityRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverDepthRange" class="settings-label">深度 <span class="settings-value" id="threeCoverDepthValue">50</span>%</label>
+            <input id="threeCoverDepthRange" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverSpeedRange" class="settings-label">速度 <span class="settings-value" id="threeCoverSpeedValue">50</span>%</label>
+            <input id="threeCoverSpeedRange" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverPointScaleRange" class="settings-label">粒子大小 <span class="settings-value" id="threeCoverPointScaleValue">100</span>%</label>
+            <input id="threeCoverPointScaleRange" type="range" min="0" max="100" step="1" value="100" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeCoverBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeCoverBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeCoverBloomStrengthValue">0.9</span></label>
+            <input id="threeCoverBloomStrengthRange" type="range" min="0" max="20" step="1" value="9" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeCoverAutoRotateToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>自动旋转</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeCoverAutoRotateSpeedRange" class="settings-label">自转速度 <span class="settings-value" id="threeCoverAutoRotateSpeedValue">3</span>°/s</label>
+            <input id="threeCoverAutoRotateSpeedRange" type="range" min="0" max="12" step="1" value="3" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverGainRange" class="settings-label">增益 <span class="settings-value" id="threeCoverGainValue">55</span>%</label>
+            <input id="threeCoverGainRange" type="range" min="10" max="150" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeCoverSmoothValue">24</span>%</label>
+            <input id="threeCoverSmoothRange" type="range" min="0" max="400" step="1" value="24" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeCoverSoftClipValue">14</span>%</label>
+            <input id="threeCoverSoftClipRange" type="range" min="0" max="100" step="1" value="14" />
+          </div>
+          <div class="settings-field">
+            <label for="threeCoverFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeCoverFallEaseValue">58</span>%</label>
+            <input id="threeCoverFallEaseRange" type="range" min="0" max="100" step="1" value="58" />
           </div>
         </div>
       </section>

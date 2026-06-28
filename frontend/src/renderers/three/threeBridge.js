@@ -3,6 +3,7 @@ import { createThreeModeRenderer, hasThreeMode } from "./threeModeRegistry.js";
 import { buildSpectrumUniforms, disposeSpectrumUniformsCache } from "./spectrumUniforms.js";
 import { processSpectrumPoints } from "../shapePipeline.js";
 import { DEFAULT_CONFIG } from "../../visualizationSchema.js";
+import { createCoverTextureLoader } from "./coverTextureLoader.js";
 
 /**
  * Three.js 渲染桥接层：管理 context、模式切换与 dispose。
@@ -14,6 +15,7 @@ import { DEFAULT_CONFIG } from "../../visualizationSchema.js";
  *   dispose: () => void,
  *   isActive: () => boolean,
  *   getActiveMode: () => string | null,
+ *   getCoverTextureLoader: () => import('./coverTextureLoader.js').ReturnType<typeof createCoverTextureLoader>,
  * }}
  */
 export function createThreeBridge() {
@@ -25,6 +27,9 @@ export function createThreeBridge() {
   let activeModeId = null;
   const easedState = [];
   const warnedModes = new Set();
+  /** @type {ReturnType<typeof createCoverTextureLoader> | null} */
+  let coverTextureLoader = null;
+  let lastCoverTickMs = 0;
 
   function init(canvas) {
     if (ctx) return;
@@ -70,8 +75,32 @@ export function createThreeBridge() {
     }
   }
 
+  function ensureCoverTextureLoader() {
+    if (!coverTextureLoader) {
+      coverTextureLoader = createCoverTextureLoader();
+    }
+    return coverTextureLoader;
+  }
+
+  function syncCoverTextures(frameMeta, styleConfig) {
+    const loader = ensureCoverTextureLoader();
+    const cover = frameMeta?.cover;
+    const coverResolution = styleConfig?.coverResolution ?? frameMeta?.coverResolution ?? 1.0;
+    if (cover) {
+      loader.update(cover, coverResolution);
+    }
+
+    const now = performance.now();
+    const dt = lastCoverTickMs > 0 ? (now - lastCoverTickMs) / 1000 : 0;
+    lastCoverTickMs = now;
+    loader.tick(dt);
+    return { loader, coverResolution };
+  }
+
   function render(points, shapeConfig, styleConfig, frameMeta) {
     if (!ctx) return;
+
+    const { loader, coverResolution } = syncCoverTextures(frameMeta, styleConfig);
 
     if (!activeRenderer) {
       ctx.renderer.setClearColor(0x000000, 0);
@@ -83,7 +112,11 @@ export function createThreeBridge() {
     const processed = processSpectrumPoints(points, shape, easedState);
     const spectrum = buildSpectrumUniforms(processed);
 
-    activeRenderer.render(points, shapeConfig, styleConfig, frameMeta, spectrum, processed);
+    activeRenderer.render(points, shapeConfig, styleConfig, {
+      ...(frameMeta ?? {}),
+      coverTextures: loader.getTextures(),
+      coverResolution,
+    }, spectrum, processed);
   }
 
   function resize(width, height) {
@@ -101,6 +134,11 @@ export function createThreeBridge() {
       activeRenderer.dispose();
       activeRenderer = null;
     }
+    if (coverTextureLoader) {
+      coverTextureLoader.dispose();
+      coverTextureLoader = null;
+    }
+    lastCoverTickMs = 0;
     if (ctx) {
       ctx.dispose();
       ctx = null;
@@ -123,5 +161,20 @@ export function createThreeBridge() {
     return activeRenderer !== null;
   }
 
-  return { init, setMode, render, resize, clear, dispose, isActive, getActiveMode, hasActiveRenderer };
+  function getCoverTextureLoader() {
+    return ensureCoverTextureLoader();
+  }
+
+  return {
+    init,
+    setMode,
+    render,
+    resize,
+    clear,
+    dispose,
+    isActive,
+    getActiveMode,
+    hasActiveRenderer,
+    getCoverTextureLoader,
+  };
 }

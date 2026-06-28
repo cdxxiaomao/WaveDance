@@ -1,6 +1,8 @@
 pub mod audio_proxy;
 mod cookie_store;
 mod netease;
+#[cfg(target_os = "macos")]
+mod now_playing_bridge;
 pub mod player;
 mod playlists;
 mod qq;
@@ -11,6 +13,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 pub use player::{MusicPlayerState, MUSIC_PLAYER_LABEL, MUSIC_PLAYER_STATE_EVENT};
+#[cfg(target_os = "macos")]
+pub use now_playing_bridge::InternalPlayerNowPlayingBridge;
 pub use qq_login::{QQ_MUSIC_LOGIN_LABEL, QqLoginCoordinator};
 
 pub const MUSIC_PLATFORM_LOGIN_LABEL: &str = "music-platform-login";

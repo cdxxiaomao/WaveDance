@@ -49,6 +49,29 @@ fn micro_to_gate(micro: u32) -> f32 {
     micro as f32 / 1_000_000.0
 }
 
+#[cfg(target_os = "macos")]
+pub(crate) fn capture_source_is_internal_player(app: &tauri::AppHandle) -> bool {
+    app.state::<StreamState>()
+        .capture_source_mode
+        .load(Ordering::Relaxed)
+        == 2
+}
+
+#[cfg(target_os = "macos")]
+fn current_now_playing_snapshot(app: &tauri::AppHandle) -> now_playing::NowPlayingPayload {
+    if capture_source_is_internal_player(app) {
+        if let Some(payload) = music_platform::InternalPlayerNowPlayingBridge::snapshot(
+            app,
+            &app.state::<music_platform::MusicPlayerState>(),
+        ) {
+            if payload.active {
+                return payload;
+            }
+        }
+    }
+    app.state::<now_playing::NowPlayingMonitor>().snapshot()
+}
+
 struct StreamState {
     running: Arc<AtomicBool>,
     capture_source_mode: Arc<AtomicU8>,
@@ -2429,19 +2452,21 @@ fn get_mouse_passthrough_locked(state: State<'_, StreamState>, label: String) ->
 #[cfg(target_os = "macos")]
 #[tauri::command]
 fn get_now_playing_snapshot(
-    monitor: State<'_, now_playing::NowPlayingMonitor>,
+    app: tauri::AppHandle,
+    _monitor: State<'_, now_playing::NowPlayingMonitor>,
+    _player: State<'_, music_platform::MusicPlayerState>,
 ) -> now_playing::NowPlayingPayload {
-    monitor.snapshot()
+    current_now_playing_snapshot(&app)
 }
 
 #[cfg(target_os = "macos")]
 #[tauri::command]
 fn sync_lyrics_for_now_playing(
     app: tauri::AppHandle,
-    monitor: State<'_, now_playing::NowPlayingMonitor>,
+    _monitor: State<'_, now_playing::NowPlayingMonitor>,
     fetcher: State<'_, lyrics::LyricsFetcher>,
 ) {
-    let snap = monitor.snapshot();
+    let snap = current_now_playing_snapshot(&app);
     fetcher.notify_track(
         &app,
         &lyrics::LyricTrackQuery {
@@ -2588,7 +2613,7 @@ fn open_extra_spectrum_window_impl(
 
     #[cfg(target_os = "macos")]
     {
-        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let payload = current_now_playing_snapshot(app);
         let _ = app.emit_to(&label, "now-playing-update", payload);
     }
 
@@ -2664,7 +2689,7 @@ fn open_extra_lyrics_window_impl(
 
     #[cfg(target_os = "macos")]
     {
-        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let payload = current_now_playing_snapshot(app);
         let _ = app.emit_to(&label, "now-playing-update", payload);
     }
 
@@ -2729,7 +2754,7 @@ fn open_extra_cover_window_impl(
 
     #[cfg(target_os = "macos")]
     {
-        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let payload = current_now_playing_snapshot(app);
         let _ = app.emit_to(&label, "now-playing-update", payload);
     }
 
@@ -2804,7 +2829,7 @@ fn open_extra_songinfo_window_impl(
 
     #[cfg(target_os = "macos")]
     {
-        let payload = app.state::<now_playing::NowPlayingMonitor>().snapshot();
+        let payload = current_now_playing_snapshot(app);
         let _ = app.emit_to(&label, "now-playing-update", payload);
     }
 
@@ -4194,6 +4219,7 @@ fn main() {
             {
                 app.manage(std::sync::Arc::new(music_platform::QqLoginCoordinator::default()));
                 app.manage(music_platform::MusicPlayerState::default());
+                app.manage(music_platform::InternalPlayerNowPlayingBridge::default());
                 app.manage(lyrics::LyricsFetcher::default());
                 app.manage(now_playing::spawn_monitor(app.handle().clone()));
             }

@@ -90,6 +90,8 @@ fn emit_player_state(app: &AppHandle, snapshot: &MusicPlayerSnapshot) {
     if let Some(win) = app.get_webview_window(crate::music_platform::MUSIC_PLAYER_QUEUE_LABEL) {
         let _ = win.emit(MUSIC_PLAYER_STATE_EVENT, snapshot.clone());
     }
+    #[cfg(target_os = "macos")]
+    super::now_playing_bridge::InternalPlayerNowPlayingBridge::sync_from_player(app, snapshot);
 }
 
 fn update_and_emit(app: &AppHandle, state: &MusicPlayerState, f: impl FnOnce(&mut MusicPlayerSnapshot)) {
@@ -285,7 +287,9 @@ pub fn music_player_report_progress(
         }
         s.clone()
     });
-    let _ = app.emit(MUSIC_PLAYER_STATE_EVENT, snapshot);
+    let _ = app.emit(MUSIC_PLAYER_STATE_EVENT, snapshot.clone());
+    #[cfg(target_os = "macos")]
+    super::now_playing_bridge::InternalPlayerNowPlayingBridge::sync_progress(&app, &snapshot);
 }
 
 #[tauri::command]

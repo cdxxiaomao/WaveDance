@@ -181,7 +181,7 @@ threeCoverParticle: {
   cameraFovDeg: 45,
   autoRotateEnabled: true,
   autoRotateSpeedDeg: 3,
-  pointerInteractionEnabled: true,  // 拖拽旋转 + SILK 鼠标涟漪
+  pointerInteractionEnabled: false,  // 拖拽旋转 + SILK 鼠标涟漪（暂关，与主窗拖拽冲突）
   // --- 切歌过渡 ---
   colorMixDurationMs: 1400,
   // --- shape 四件套 ---
@@ -532,15 +532,15 @@ threeBridge.render(points, shape, style, frameMeta);
 
 ### Phase 3：边缘纹理 + 鼠标涟漪（约 1~2 天）
 
-- [ ] `coverEdgeProcessor.js`：Canvas 2D 亮度深度 + Sobel 边缘
-- [ ] SILK 启用 `uHasDepth`，前景/背景 Z 分离
-- [ ] `rippleManager.js` + 指针交互
-- [ ] preset=0 时鼠标划过 Z 方向涟漪
+- [x] `coverEdgeProcessor.js`：Canvas 2D 亮度深度 + Sobel 边缘
+- [x] SILK 启用 `uHasDepth`，前景/背景 Z 分离
+- [x] `rippleManager.js` + 指针交互（默认关闭，避免与主窗拖拽冲突）
+- [x] preset=0 时鼠标划过 Z 方向涟漪（需 `pointerInteractionEnabled: true`）
 
 **验收**：
 
 - SILK 模式下封面主体比背景更「立体」
-- 鼠标划过有可见涟漪推开效果
+- 鼠标涟漪/Z 推开暂默认关闭（`pointerInteractionEnabled: false`），避免与主窗拖拽冲突；需验收时可手动改为 `true`
 
 ---
 
