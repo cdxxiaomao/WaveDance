@@ -864,6 +864,7 @@ export const DEFAULT_CONFIG = {
     },
   },
   threeSoundField: {
+    layoutMode: "scatter",
     gridPreset: "normal",
     gridSizeEco: 64,
     gridSizeNormal: 96,

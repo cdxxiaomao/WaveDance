@@ -209,6 +209,7 @@ export function createSoundFieldRenderer(ctx) {
       responseStrength: clampInt(style.responseStrength, 0, 100, cfg.responseStrength),
       responseRange: clampInt(style.responseRange, 0, 100, cfg.responseRange),
       freqReversed: Boolean(style.freqReversed),
+      layoutMode: style.layoutMode ?? cfg.layoutMode,
     });
 
     smoothHeightField(

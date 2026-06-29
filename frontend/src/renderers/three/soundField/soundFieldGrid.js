@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { DEFAULT_CONFIG } from "../../../visualizationSchema.js";
+import { createSoundFieldBarMaterial } from "./soundFieldBarMaterial.js";
 
 /** @param {string} hex */
 function hexToColor(hex) {
@@ -39,13 +40,7 @@ export function createSoundFieldGrid(gridSize, opts = {}) {
   const geometry = new THREE.BoxGeometry(footprint, 1, footprint);
   geometry.translate(0, 0.5, 0);
 
-  const material = new THREE.MeshStandardMaterial({
-    metalness: 0.12,
-    roughness: 0.58,
-    emissive: new THREE.Color(0x080812),
-    emissiveIntensity: 0.35,
-    vertexColors: true,
-  });
+  const material = createSoundFieldBarMaterial();
 
   const mesh = new THREE.InstancedMesh(geometry, material, count);
   mesh.castShadow = false;
