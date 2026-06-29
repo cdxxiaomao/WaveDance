@@ -69,6 +69,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threeGlitchSpectrum]: "threeGlitchSpectrumConfigPanel",
   [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
   [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
+  [DISPLAY_MODES.threeSoundField]: "threeSoundFieldConfigPanel",
   [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
   [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
   [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
@@ -562,6 +563,45 @@ const threeScanGridSoftClipRange = document.querySelector("#threeScanGridSoftCli
 const threeScanGridSoftClipValue = document.querySelector("#threeScanGridSoftClipValue");
 const threeScanGridFallEaseRange = document.querySelector("#threeScanGridFallEaseRange");
 const threeScanGridFallEaseValue = document.querySelector("#threeScanGridFallEaseValue");
+const threeSoundFieldGridPresetSelect = document.querySelector("#threeSoundFieldGridPresetSelect");
+const threeSoundFieldThemeSelect = document.querySelector("#threeSoundFieldThemeSelect");
+const threeSoundFieldResponseStrengthRange = document.querySelector("#threeSoundFieldResponseStrengthRange");
+const threeSoundFieldResponseStrengthValue = document.querySelector("#threeSoundFieldResponseStrengthValue");
+const threeSoundFieldResponseRangeRange = document.querySelector("#threeSoundFieldResponseRangeRange");
+const threeSoundFieldResponseRangeValue = document.querySelector("#threeSoundFieldResponseRangeValue");
+const threeSoundFieldBassRippleToggle = document.querySelector("#threeSoundFieldBassRippleToggle");
+const threeSoundFieldBassRippleStrengthRange = document.querySelector("#threeSoundFieldBassRippleStrengthRange");
+const threeSoundFieldBassRippleStrengthValue = document.querySelector("#threeSoundFieldBassRippleStrengthValue");
+const threeSoundFieldBassRippleSensitivityRange = document.querySelector("#threeSoundFieldBassRippleSensitivityRange");
+const threeSoundFieldBassRippleSensitivityValue = document.querySelector("#threeSoundFieldBassRippleSensitivityValue");
+const threeSoundFieldMeteorToggle = document.querySelector("#threeSoundFieldMeteorToggle");
+const threeSoundFieldMeteorStrengthRange = document.querySelector("#threeSoundFieldMeteorStrengthRange");
+const threeSoundFieldMeteorStrengthValue = document.querySelector("#threeSoundFieldMeteorStrengthValue");
+const threeSoundFieldMeteorSensitivityRange = document.querySelector("#threeSoundFieldMeteorSensitivityRange");
+const threeSoundFieldMeteorSensitivityValue = document.querySelector("#threeSoundFieldMeteorSensitivityValue");
+const threeSoundFieldIdleWaveToggle = document.querySelector("#threeSoundFieldIdleWaveToggle");
+const threeSoundFieldIdleWaveAmplitudeRange = document.querySelector("#threeSoundFieldIdleWaveAmplitudeRange");
+const threeSoundFieldIdleWaveAmplitudeValue = document.querySelector("#threeSoundFieldIdleWaveAmplitudeValue");
+const threeSoundFieldIdleWaveSpeedRange = document.querySelector("#threeSoundFieldIdleWaveSpeedRange");
+const threeSoundFieldIdleWaveSpeedValue = document.querySelector("#threeSoundFieldIdleWaveSpeedValue");
+const threeSoundFieldCameraPitchRange = document.querySelector("#threeSoundFieldCameraPitchRange");
+const threeSoundFieldCameraPitchValue = document.querySelector("#threeSoundFieldCameraPitchValue");
+const threeSoundFieldCameraDistanceRange = document.querySelector("#threeSoundFieldCameraDistanceRange");
+const threeSoundFieldCameraDistanceValue = document.querySelector("#threeSoundFieldCameraDistanceValue");
+const threeSoundFieldAutoRotateToggle = document.querySelector("#threeSoundFieldAutoRotateToggle");
+const threeSoundFieldAutoRotateSpeedRange = document.querySelector("#threeSoundFieldAutoRotateSpeedRange");
+const threeSoundFieldAutoRotateSpeedValue = document.querySelector("#threeSoundFieldAutoRotateSpeedValue");
+const threeSoundFieldBloomToggle = document.querySelector("#threeSoundFieldBloomToggle");
+const threeSoundFieldBloomStrengthRange = document.querySelector("#threeSoundFieldBloomStrengthRange");
+const threeSoundFieldBloomStrengthValue = document.querySelector("#threeSoundFieldBloomStrengthValue");
+const threeSoundFieldGainRange = document.querySelector("#threeSoundFieldGainRange");
+const threeSoundFieldGainValue = document.querySelector("#threeSoundFieldGainValue");
+const threeSoundFieldSmoothRange = document.querySelector("#threeSoundFieldSmoothRange");
+const threeSoundFieldSmoothValue = document.querySelector("#threeSoundFieldSmoothValue");
+const threeSoundFieldSoftClipRange = document.querySelector("#threeSoundFieldSoftClipRange");
+const threeSoundFieldSoftClipValue = document.querySelector("#threeSoundFieldSoftClipValue");
+const threeSoundFieldFallEaseRange = document.querySelector("#threeSoundFieldFallEaseRange");
+const threeSoundFieldFallEaseValue = document.querySelector("#threeSoundFieldFallEaseValue");
 const threeLiquidBlobColor = document.querySelector("#threeLiquidBlobColor");
 const threeLiquidBlobColorSecondary = document.querySelector("#threeLiquidBlobColorSecondary");
 const threeLiquidBlobCountRange = document.querySelector("#threeLiquidBlobCountRange");
@@ -3393,6 +3433,267 @@ function applyThreeScanGridFormFromStorage(v) {
   }
 }
 
+function readThreeSoundFieldShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldShape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeSoundFieldGainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeSoundFieldSmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeSoundFieldSoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeSoundFieldFallEaseRange?.value, 0, 100),
+  };
+  if (threeSoundFieldGainValue) threeSoundFieldGainValue.textContent = String(config.gainPercent);
+  if (threeSoundFieldSmoothValue) threeSoundFieldSmoothValue.textContent = String(config.smoothPercent);
+  if (threeSoundFieldSoftClipValue) threeSoundFieldSoftClipValue.textContent = String(config.softClipPercent);
+  if (threeSoundFieldFallEaseValue) threeSoundFieldFallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundFieldShape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sound-field-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新音域回响形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeSoundFieldFormFromStorage(v) {
+  const sf = readThreeSoundFieldShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeSoundField.shape };
+  if (threeSoundFieldGainRange) threeSoundFieldGainRange.value = String(sf.gainPercent);
+  if (threeSoundFieldSmoothRange) threeSoundFieldSmoothRange.value = String(sf.smoothPercent);
+  if (threeSoundFieldSoftClipRange) threeSoundFieldSoftClipRange.value = String(sf.softClipPercent);
+  if (threeSoundFieldFallEaseRange) threeSoundFieldFallEaseRange.value = String(sf.fallEasePercent);
+  if (threeSoundFieldGainValue) threeSoundFieldGainValue.textContent = String(sf.gainPercent);
+  if (threeSoundFieldSmoothValue) threeSoundFieldSmoothValue.textContent = String(sf.smoothPercent);
+  if (threeSoundFieldSoftClipValue) threeSoundFieldSoftClipValue.textContent = String(sf.softClipPercent);
+  if (threeSoundFieldFallEaseValue) threeSoundFieldFallEaseValue.textContent = String(sf.fallEasePercent);
+
+  const savedPreset = readWindowStorageString(window.localStorage, v, "threeSoundFieldGridPreset");
+  if (threeSoundFieldGridPresetSelect) {
+    const preset =
+      savedPreset === "eco" || savedPreset === "high" || savedPreset === "normal"
+        ? savedPreset
+        : DEFAULT_CONFIG.threeSoundField.gridPreset;
+    threeSoundFieldGridPresetSelect.value = preset;
+  }
+
+  const savedTheme = readWindowStorageString(window.localStorage, v, "threeSoundFieldTheme");
+  if (threeSoundFieldThemeSelect) {
+    const theme =
+      savedTheme === "ocean" || savedTheme === "ember" || savedTheme === "indigo"
+        ? savedTheme
+        : DEFAULT_CONFIG.threeSoundField.themeId;
+    threeSoundFieldThemeSelect.value = theme;
+  }
+
+  const savedResponseStrength = readWindowStorageString(window.localStorage, v, "threeSoundFieldResponseStrength");
+  if (threeSoundFieldResponseStrengthRange) {
+    const strength =
+      savedResponseStrength != null && savedResponseStrength !== ""
+        ? clampInt(savedResponseStrength, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.responseStrength;
+    threeSoundFieldResponseStrengthRange.value = String(strength);
+    if (threeSoundFieldResponseStrengthValue) {
+      threeSoundFieldResponseStrengthValue.textContent = String(strength);
+    }
+  }
+
+  const savedResponseRange = readWindowStorageString(window.localStorage, v, "threeSoundFieldResponseRange");
+  if (threeSoundFieldResponseRangeRange) {
+    const range =
+      savedResponseRange != null && savedResponseRange !== ""
+        ? clampInt(savedResponseRange, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.responseRange;
+    threeSoundFieldResponseRangeRange.value = String(range);
+    if (threeSoundFieldResponseRangeValue) {
+      threeSoundFieldResponseRangeValue.textContent = String(range);
+    }
+  }
+
+  if (threeSoundFieldBassRippleToggle) {
+    threeSoundFieldBassRippleToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundFieldBassRipple"),
+      DEFAULT_CONFIG.threeSoundField.bassRippleEnabled,
+    );
+  }
+
+  const savedRippleStrength = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundFieldBassRippleStrength",
+  );
+  if (threeSoundFieldBassRippleStrengthRange) {
+    const strength =
+      savedRippleStrength != null && savedRippleStrength !== ""
+        ? clampInt(savedRippleStrength, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.bassRippleStrength;
+    threeSoundFieldBassRippleStrengthRange.value = String(strength);
+    if (threeSoundFieldBassRippleStrengthValue) {
+      threeSoundFieldBassRippleStrengthValue.textContent = String(strength);
+    }
+  }
+
+  const savedRippleSensitivity = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundFieldBassRippleSensitivity",
+  );
+  if (threeSoundFieldBassRippleSensitivityRange) {
+    const sensitivity =
+      savedRippleSensitivity != null && savedRippleSensitivity !== ""
+        ? clampInt(savedRippleSensitivity, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.bassRippleSensitivity;
+    threeSoundFieldBassRippleSensitivityRange.value = String(sensitivity);
+    if (threeSoundFieldBassRippleSensitivityValue) {
+      threeSoundFieldBassRippleSensitivityValue.textContent = String(sensitivity);
+    }
+  }
+
+  if (threeSoundFieldMeteorToggle) {
+    threeSoundFieldMeteorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundFieldMeteor"),
+      DEFAULT_CONFIG.threeSoundField.meteorEnabled,
+    );
+  }
+
+  const savedMeteorStrength = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundFieldMeteorStrength",
+  );
+  if (threeSoundFieldMeteorStrengthRange) {
+    const strength =
+      savedMeteorStrength != null && savedMeteorStrength !== ""
+        ? clampInt(savedMeteorStrength, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.meteorStrength;
+    threeSoundFieldMeteorStrengthRange.value = String(strength);
+    if (threeSoundFieldMeteorStrengthValue) {
+      threeSoundFieldMeteorStrengthValue.textContent = String(strength);
+    }
+  }
+
+  const savedMeteorSensitivity = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundFieldMeteorSensitivity",
+  );
+  if (threeSoundFieldMeteorSensitivityRange) {
+    const sensitivity =
+      savedMeteorSensitivity != null && savedMeteorSensitivity !== ""
+        ? clampInt(savedMeteorSensitivity, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.meteorSensitivity;
+    threeSoundFieldMeteorSensitivityRange.value = String(sensitivity);
+    if (threeSoundFieldMeteorSensitivityValue) {
+      threeSoundFieldMeteorSensitivityValue.textContent = String(sensitivity);
+    }
+  }
+
+  if (threeSoundFieldIdleWaveToggle) {
+    threeSoundFieldIdleWaveToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundFieldIdleWave"),
+      DEFAULT_CONFIG.threeSoundField.idleWaveEnabled,
+    );
+  }
+
+  const savedIdleAmp = readWindowStorageString(window.localStorage, v, "threeSoundFieldIdleWaveAmplitude");
+  if (threeSoundFieldIdleWaveAmplitudeRange) {
+    const amp =
+      savedIdleAmp != null && savedIdleAmp !== ""
+        ? clampInt(savedIdleAmp, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.idleWaveAmplitude;
+    threeSoundFieldIdleWaveAmplitudeRange.value = String(amp);
+    if (threeSoundFieldIdleWaveAmplitudeValue) {
+      threeSoundFieldIdleWaveAmplitudeValue.textContent = String(amp);
+    }
+  }
+
+  const savedIdleSpeed = readWindowStorageString(window.localStorage, v, "threeSoundFieldIdleWaveSpeed");
+  if (threeSoundFieldIdleWaveSpeedRange) {
+    const speed =
+      savedIdleSpeed != null && savedIdleSpeed !== ""
+        ? clampInt(savedIdleSpeed, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField.idleWaveSpeed;
+    threeSoundFieldIdleWaveSpeedRange.value = String(speed);
+    if (threeSoundFieldIdleWaveSpeedValue) {
+      threeSoundFieldIdleWaveSpeedValue.textContent = String(speed);
+    }
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "threeSoundFieldCameraPitch");
+  if (threeSoundFieldCameraPitchRange) {
+    const pitch =
+      savedPitch != null && savedPitch !== ""
+        ? clampInt(savedPitch, 25, 75)
+        : DEFAULT_CONFIG.threeSoundField.cameraPitchDeg;
+    threeSoundFieldCameraPitchRange.value = String(pitch);
+    if (threeSoundFieldCameraPitchValue) threeSoundFieldCameraPitchValue.textContent = String(pitch);
+  }
+
+  const savedDistance = readWindowStorageString(window.localStorage, v, "threeSoundFieldCameraDistance");
+  if (threeSoundFieldCameraDistanceRange) {
+    const dist =
+      savedDistance != null && savedDistance !== ""
+        ? Math.min(22, Math.max(8, Number(savedDistance)))
+        : DEFAULT_CONFIG.threeSoundField.cameraDistance;
+    threeSoundFieldCameraDistanceRange.value = String(Math.round(dist * 10));
+    if (threeSoundFieldCameraDistanceValue) threeSoundFieldCameraDistanceValue.textContent = dist.toFixed(1);
+  }
+
+  if (threeSoundFieldAutoRotateToggle) {
+    threeSoundFieldAutoRotateToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundFieldAutoRotate"),
+      DEFAULT_CONFIG.threeSoundField.autoRotateEnabled,
+    );
+  }
+
+  const savedRotateSpeed = readWindowStorageString(window.localStorage, v, "threeSoundFieldAutoRotateSpeed");
+  if (threeSoundFieldAutoRotateSpeedRange) {
+    const speed =
+      savedRotateSpeed != null && savedRotateSpeed !== ""
+        ? Math.min(12, Math.max(0, Number(savedRotateSpeed)))
+        : DEFAULT_CONFIG.threeSoundField.autoRotateSpeedDeg;
+    threeSoundFieldAutoRotateSpeedRange.value = String(Math.round(speed * 10));
+    if (threeSoundFieldAutoRotateSpeedValue) {
+      threeSoundFieldAutoRotateSpeedValue.textContent = speed.toFixed(1);
+    }
+  }
+
+  if (threeSoundFieldBloomToggle) {
+    threeSoundFieldBloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundFieldBloom"),
+      DEFAULT_CONFIG.threeSoundField.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeSoundFieldBloomStrength");
+  if (threeSoundFieldBloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeSoundField.bloomStrength;
+    threeSoundFieldBloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeSoundFieldBloomStrengthValue) {
+      threeSoundFieldBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+}
+
 function readThreeLiquidBlobShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeLiquidBlobShape");
@@ -5691,6 +5992,7 @@ async function init() {
     applyThreeGlitchFormFromStorage(v);
     applyThreePhosphorFormFromStorage(v);
     applyThreeScanGridFormFromStorage(v);
+    applyThreeSoundFieldFormFromStorage(v);
     applyThreeLiquidBlobFormFromStorage(v);
     applyThreeAuroraFormFromStorage(v);
     applyThreeBreathingFormFromStorage(v);
@@ -8484,6 +8786,272 @@ async function init() {
   });
   threeScanGridFallEaseRange?.addEventListener("input", () => {
     void syncThreeScanGridShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeSoundFieldGridPresetSelect?.addEventListener("change", async (event) => {
+    const preset = String(event.target.value ?? "normal");
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldGridPreset", preset);
+      await emitVisual("waveform-three-sound-field-grid-preset", preset);
+    } catch (err) {
+      statusEl.textContent = `更新渲染精度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldThemeSelect?.addEventListener("change", async (event) => {
+    const themeId = String(event.target.value ?? "indigo");
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldTheme", themeId);
+      await emitVisual("waveform-three-sound-field-theme", themeId);
+    } catch (err) {
+      statusEl.textContent = `更新色彩主题失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldResponseStrengthRange?.addEventListener("input", async (event) => {
+    const strength = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldResponseStrengthValue) {
+      threeSoundFieldResponseStrengthValue.textContent = String(strength);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldResponseStrength",
+        String(strength),
+      );
+      await emitVisual("waveform-three-sound-field-response-strength", strength);
+    } catch (err) {
+      statusEl.textContent = `更新响应强度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldResponseRangeRange?.addEventListener("input", async (event) => {
+    const range = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldResponseRangeValue) {
+      threeSoundFieldResponseRangeValue.textContent = String(range);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldResponseRange",
+        String(range),
+      );
+      await emitVisual("waveform-three-sound-field-response-range", range);
+    } catch (err) {
+      statusEl.textContent = `更新响应范围失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldBassRippleToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldBassRipple", String(enabled));
+      await emitVisual("waveform-three-sound-field-bass-ripple-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新低频涟漪开关失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldBassRippleStrengthRange?.addEventListener("input", async (event) => {
+    const strength = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldBassRippleStrengthValue) {
+      threeSoundFieldBassRippleStrengthValue.textContent = String(strength);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldBassRippleStrength",
+        String(strength),
+      );
+      await emitVisual("waveform-three-sound-field-bass-ripple-strength", strength);
+    } catch (err) {
+      statusEl.textContent = `更新涟漪强度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldBassRippleSensitivityRange?.addEventListener("input", async (event) => {
+    const sensitivity = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldBassRippleSensitivityValue) {
+      threeSoundFieldBassRippleSensitivityValue.textContent = String(sensitivity);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldBassRippleSensitivity",
+        String(sensitivity),
+      );
+      await emitVisual("waveform-three-sound-field-bass-ripple-sensitivity", sensitivity);
+    } catch (err) {
+      statusEl.textContent = `更新触发灵敏度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldMeteorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldMeteor", String(enabled));
+      await emitVisual("waveform-three-sound-field-meteor-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新流星开关失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldMeteorStrengthRange?.addEventListener("input", async (event) => {
+    const strength = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldMeteorStrengthValue) {
+      threeSoundFieldMeteorStrengthValue.textContent = String(strength);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldMeteorStrength",
+        String(strength),
+      );
+      await emitVisual("waveform-three-sound-field-meteor-strength", strength);
+    } catch (err) {
+      statusEl.textContent = `更新流星强度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldMeteorSensitivityRange?.addEventListener("input", async (event) => {
+    const sensitivity = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldMeteorSensitivityValue) {
+      threeSoundFieldMeteorSensitivityValue.textContent = String(sensitivity);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldMeteorSensitivity",
+        String(sensitivity),
+      );
+      await emitVisual("waveform-three-sound-field-meteor-sensitivity", sensitivity);
+    } catch (err) {
+      statusEl.textContent = `更新流星灵敏度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldIdleWaveToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldIdleWave", String(enabled));
+      await emitVisual("waveform-three-sound-field-idle-wave-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新空闲波浪开关失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldIdleWaveAmplitudeRange?.addEventListener("input", async (event) => {
+    const amp = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldIdleWaveAmplitudeValue) {
+      threeSoundFieldIdleWaveAmplitudeValue.textContent = String(amp);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldIdleWaveAmplitude",
+        String(amp),
+      );
+      await emitVisual("waveform-three-sound-field-idle-wave-amplitude", amp);
+    } catch (err) {
+      statusEl.textContent = `更新呼吸幅度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldIdleWaveSpeedRange?.addEventListener("input", async (event) => {
+    const speed = clampInt(event.target.value, 0, 100);
+    if (threeSoundFieldIdleWaveSpeedValue) {
+      threeSoundFieldIdleWaveSpeedValue.textContent = String(speed);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldIdleWaveSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-sound-field-idle-wave-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新呼吸速度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldCameraPitchRange?.addEventListener("input", async (event) => {
+    const pitch = clampInt(event.target.value, 25, 75);
+    if (threeSoundFieldCameraPitchValue) threeSoundFieldCameraPitchValue.textContent = String(pitch);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldCameraPitch", String(pitch));
+      await emitVisual("waveform-three-sound-field-camera-pitch", pitch);
+    } catch (err) {
+      statusEl.textContent = `更新相机俯角失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldCameraDistanceRange?.addEventListener("input", async (event) => {
+    const dist = Math.min(22, Math.max(8, Number(event.target.value) / 10));
+    if (threeSoundFieldCameraDistanceValue) threeSoundFieldCameraDistanceValue.textContent = dist.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldCameraDistance", String(dist));
+      await emitVisual("waveform-three-sound-field-camera-distance", dist);
+    } catch (err) {
+      statusEl.textContent = `更新相机距离失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldAutoRotateToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldAutoRotate", String(enabled));
+      await emitVisual("waveform-three-sound-field-auto-rotate-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新自动旋转开关失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldAutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(12, Math.max(0, Number(event.target.value) / 10));
+    if (threeSoundFieldAutoRotateSpeedValue) {
+      threeSoundFieldAutoRotateSpeedValue.textContent = speed.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldAutoRotateSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-sound-field-auto-rotate-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新旋转速度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldBloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundFieldBloom", String(enabled));
+      await emitVisual("waveform-three-sound-field-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldBloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeSoundFieldBloomStrengthValue) {
+      threeSoundFieldBloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundFieldBloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-sound-field-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeSoundFieldGainRange?.addEventListener("input", () => {
+    void syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundFieldSmoothRange?.addEventListener("input", () => {
+    void syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundFieldSoftClipRange?.addEventListener("input", () => {
+    void syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundFieldFallEaseRange?.addEventListener("input", () => {
+    void syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual);
   });
 
   threeLiquidBlobColor?.addEventListener("input", async () => {

@@ -106,6 +106,7 @@
                 <option value="threeGlitchSpectrum">故障频谱</option>
                 <option value="threePhosphorTrail">磷光余辉</option>
                 <option value="threeScanGrid">扫描网格</option>
+                <option value="threeSoundField">音域回响</option>
                 <option value="threeLiquidBlob">液态球体</option>
                 <option value="threeAuroraRibbon">极光飘带</option>
                 <option value="threeBreathingRings">呼吸光环</option>
@@ -1490,6 +1491,117 @@
           <div class="settings-field">
             <label for="threeScanGridFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeScanGridFallEaseValue">48</span>%</label>
             <input id="threeScanGridFallEaseRange" type="range" min="0" max="100" step="1" value="48" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeSoundFieldConfigPanel" aria-labelledby="sec-three-sound-field-display" hidden>
+        <h2 id="sec-three-sound-field-display" class="settings-card__title">音域回响配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-sound-field" data-no-drag>
+          <div class="settings-field">
+            <label for="threeSoundFieldGridPresetSelect" class="settings-label">渲染精度</label>
+            <select id="threeSoundFieldGridPresetSelect" class="settings-select">
+              <option value="eco">节能（64×64）</option>
+              <option value="normal" selected>标准（96×96）</option>
+              <option value="high">高（128×128）</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldThemeSelect" class="settings-label">色彩主题</label>
+            <select id="threeSoundFieldThemeSelect" class="settings-select">
+              <option value="indigo" selected>靛蓝紫</option>
+              <option value="ocean">深海蓝</option>
+              <option value="ember">琥珀橙</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldResponseStrengthRange" class="settings-label">响应强度 <span class="settings-value" id="threeSoundFieldResponseStrengthValue">72</span>%</label>
+            <input id="threeSoundFieldResponseStrengthRange" type="range" min="0" max="100" step="1" value="72" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldResponseRangeRange" class="settings-label">响应范围 <span class="settings-value" id="threeSoundFieldResponseRangeValue">65</span>%</label>
+            <input id="threeSoundFieldResponseRangeRange" type="range" min="0" max="100" step="1" value="65" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundFieldBassRippleToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>低频地面涟漪</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundFieldBassRippleStrengthRange" class="settings-label">涟漪强度 <span class="settings-value" id="threeSoundFieldBassRippleStrengthValue">70</span>%</label>
+            <input id="threeSoundFieldBassRippleStrengthRange" type="range" min="0" max="100" step="1" value="70" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldBassRippleSensitivityRange" class="settings-label">触发灵敏度 <span class="settings-value" id="threeSoundFieldBassRippleSensitivityValue">55</span>%</label>
+            <input id="threeSoundFieldBassRippleSensitivityRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundFieldMeteorToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>高频流星</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundFieldMeteorStrengthRange" class="settings-label">流星强度 <span class="settings-value" id="threeSoundFieldMeteorStrengthValue">60</span>%</label>
+            <input id="threeSoundFieldMeteorStrengthRange" type="range" min="0" max="100" step="1" value="60" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldMeteorSensitivityRange" class="settings-label">流星灵敏度 <span class="settings-value" id="threeSoundFieldMeteorSensitivityValue">50</span>%</label>
+            <input id="threeSoundFieldMeteorSensitivityRange" type="range" min="0" max="100" step="1" value="50" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundFieldIdleWaveToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>空闲呼吸波浪</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundFieldIdleWaveAmplitudeRange" class="settings-label">呼吸幅度 <span class="settings-value" id="threeSoundFieldIdleWaveAmplitudeValue">18</span>%</label>
+            <input id="threeSoundFieldIdleWaveAmplitudeRange" type="range" min="0" max="100" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldIdleWaveSpeedRange" class="settings-label">呼吸速度 <span class="settings-value" id="threeSoundFieldIdleWaveSpeedValue">45</span>%</label>
+            <input id="threeSoundFieldIdleWaveSpeedRange" type="range" min="0" max="100" step="1" value="45" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldCameraPitchRange" class="settings-label">相机俯角 <span class="settings-value" id="threeSoundFieldCameraPitchValue">52</span>°</label>
+            <input id="threeSoundFieldCameraPitchRange" type="range" min="25" max="75" step="1" value="52" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldCameraDistanceRange" class="settings-label">相机距离 <span class="settings-value" id="threeSoundFieldCameraDistanceValue">14.0</span></label>
+            <input id="threeSoundFieldCameraDistanceRange" type="range" min="80" max="220" step="1" value="140" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundFieldAutoRotateToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>自动旋转</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundFieldAutoRotateSpeedRange" class="settings-label">旋转速度 <span class="settings-value" id="threeSoundFieldAutoRotateSpeedValue">2.5</span>°/s</label>
+            <input id="threeSoundFieldAutoRotateSpeedRange" type="range" min="0" max="120" step="1" value="25" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundFieldBloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 辉光</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundFieldBloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeSoundFieldBloomStrengthValue">0.8</span></label>
+            <input id="threeSoundFieldBloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldGainRange" class="settings-label">增益 <span class="settings-value" id="threeSoundFieldGainValue">62</span>%</label>
+            <input id="threeSoundFieldGainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldSmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeSoundFieldSmoothValue">18</span>%</label>
+            <input id="threeSoundFieldSmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldSoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeSoundFieldSoftClipValue">12</span>%</label>
+            <input id="threeSoundFieldSoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundFieldFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeSoundFieldFallEaseValue">52</span>%</label>
+            <input id="threeSoundFieldFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

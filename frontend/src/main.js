@@ -106,6 +106,7 @@ const threeKaleidoscopeShapeConfig = { ...DEFAULT_CONFIG.threeKaleidoscope.shape
 const threeGlitchShapeConfig = { ...DEFAULT_CONFIG.threeGlitchSpectrum.shape };
 const threePhosphorShapeConfig = { ...DEFAULT_CONFIG.threePhosphorTrail.shape };
 const threeScanGridShapeConfig = { ...DEFAULT_CONFIG.threeScanGrid.shape };
+const threeSoundFieldShapeConfig = { ...DEFAULT_CONFIG.threeSoundField.shape };
 const threeLiquidBlobShapeConfig = { ...DEFAULT_CONFIG.threeLiquidBlob.shape };
 const threeAuroraShapeConfig = { ...DEFAULT_CONFIG.threeAuroraRibbon.shape };
 const threeBreathingRingsShapeConfig = { ...DEFAULT_CONFIG.threeBreathingRings.shape };
@@ -377,6 +378,14 @@ function applyThreeScanGridShapeConfig(payload) {
   threeScanGridShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
 }
 
+function applyThreeSoundFieldShapeConfig(payload) {
+  if (!payload || typeof payload !== "object") return;
+  threeSoundFieldShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
+  threeSoundFieldShapeConfig.smoothPercent = clampInt(payload.smoothPercent, 0, 400);
+  threeSoundFieldShapeConfig.softClipPercent = clampInt(payload.softClipPercent, 0, 100);
+  threeSoundFieldShapeConfig.fallEasePercent = clampInt(payload.fallEasePercent, 0, 100);
+}
+
 function applyThreeLiquidBlobShapeConfig(payload) {
   if (!payload || typeof payload !== "object") return;
   threeLiquidBlobShapeConfig.gainPercent = clampInt(payload.gainPercent, 10, 150);
@@ -529,6 +538,8 @@ function loadShapeConfigsFromStorage(windowLabel) {
     if (threePhosphorRaw) applyThreePhosphorShapeConfig(JSON.parse(threePhosphorRaw));
     const threeScanGridRaw = readWindowStorageString(window.localStorage, windowLabel, "threeScanGridShape");
     if (threeScanGridRaw) applyThreeScanGridShapeConfig(JSON.parse(threeScanGridRaw));
+    const threeSoundFieldRaw = readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldShape");
+    if (threeSoundFieldRaw) applyThreeSoundFieldShapeConfig(JSON.parse(threeSoundFieldRaw));
     const threeLiquidBlobRaw = readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobShape");
     if (threeLiquidBlobRaw) applyThreeLiquidBlobShapeConfig(JSON.parse(threeLiquidBlobRaw));
     const threeAuroraRaw = readWindowStorageString(window.localStorage, windowLabel, "threeAuroraShape");
@@ -815,6 +826,25 @@ let threeScanGridHighlightStrength = DEFAULT_CONFIG.threeScanGrid.highlightStren
 let threeScanGridBloomEnabled = DEFAULT_CONFIG.threeScanGrid.bloomEnabled;
 let threeScanGridBloomStrength = DEFAULT_CONFIG.threeScanGrid.bloomStrength;
 let threeScanGridCameraPitchDeg = DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg;
+let threeSoundFieldGridPreset = DEFAULT_CONFIG.threeSoundField.gridPreset;
+let threeSoundFieldThemeId = DEFAULT_CONFIG.threeSoundField.themeId;
+let threeSoundFieldResponseStrength = DEFAULT_CONFIG.threeSoundField.responseStrength;
+let threeSoundFieldResponseRange = DEFAULT_CONFIG.threeSoundField.responseRange;
+let threeSoundFieldBassRippleEnabled = DEFAULT_CONFIG.threeSoundField.bassRippleEnabled;
+let threeSoundFieldBassRippleStrength = DEFAULT_CONFIG.threeSoundField.bassRippleStrength;
+let threeSoundFieldBassRippleSensitivity = DEFAULT_CONFIG.threeSoundField.bassRippleSensitivity;
+let threeSoundFieldMeteorEnabled = DEFAULT_CONFIG.threeSoundField.meteorEnabled;
+let threeSoundFieldMeteorStrength = DEFAULT_CONFIG.threeSoundField.meteorStrength;
+let threeSoundFieldMeteorSensitivity = DEFAULT_CONFIG.threeSoundField.meteorSensitivity;
+let threeSoundFieldIdleWaveEnabled = DEFAULT_CONFIG.threeSoundField.idleWaveEnabled;
+let threeSoundFieldIdleWaveAmplitude = DEFAULT_CONFIG.threeSoundField.idleWaveAmplitude;
+let threeSoundFieldIdleWaveSpeed = DEFAULT_CONFIG.threeSoundField.idleWaveSpeed;
+let threeSoundFieldBloomEnabled = DEFAULT_CONFIG.threeSoundField.bloomEnabled;
+let threeSoundFieldBloomStrength = DEFAULT_CONFIG.threeSoundField.bloomStrength;
+let threeSoundFieldCameraPitchDeg = DEFAULT_CONFIG.threeSoundField.cameraPitchDeg;
+let threeSoundFieldCameraDistance = DEFAULT_CONFIG.threeSoundField.cameraDistance;
+let threeSoundFieldAutoRotateEnabled = DEFAULT_CONFIG.threeSoundField.autoRotateEnabled;
+let threeSoundFieldAutoRotateSpeedDeg = DEFAULT_CONFIG.threeSoundField.autoRotateSpeedDeg;
 let threeLiquidBlobColorHex = DEFAULT_CONFIG.threeLiquidBlob.blobColor;
 let threeLiquidBlobColorSecondaryHex = DEFAULT_CONFIG.threeLiquidBlob.blobColorSecondary;
 let threeLiquidBlobCount = DEFAULT_CONFIG.threeLiquidBlob.blobCount;
@@ -1911,6 +1941,99 @@ function applyThreeScanGridCameraPitchDeg(value) {
   threeScanGridCameraPitchDeg = clampInt(value, 25, 75);
 }
 
+function applyThreeSoundFieldGridPreset(value) {
+  const preset = String(value ?? "").trim();
+  threeSoundFieldGridPreset =
+    preset === "eco" || preset === "high" || preset === "normal"
+      ? preset
+      : DEFAULT_CONFIG.threeSoundField.gridPreset;
+}
+
+function applyThreeSoundFieldThemeId(value) {
+  const theme = String(value ?? "").trim();
+  threeSoundFieldThemeId =
+    theme === "ocean" || theme === "ember" || theme === "indigo"
+      ? theme
+      : DEFAULT_CONFIG.threeSoundField.themeId;
+}
+
+function applyThreeSoundFieldResponseStrength(value) {
+  threeSoundFieldResponseStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldResponseRange(value) {
+  threeSoundFieldResponseRange = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldBassRippleEnabled(value) {
+  threeSoundFieldBassRippleEnabled = parseBoolean(value, DEFAULT_CONFIG.threeSoundField.bassRippleEnabled);
+}
+
+function applyThreeSoundFieldBassRippleStrength(value) {
+  threeSoundFieldBassRippleStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldBassRippleSensitivity(value) {
+  threeSoundFieldBassRippleSensitivity = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldMeteorEnabled(value) {
+  threeSoundFieldMeteorEnabled = parseBoolean(value, DEFAULT_CONFIG.threeSoundField.meteorEnabled);
+}
+
+function applyThreeSoundFieldMeteorStrength(value) {
+  threeSoundFieldMeteorStrength = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldMeteorSensitivity(value) {
+  threeSoundFieldMeteorSensitivity = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldIdleWaveEnabled(value) {
+  threeSoundFieldIdleWaveEnabled = parseBoolean(value, DEFAULT_CONFIG.threeSoundField.idleWaveEnabled);
+}
+
+function applyThreeSoundFieldIdleWaveAmplitude(value) {
+  threeSoundFieldIdleWaveAmplitude = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldIdleWaveSpeed(value) {
+  threeSoundFieldIdleWaveSpeed = clampInt(value, 0, 100);
+}
+
+function applyThreeSoundFieldBloomEnabled(value) {
+  threeSoundFieldBloomEnabled = parseBoolean(value, DEFAULT_CONFIG.threeSoundField.bloomEnabled);
+}
+
+function applyThreeSoundFieldBloomStrength(value) {
+  const n = Number(value);
+  threeSoundFieldBloomStrength = Number.isFinite(n)
+    ? Math.min(2, Math.max(0, n))
+    : DEFAULT_CONFIG.threeSoundField.bloomStrength;
+}
+
+function applyThreeSoundFieldCameraPitchDeg(value) {
+  threeSoundFieldCameraPitchDeg = clampInt(value, 25, 75);
+}
+
+function applyThreeSoundFieldCameraDistance(value) {
+  const n = Number(value);
+  threeSoundFieldCameraDistance = Number.isFinite(n)
+    ? Math.min(22, Math.max(8, n))
+    : DEFAULT_CONFIG.threeSoundField.cameraDistance;
+}
+
+function applyThreeSoundFieldAutoRotateEnabled(value) {
+  threeSoundFieldAutoRotateEnabled = parseBoolean(value, DEFAULT_CONFIG.threeSoundField.autoRotateEnabled);
+}
+
+function applyThreeSoundFieldAutoRotateSpeedDeg(value) {
+  const n = Number(value);
+  threeSoundFieldAutoRotateSpeedDeg = Number.isFinite(n)
+    ? Math.min(12, Math.max(0, n))
+    : DEFAULT_CONFIG.threeSoundField.autoRotateSpeedDeg;
+}
+
 function applyThreeLiquidBlobColorHex(raw) {
   const safe = /^#[0-9A-Fa-f]{6}$/.test(raw) ? raw.toLowerCase() : DEFAULT_CONFIG.threeLiquidBlob.blobColor;
   threeLiquidBlobColorHex = safe;
@@ -2844,6 +2967,7 @@ function getShapeConfigForMode(mode) {
   if (mode === DISPLAY_MODES.threeGlitchSpectrum) return threeGlitchShapeConfig;
   if (mode === DISPLAY_MODES.threePhosphorTrail) return threePhosphorShapeConfig;
   if (mode === DISPLAY_MODES.threeScanGrid) return threeScanGridShapeConfig;
+  if (mode === DISPLAY_MODES.threeSoundField) return threeSoundFieldShapeConfig;
   if (mode === DISPLAY_MODES.threeLiquidBlob) return threeLiquidBlobShapeConfig;
   if (mode === DISPLAY_MODES.threeAuroraRibbon) return threeAuroraShapeConfig;
   if (mode === DISPLAY_MODES.threeBreathingRings) return threeBreathingRingsShapeConfig;
@@ -3164,6 +3288,30 @@ function getStyleConfigForMode(mode) {
       bloomEnabled: threeScanGridBloomEnabled,
       bloomStrength: threeScanGridBloomStrength,
       cameraPitchDeg: threeScanGridCameraPitchDeg,
+      freqReversed,
+    };
+  }
+  if (mode === DISPLAY_MODES.threeSoundField) {
+    return {
+      gridPreset: threeSoundFieldGridPreset,
+      themeId: threeSoundFieldThemeId,
+      responseStrength: threeSoundFieldResponseStrength,
+      responseRange: threeSoundFieldResponseRange,
+      bassRippleEnabled: threeSoundFieldBassRippleEnabled,
+      bassRippleStrength: threeSoundFieldBassRippleStrength,
+      bassRippleSensitivity: threeSoundFieldBassRippleSensitivity,
+      meteorEnabled: threeSoundFieldMeteorEnabled,
+      meteorStrength: threeSoundFieldMeteorStrength,
+      meteorSensitivity: threeSoundFieldMeteorSensitivity,
+      idleWaveEnabled: threeSoundFieldIdleWaveEnabled,
+      idleWaveAmplitude: threeSoundFieldIdleWaveAmplitude,
+      idleWaveSpeed: threeSoundFieldIdleWaveSpeed,
+      bloomEnabled: threeSoundFieldBloomEnabled,
+      bloomStrength: threeSoundFieldBloomStrength,
+      cameraPitchDeg: threeSoundFieldCameraPitchDeg,
+      cameraDistance: threeSoundFieldCameraDistance,
+      autoRotateEnabled: threeSoundFieldAutoRotateEnabled,
+      autoRotateSpeedDeg: threeSoundFieldAutoRotateSpeedDeg,
       freqReversed,
     };
   }
@@ -5075,6 +5223,146 @@ async function init() {
     { target: thisWebviewTarget },
   );
   await listen(
+    "waveform-three-sound-field-grid-preset",
+    (event) => {
+      applyThreeSoundFieldGridPreset(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-theme",
+    (event) => {
+      applyThreeSoundFieldThemeId(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-response-strength",
+    (event) => {
+      applyThreeSoundFieldResponseStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-response-range",
+    (event) => {
+      applyThreeSoundFieldResponseRange(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-bass-ripple-enabled",
+    (event) => {
+      applyThreeSoundFieldBassRippleEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-bass-ripple-strength",
+    (event) => {
+      applyThreeSoundFieldBassRippleStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-bass-ripple-sensitivity",
+    (event) => {
+      applyThreeSoundFieldBassRippleSensitivity(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-meteor-enabled",
+    (event) => {
+      applyThreeSoundFieldMeteorEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-meteor-strength",
+    (event) => {
+      applyThreeSoundFieldMeteorStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-meteor-sensitivity",
+    (event) => {
+      applyThreeSoundFieldMeteorSensitivity(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-idle-wave-enabled",
+    (event) => {
+      applyThreeSoundFieldIdleWaveEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-idle-wave-amplitude",
+    (event) => {
+      applyThreeSoundFieldIdleWaveAmplitude(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-idle-wave-speed",
+    (event) => {
+      applyThreeSoundFieldIdleWaveSpeed(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-bloom-enabled",
+    (event) => {
+      applyThreeSoundFieldBloomEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-bloom-strength",
+    (event) => {
+      applyThreeSoundFieldBloomStrength(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-camera-pitch",
+    (event) => {
+      applyThreeSoundFieldCameraPitchDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-camera-distance",
+    (event) => {
+      applyThreeSoundFieldCameraDistance(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-auto-rotate-enabled",
+    (event) => {
+      applyThreeSoundFieldAutoRotateEnabled(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-auto-rotate-speed",
+    (event) => {
+      applyThreeSoundFieldAutoRotateSpeedDeg(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
+    "waveform-three-sound-field-shape-config",
+    (event) => {
+      applyThreeSoundFieldShapeConfig(event.payload);
+    },
+    { target: thisWebviewTarget },
+  );
+  await listen(
     "waveform-three-liquid-blob-color",
     (event) => {
       applyThreeLiquidBlobColorHex(event.payload);
@@ -6887,6 +7175,81 @@ async function init() {
     applyThreeScanGridCameraPitchDeg(
       readWindowStorageString(window.localStorage, windowLabel, "threeScanGridCameraPitch") ??
         DEFAULT_CONFIG.threeScanGrid.cameraPitchDeg,
+    );
+    applyThreeSoundFieldGridPreset(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldGridPreset") ??
+        DEFAULT_CONFIG.threeSoundField.gridPreset,
+    );
+    applyThreeSoundFieldThemeId(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldTheme") ??
+        DEFAULT_CONFIG.threeSoundField.themeId,
+    );
+    applyThreeSoundFieldResponseStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldResponseStrength") ??
+        DEFAULT_CONFIG.threeSoundField.responseStrength,
+    );
+    applyThreeSoundFieldResponseRange(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldResponseRange") ??
+        DEFAULT_CONFIG.threeSoundField.responseRange,
+    );
+    applyThreeSoundFieldBassRippleEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldBassRipple"),
+    );
+    applyThreeSoundFieldBassRippleStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldBassRippleStrength") ??
+        DEFAULT_CONFIG.threeSoundField.bassRippleStrength,
+    );
+    applyThreeSoundFieldBassRippleSensitivity(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldBassRippleSensitivity") ??
+        DEFAULT_CONFIG.threeSoundField.bassRippleSensitivity,
+    );
+    applyThreeSoundFieldMeteorEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldMeteor"),
+    );
+    applyThreeSoundFieldMeteorStrength(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldMeteorStrength") ??
+        DEFAULT_CONFIG.threeSoundField.meteorStrength,
+    );
+    applyThreeSoundFieldMeteorSensitivity(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldMeteorSensitivity") ??
+        DEFAULT_CONFIG.threeSoundField.meteorSensitivity,
+    );
+    applyThreeSoundFieldIdleWaveEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldIdleWave"),
+    );
+    applyThreeSoundFieldIdleWaveAmplitude(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldIdleWaveAmplitude") ??
+        DEFAULT_CONFIG.threeSoundField.idleWaveAmplitude,
+    );
+    applyThreeSoundFieldIdleWaveSpeed(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldIdleWaveSpeed") ??
+        DEFAULT_CONFIG.threeSoundField.idleWaveSpeed,
+    );
+    applyThreeSoundFieldBloomEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldBloom"),
+    );
+    const savedSoundFieldBloomStrength = readWindowStorageString(
+      window.localStorage,
+      windowLabel,
+      "threeSoundFieldBloomStrength",
+    );
+    if (savedSoundFieldBloomStrength != null && savedSoundFieldBloomStrength !== "") {
+      applyThreeSoundFieldBloomStrength(savedSoundFieldBloomStrength);
+    }
+    applyThreeSoundFieldCameraPitchDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldCameraPitch") ??
+        DEFAULT_CONFIG.threeSoundField.cameraPitchDeg,
+    );
+    applyThreeSoundFieldCameraDistance(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldCameraDistance") ??
+        DEFAULT_CONFIG.threeSoundField.cameraDistance,
+    );
+    applyThreeSoundFieldAutoRotateEnabled(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldAutoRotate"),
+    );
+    applyThreeSoundFieldAutoRotateSpeedDeg(
+      readWindowStorageString(window.localStorage, windowLabel, "threeSoundFieldAutoRotateSpeed") ??
+        DEFAULT_CONFIG.threeSoundField.autoRotateSpeedDeg,
     );
     applyThreeLiquidBlobColorHex(
       readWindowStorageString(window.localStorage, windowLabel, "threeLiquidBlobColor") ??

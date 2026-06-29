@@ -6,6 +6,27 @@
 
 > 说明：本文件用于保留历史实现轨迹与阶段性进度。`PROJECT_CONTEXT.md` 只保留当前执行上下文。
 
+## 2026-06-29
+
+### 音域回响 Three Sound Field — Phase 3 高频流星
+
+- 新建 `frontend/src/renderers/three/soundField/soundFieldMeteorSystem.js`：treble flux 触发流星（最多 12 颗）、撞击 burst 粒子（最多 96 粒）、柱顶短闪。
+- `soundFieldRenderer.js`：集成流星 tick/撞击闪白，Points + AdditiveBlending 共用 Bloom。
+- `settings.html` / `settings.js` / `main.js` / `visualizationSchema.js`：流星开关、强度、灵敏度配置与事件同步。
+
+### 音域回响 Three Sound Field — Phase 2 低频涟漪
+
+- 新建 `frontend/src/renderers/three/soundField/soundFieldRippleManager.js`：bass 超阈值 spawn 环形波（最多 8 条、120ms 防抖），CPU 叠加柱高。
+- `soundFieldRenderer.js`：集成涟漪 tick/触发/高度叠加，结合 bass flux 与 peak 增强鼓点响应。
+- `settings.html` / `settings.js` / `main.js` / `visualizationSchema.js`：低频涟漪开关、强度、灵敏度配置与事件同步。
+
+### 音域回响 Three Sound Field — Phase 1 MVP
+
+- 新建 `frontend/src/renderers/three/soundField/`：`soundFieldRenderer.js`、`soundFieldGrid.js`（InstancedMesh 柱网）、`soundFieldSpectrumMap.js`、`soundFieldIdleWave.js`、`soundFieldThemes.js`（靛蓝/深海/琥珀三主题）。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeSoundField`、`DEFAULT_CONFIG.threeSoundField` 及 storage keys。
+- `registerModes.js` 注册；`settings.html` / `settings.js` / `main.js` 接入设置面板与事件同步。
+- 柱高随频谱起伏 + 空闲呼吸波浪 + Bloom + 自动旋转；渲染精度 eco/normal/high 三档。
+
 ## 2026-06-10（续）
 
 ### 可视化模式扩展 — Phase 37：扭结有机体 Three Knot Organic（G）
