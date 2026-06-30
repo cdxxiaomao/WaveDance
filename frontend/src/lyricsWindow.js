@@ -21,6 +21,7 @@ function applyLocalLyricsStyle(windowLabel) {
 /** 竖排列高上限：用容器像素高度，避免 vertical-rl + height:100% 链导致 stage 宽度算窄 */
 function syncVerticalColumnMaxHeight() {
   if (!lyricsRoot || lyricsRoot.classList.contains("uses-am-lyrics")) return;
+  if (lyricsRoot.classList.contains("uses-mineradio-lyrics")) return;
   const h = lyricsRoot.clientHeight;
   if (h > 0) {
     lyricsRoot.style.setProperty("--lyrics-column-max-height", `${h}px`);

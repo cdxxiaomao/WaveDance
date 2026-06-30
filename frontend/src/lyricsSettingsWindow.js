@@ -10,6 +10,7 @@ import {
   LYRICS_TRANSITION_OPTIONS,
   buildLyricsStyleEventPayload,
   isAmScrollRenderer,
+  isMineradioRenderer,
   normalizeHexColor,
   normalizeLyricsWindowConfig,
   readLyricsWindowConfig,
@@ -20,8 +21,10 @@ const lyricsTargetBanner = document.querySelector("#lyricsTargetBanner");
 const closeLyricsSettingsBtn = document.querySelector("#closeLyricsSettingsBtn");
 const classicOptions = document.querySelector("#lyricsClassicOptions");
 const amScrollOptions = document.querySelector("#lyricsAmScrollOptions");
+const mineradioOptions = document.querySelector("#lyricsMineradioOptions");
 const rendererClassic = document.querySelector("#lyricsRendererClassic");
 const rendererAmScroll = document.querySelector("#lyricsRendererAmScroll");
+const rendererMineradio = document.querySelector("#lyricsRendererMineradio");
 const fontPreset = document.querySelector("#lyricsFontPreset");
 const currentSize = document.querySelector("#lyricsCurrentSize");
 const currentSizeVal = document.querySelector("#lyricsCurrentSizeVal");
@@ -60,6 +63,13 @@ const amBlurNear = document.querySelector("#lyricsAmBlurNear");
 const amBlurNearVal = document.querySelector("#lyricsAmBlurNearVal");
 const amAutoscroll = document.querySelector("#lyricsAmAutoscroll");
 const amInterpolate = document.querySelector("#lyricsAmInterpolate");
+const mrFontPreset = document.querySelector("#lyricsMrFontPreset");
+const mrFontSize = document.querySelector("#lyricsMrFontSize");
+const mrFontSizeVal = document.querySelector("#lyricsMrFontSizeVal");
+const mrPrimaryColor = document.querySelector("#lyricsMrPrimaryColor");
+const mrHighlightColor = document.querySelector("#lyricsMrHighlightColor");
+const mrGlowColor = document.querySelector("#lyricsMrGlowColor");
+const mrHighlightFollow = document.querySelector("#lyricsMrHighlightFollow");
 
 let lyricsTargetLabel = "";
 /** @type {import("./lyricsSettingsSchema.js").LyricsWindowConfig} */
@@ -75,13 +85,16 @@ function updateTargetBanner() {
 
 function syncModeSections() {
   const am = isAmScrollRenderer(config);
-  classicOptions?.toggleAttribute("hidden", am);
+  const mr = isMineradioRenderer(config);
+  classicOptions?.toggleAttribute("hidden", am || mr);
   amScrollOptions?.toggleAttribute("hidden", !am);
+  mineradioOptions?.toggleAttribute("hidden", !mr);
 }
 
 function syncFormFromConfig() {
   if (rendererClassic) rendererClassic.checked = config.renderer === LYRICS_RENDERER.classic;
   if (rendererAmScroll) rendererAmScroll.checked = config.renderer === LYRICS_RENDERER.amScroll;
+  if (rendererMineradio) rendererMineradio.checked = config.renderer === LYRICS_RENDERER.mineradio;
   syncModeSections();
 
   if (fontPreset) fontPreset.value = config.fontPresetId;
@@ -131,6 +144,14 @@ function syncFormFromConfig() {
   if (amBlurNearVal) amBlurNearVal.textContent = String(config.amBlurAmountNearEm);
   if (amAutoscroll) amAutoscroll.checked = config.amAutoscroll;
   if (amInterpolate) amInterpolate.checked = config.amInterpolate;
+
+  if (mrFontPreset) mrFontPreset.value = config.fontPresetId;
+  if (mrFontSize) mrFontSize.value = String(config.mrFontSizePx);
+  if (mrFontSizeVal) mrFontSizeVal.textContent = String(config.mrFontSizePx);
+  if (mrPrimaryColor) mrPrimaryColor.value = config.mrPrimaryColor;
+  if (mrHighlightColor) mrHighlightColor.value = config.mrHighlightColor;
+  if (mrGlowColor) mrGlowColor.value = config.mrGlowColor;
+  if (mrHighlightFollow) mrHighlightFollow.checked = config.mrHighlightFollow;
 }
 
 async function persistAndNotify() {
@@ -176,14 +197,17 @@ async function init() {
   });
 
   const onRendererChange = async () => {
-    config.renderer = rendererAmScroll?.checked
-      ? LYRICS_RENDERER.amScroll
-      : LYRICS_RENDERER.classic;
+    config.renderer = rendererMineradio?.checked
+      ? LYRICS_RENDERER.mineradio
+      : rendererAmScroll?.checked
+        ? LYRICS_RENDERER.amScroll
+        : LYRICS_RENDERER.classic;
     syncModeSections();
     await persistAndNotify();
   };
   rendererClassic?.addEventListener("change", onRendererChange);
   rendererAmScroll?.addEventListener("change", onRendererChange);
+  rendererMineradio?.addEventListener("change", onRendererChange);
 
   if (amHighlightColor) {
     amHighlightColor.addEventListener("input", async () => {
@@ -267,6 +291,51 @@ async function init() {
   if (amInterpolate) {
     amInterpolate.addEventListener("change", async () => {
       config.amInterpolate = amInterpolate.checked;
+      await persistAndNotify();
+    });
+  }
+
+  if (mrFontPreset) {
+    mrFontPreset.addEventListener("change", async () => {
+      const preset = LYRICS_FONT_PRESETS.find((p) => p.id === mrFontPreset.value);
+      config.fontPresetId = preset?.id ?? DEFAULT_LYRICS_WINDOW_CONFIG.fontPresetId;
+      config.fontFamily = preset?.value ?? DEFAULT_LYRICS_WINDOW_CONFIG.fontFamily;
+      await persistAndNotify();
+    });
+  }
+
+  if (mrFontSize) {
+    mrFontSize.addEventListener("input", async () => {
+      config.mrFontSizePx = Number(mrFontSize.value);
+      if (mrFontSizeVal) mrFontSizeVal.textContent = String(config.mrFontSizePx);
+      await persistAndNotify();
+    });
+  }
+
+  if (mrPrimaryColor) {
+    mrPrimaryColor.addEventListener("input", async () => {
+      config.mrPrimaryColor = normalizeHexColor(mrPrimaryColor.value, config.mrPrimaryColor);
+      await persistAndNotify();
+    });
+  }
+
+  if (mrHighlightColor) {
+    mrHighlightColor.addEventListener("input", async () => {
+      config.mrHighlightColor = normalizeHexColor(mrHighlightColor.value, config.mrHighlightColor);
+      await persistAndNotify();
+    });
+  }
+
+  if (mrGlowColor) {
+    mrGlowColor.addEventListener("input", async () => {
+      config.mrGlowColor = normalizeHexColor(mrGlowColor.value, config.mrGlowColor);
+      await persistAndNotify();
+    });
+  }
+
+  if (mrHighlightFollow) {
+    mrHighlightFollow.addEventListener("change", async () => {
+      config.mrHighlightFollow = mrHighlightFollow.checked;
       await persistAndNotify();
     });
   }

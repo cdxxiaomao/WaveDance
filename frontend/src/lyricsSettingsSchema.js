@@ -36,15 +36,17 @@ export const LYRICS_TRANSITION_OPTIONS = [
   { id: LYRICS_TRANSITION.reveal, label: "逐字显现" },
 ];
 
-/** 经典双行 / Apple Music 滚动（am-lyrics） */
+/** 经典双行 / Apple Music 滚动 / Mineradio 舞台单行 */
 export const LYRICS_RENDERER = {
   classic: "classic",
   amScroll: "amScroll",
+  mineradio: "mineradio",
 };
 
 export const LYRICS_RENDERER_OPTIONS = [
   { id: LYRICS_RENDERER.classic, label: "经典双行" },
   { id: LYRICS_RENDERER.amScroll, label: "Apple Music 滚动" },
+  { id: LYRICS_RENDERER.mineradio, label: "Mineradio 舞台单行" },
 ];
 
 export const LYRICS_FONT_PRESETS = [
@@ -85,6 +87,15 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   amTextSecondaryColor: "#c4a574",
   amBlurAmountEm: 0.07,
   amBlurAmountNearEm: 0.035,
+  mrFontSizePx: 52,
+  mrPrimaryColor: "#f6fdff",
+  mrHighlightColor: "#fff0b8",
+  mrGlowColor: "#9cffdf",
+  mrHighlightFollow: true,
+  mrFontWeight: 900,
+  mrLineHeight: 1,
+  mrLetterSpacing: 0,
+  mrFeather: 0.055,
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -158,6 +169,16 @@ export function normalizeHexColor(input, fallback) {
   return fallback;
 }
 
+/** @param {string} hex @param {number} alpha */
+function colorWithAlphaCss(hex, alpha) {
+  const body = String(hex ?? "").replace(/^#/, "");
+  if (body.length !== 6) return `rgba(255,255,255,${alpha})`;
+  const r = parseInt(body.slice(0, 2), 16);
+  const g = parseInt(body.slice(2, 4), 16);
+  const b = parseInt(body.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 /** @param {unknown} raw */
 export function normalizeLyricsWindowConfig(raw) {
   const base = { ...DEFAULT_LYRICS_WINDOW_CONFIG };
@@ -208,8 +229,13 @@ export function normalizeLyricsWindowConfig(raw) {
   base.transitionEffect = allowed.has(transition) ? transition : base.transitionEffect;
 
   const renderer = String(o.renderer ?? "");
-  base.renderer =
-    renderer === LYRICS_RENDERER.amScroll ? LYRICS_RENDERER.amScroll : LYRICS_RENDERER.classic;
+  if (renderer === LYRICS_RENDERER.amScroll) {
+    base.renderer = LYRICS_RENDERER.amScroll;
+  } else if (renderer === LYRICS_RENDERER.mineradio) {
+    base.renderer = LYRICS_RENDERER.mineradio;
+  } else {
+    base.renderer = LYRICS_RENDERER.classic;
+  }
 
   base.amAutoscroll = o.amAutoscroll !== false;
   base.amInterpolate = o.amInterpolate !== false;
@@ -231,12 +257,37 @@ export function normalizeLyricsWindowConfig(raw) {
     ? Math.min(Math.max(blurNear, 0), 0.2)
     : base.amBlurAmountNearEm;
 
+  base.mrFontSizePx = clampInt(o.mrFontSizePx ?? base.mrFontSizePx, 24, 80);
+  base.mrPrimaryColor = normalizeHexColor(o.mrPrimaryColor, base.mrPrimaryColor);
+  base.mrHighlightColor = normalizeHexColor(o.mrHighlightColor, base.mrHighlightColor);
+  base.mrGlowColor = normalizeHexColor(o.mrGlowColor, base.mrGlowColor);
+  base.mrHighlightFollow = o.mrHighlightFollow !== false;
+  base.mrFontWeight = clampInt(o.mrFontWeight ?? base.mrFontWeight, 500, 900);
+  base.mrFontWeight = Math.round(base.mrFontWeight / 50) * 50;
+  const mrLh = Number(o.mrLineHeight);
+  base.mrLineHeight = Number.isFinite(mrLh)
+    ? Math.min(Math.max(mrLh, 0.86), 1.35)
+    : base.mrLineHeight;
+  const mrLs = Number(o.mrLetterSpacing);
+  base.mrLetterSpacing = Number.isFinite(mrLs)
+    ? Math.min(Math.max(mrLs, -0.04), 0.18)
+    : base.mrLetterSpacing;
+  const mrFeather = Number(o.mrFeather);
+  base.mrFeather = Number.isFinite(mrFeather)
+    ? Math.min(Math.max(mrFeather, 0.03), 0.075)
+    : base.mrFeather;
+
   return base;
 }
 
 /** @param {LyricsWindowConfig} cfg */
 export function isAmScrollRenderer(cfg) {
   return normalizeLyricsWindowConfig(cfg).renderer === LYRICS_RENDERER.amScroll;
+}
+
+/** @param {LyricsWindowConfig} cfg */
+export function isMineradioRenderer(cfg) {
+  return normalizeLyricsWindowConfig(cfg).renderer === LYRICS_RENDERER.mineradio;
 }
 
 /** @param {Storage} ls @param {string} windowLabel */
@@ -295,7 +346,6 @@ export function computeLyricsTextBleedPx(config) {
   return bleed;
 }
 
-/** @param {number} percent 0–100，0 为无阴影，100 为默认强度 */
 export function buildClassicLyricsTextShadows(percent) {
   const p = clampInt(percent, 0, 100);
   if (p <= 0) {
@@ -322,6 +372,17 @@ export function applyLyricsWindowStyle(root, config) {
   root.style.setProperty("--lyrics-am-text-secondary", c.amTextSecondaryColor);
   root.style.setProperty("--lyrics-am-blur", `${c.amBlurAmountEm}em`);
   root.style.setProperty("--lyrics-am-blur-near", `${c.amBlurAmountNearEm}em`);
+  root.style.setProperty("--mr-primary", c.mrPrimaryColor);
+  root.style.setProperty("--mr-highlight", c.mrHighlightColor);
+  root.style.setProperty("--mr-glow", c.mrGlowColor);
+  root.style.setProperty("--mr-size", `${c.mrFontSizePx}px`);
+  root.style.setProperty("--mr-font", c.fontFamily);
+  root.style.setProperty("--mr-weight", String(c.mrFontWeight));
+  root.style.setProperty("--mr-line-height", String(c.mrLineHeight));
+  root.style.setProperty("--mr-feather", `${(c.mrFeather * 100).toFixed(2)}%`);
+  root.style.setProperty("--mr-shadow-soft", colorWithAlphaCss(c.mrPrimaryColor, 0.34));
+  root.style.setProperty("--mr-shadow-glow", colorWithAlphaCss(c.mrGlowColor, 0.26));
+  root.classList.toggle("mr-highlight-follow", c.mrHighlightFollow !== false);
   root.style.setProperty("--lyrics-next-size", `${c.nextFontSizePx}px`);
   root.style.setProperty("--lyrics-next-color", c.nextColor);
   root.style.setProperty("--lyrics-text-align", c.alignHorizontal);

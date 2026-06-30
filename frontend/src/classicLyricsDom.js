@@ -3,7 +3,7 @@
  * @param {HTMLElement} root
  */
 export function buildClassicLyricsDom(root) {
-  root.classList.remove("uses-am-lyrics");
+  root.classList.remove("uses-am-lyrics", "uses-mineradio-lyrics");
   root.replaceChildren();
 
   const stage = document.createElement("div");

@@ -33,8 +33,52 @@
                 <input type="radio" name="lyricsRenderer" id="lyricsRendererAmScroll" value="amScroll" />
                 <span>Apple Music 滚动（列表居中滚动）</span>
               </label>
+              <label class="settings-toggle">
+                <input type="radio" name="lyricsRenderer" id="lyricsRendererMineradio" value="mineradio" />
+                <span>Mineradio 舞台单行（大字 + 行内高亮）</span>
+              </label>
             </div>
           </fieldset>
+        </div>
+      </section>
+
+      <section id="lyricsMineradioOptions" class="settings-card" aria-labelledby="sec-lyrics-mr" hidden>
+        <h2 id="sec-lyrics-mr" class="settings-card__title">舞台单行歌词</h2>
+        <div class="settings-card__body settings-form" data-no-drag>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsMrFontPreset" class="settings-label">字体</label>
+            <select id="lyricsMrFontPreset" class="settings-select">
+              <option value="system">系统默认</option>
+              <option value="pingfang">苹方</option>
+              <option value="songti">宋体</option>
+              <option value="heiti">黑体</option>
+              <option value="kaiti">楷体</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="lyricsMrFontSize" class="settings-label">
+              字号 <span class="settings-value" id="lyricsMrFontSizeVal">52</span>px
+            </label>
+            <input id="lyricsMrFontSize" type="range" min="24" max="80" value="52" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsMrPrimaryColor" class="settings-label">主色</label>
+            <input id="lyricsMrPrimaryColor" type="color" value="#f6fdff" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsMrHighlightColor" class="settings-label">高亮色</label>
+            <input id="lyricsMrHighlightColor" type="color" value="#fff0b8" class="settings-color" />
+          </div>
+          <div class="settings-field settings-field--row">
+            <label for="lyricsMrGlowColor" class="settings-label">过渡辉光色</label>
+            <input id="lyricsMrGlowColor" type="color" value="#9cffdf" class="settings-color" />
+          </div>
+          <div class="settings-field">
+            <label class="settings-toggle">
+              <input type="checkbox" id="lyricsMrHighlightFollow" checked />
+              <span>行内高亮跟随（卡拉 OK 扫光）</span>
+            </label>
+          </div>
         </div>
       </section>
 

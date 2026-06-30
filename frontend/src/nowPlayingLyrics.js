@@ -13,8 +13,17 @@ import {
 import { buildClassicLyricsDom } from "./classicLyricsDom.js";
 import { createLyricsLineTransition } from "./lyricsLineTransition.js";
 import {
+  applyMineradioLyricsStyle,
+  isMineradioLyricsMounted,
+  mountMineradioLyricsPanel,
+  renderMineradioLyricsPanel,
+  tickMineradioLyrics,
+  unmountMineradioLyricsPanel,
+} from "./mineradioLyricsPanel.js";
+import {
   applyLyricsWindowStyle,
   isAmScrollRenderer,
+  isMineradioRenderer,
   normalizeLyricsWindowConfig,
 } from "./lyricsSettingsSchema.js";
 
@@ -60,6 +69,7 @@ let nowPlayingLyricCurrent = null;
 let nowPlayingLyricNext = null;
 let lyricsOnlyMode = false;
 let useAmScrollRenderer = false;
+let useMineradioRenderer = false;
 /** @type {ReturnType<typeof createLyricsLineTransition> | null} */
 let lyricsLineTransition = null;
 
@@ -178,8 +188,13 @@ function stopLyricsRaf() {
 function lyricsRafTick() {
   lyricsRafId = null;
   if (!shouldTickLyrics()) return;
-  if (useAmScrollRenderer && isAmLyricsMounted()) {
-    syncAmLyricsTime(getLiveElapsedSec());
+  const elapsed = getLiveElapsedSec();
+  const duration = nowPlayingProgressSync?.durationSec ?? null;
+  const playing = nowPlayingProgressSync?.isPlaying !== false;
+  if (useMineradioRenderer && isMineradioLyricsMounted()) {
+    tickMineradioLyrics(elapsed, duration, playing);
+  } else if (useAmScrollRenderer && isAmLyricsMounted()) {
+    syncAmLyricsTime(elapsed);
   } else {
     renderNowPlayingLyrics(false);
   }
@@ -209,11 +224,25 @@ function shouldTickLyrics() {
  */
 function renderNowPlayingLyrics(force = true) {
   if (!nowPlayingLyrics) return;
+  const elapsed = getLiveElapsedSec();
+  const duration = nowPlayingProgressSync?.durationSec ?? null;
+  const playing = nowPlayingProgressSync?.isPlaying !== false;
+  if (useMineradioRenderer && isMineradioLyricsMounted()) {
+    renderMineradioLyricsPanel(
+      lyricsDisplayState,
+      elapsed,
+      duration,
+      { title: nowPlayingTrackTitle, artist: nowPlayingTrackArtist },
+      playing,
+      force,
+    );
+    return;
+  }
   if (useAmScrollRenderer && isAmLyricsMounted()) {
     renderAmLyricsPanel(
       lyricsDisplayState,
-      getLiveElapsedSec(),
-      nowPlayingProgressSync?.durationSec ?? null,
+      elapsed,
+      duration,
       { title: nowPlayingTrackTitle, artist: nowPlayingTrackArtist },
     );
     return;
@@ -471,33 +500,52 @@ export function applyLyricsRendererFromConfig(cfg) {
   if (!lyricsOnlyMode || !nowPlayingLyrics) return;
   const c = normalizeLyricsWindowConfig(cfg);
   const wantAm = isAmScrollRenderer(c);
+  const wantMineradio = isMineradioRenderer(c);
   const modeChanged =
     wantAm !== useAmScrollRenderer ||
+    wantMineradio !== useMineradioRenderer ||
     (wantAm && !isAmLyricsMounted()) ||
-    (!wantAm && isAmLyricsMounted());
+    (wantMineradio && !isMineradioLyricsMounted()) ||
+    (!wantAm && isAmLyricsMounted()) ||
+    (!wantMineradio && isMineradioLyricsMounted()) ||
+    (!wantAm && !wantMineradio && !lyricsLineTransition);
 
-  if (wantAm && !isAmLyricsMounted()) {
+  if (wantMineradio && !isMineradioLyricsMounted()) {
+    unmountAmLyricsPanel();
+    mountMineradioLyricsPanel(nowPlayingLyrics);
+    lyricsLineTransition = null;
+  } else if (wantAm && !isAmLyricsMounted()) {
+    unmountMineradioLyricsPanel();
     resetAmLyricsBinding();
     mountAmLyricsPanel(nowPlayingLyrics);
     lyricsLineTransition = null;
-  } else if (!wantAm && isAmLyricsMounted()) {
-    unmountAmLyricsPanel();
-    const { nextEl } = buildClassicLyricsDom(nowPlayingLyrics);
-    nowPlayingLyricNext = nextEl;
-    lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
-  } else if (!wantAm && !lyricsLineTransition) {
-    nowPlayingLyricNext = nowPlayingLyrics.querySelector("#nowPlayingLyricNext");
-    if (nowPlayingLyrics.querySelector(".now-playing-lyrics-current-stage")) {
+  } else if (!wantAm && !wantMineradio) {
+    if (isAmLyricsMounted()) unmountAmLyricsPanel();
+    const hadMineradio = isMineradioLyricsMounted();
+    if (hadMineradio) unmountMineradioLyricsPanel();
+    if (hadMineradio || !nowPlayingLyrics.querySelector(".now-playing-lyrics-current-stage")) {
+      const { nextEl } = buildClassicLyricsDom(nowPlayingLyrics);
+      nowPlayingLyricNext = nextEl;
+      lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
+    } else if (!lyricsLineTransition) {
+      nowPlayingLyricNext = nowPlayingLyrics.querySelector("#nowPlayingLyricNext");
       lyricsLineTransition = createLyricsLineTransition(nowPlayingLyrics, nowPlayingLyricNext);
     }
   } else if (wantAm && modeChanged) {
+    unmountMineradioLyricsPanel();
     resetAmLyricsBinding();
+  } else if (wantMineradio && modeChanged) {
+    unmountAmLyricsPanel();
   }
 
   useAmScrollRenderer = wantAm;
+  useMineradioRenderer = wantMineradio;
   nowPlayingLyrics.dataset.lyricsRenderer = c.renderer;
   applyLyricsWindowStyle(nowPlayingLyrics, c);
-  if (wantAm) {
+  if (wantMineradio) {
+    applyMineradioLyricsStyle(c);
+    renderNowPlayingLyrics(true);
+  } else if (wantAm) {
     applyAmLyricsStyle(c);
     if (modeChanged) {
       refreshAmLyricsPanel(
