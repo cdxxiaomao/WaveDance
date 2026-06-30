@@ -107,6 +107,7 @@
                 <option value="threePhosphorTrail">磷光余辉</option>
                 <option value="threeScanGrid">扫描网格</option>
                 <option value="threeSoundField">音域回响</option>
+                <option value="threeSoundField2">音域回响 2</option>
                 <option value="threeLiquidBlob">液态球体</option>
                 <option value="threeAuroraRibbon">极光飘带</option>
                 <option value="threeBreathingRings">呼吸光环</option>
@@ -1602,6 +1603,190 @@
           <div class="settings-field">
             <label for="threeSoundFieldFallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeSoundFieldFallEaseValue">52</span>%</label>
             <input id="threeSoundFieldFallEaseRange" type="range" min="0" max="100" step="1" value="52" />
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-card" id="threeSoundField2ConfigPanel" aria-labelledby="sec-three-sound-field2-display" hidden>
+        <h2 id="sec-three-sound-field2-display" class="settings-card__title">音域回响 2 配置</h2>
+        <div class="settings-card__body settings-form panel-content panel-content--three-sound-field2" data-no-drag>
+          <div class="settings-field">
+            <label for="threeSoundField2GridPresetSelect" class="settings-label">渲染精度</label>
+            <select id="threeSoundField2GridPresetSelect" class="settings-select">
+              <option value="eco">节能（96×96）</option>
+              <option value="normal" selected>标准（128×128）</option>
+              <option value="high">高（160×160）</option>
+            </select>
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2ThemeSelect" class="settings-label">色彩主题</label>
+            <select id="threeSoundField2ThemeSelect" class="settings-select">
+              <option value="minimal-monochrome" selected>极简单色</option>
+              <option value="ink-wash">水墨</option>
+              <option value="nocturnal">夜行</option>
+              <option value="neon-tokyo">霓虹东京</option>
+              <option value="cyber-forest">赛博森林</option>
+            </select>
+          </div>
+
+          <div class="sf2-ground-eq" data-no-drag>
+            <h3 class="settings-subtitle">地面 EQ</h3>
+            <div class="settings-field">
+              <label for="threeSoundField2GroundEqMotionSpeedRange" class="settings-label">起伏速度 <span class="settings-value" id="threeSoundField2GroundEqMotionSpeedValue">50</span></label>
+              <input id="threeSoundField2GroundEqMotionSpeedRange" type="range" min="0" max="100" step="1" value="50" />
+            </div>
+            <div class="settings-field">
+              <label for="threeSoundField2GroundEqAmplitudeRange" class="settings-label">地形幅度 <span class="settings-value" id="threeSoundField2GroundEqAmplitudeValue">50</span></label>
+              <input id="threeSoundField2GroundEqAmplitudeRange" type="range" min="0" max="100" step="1" value="50" />
+            </div>
+            <div class="sf2-eq-faders" role="group" aria-label="频段推子">
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand0" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="中心抬升" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand0Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand0">中心抬升</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="0" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand1" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="低频重量" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand1Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand1">低频重量</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="1" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand2" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="慢波流动" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand2Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand2">慢波流动</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="2" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand3" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="方向流" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand3Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand3">方向流</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="3" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand4" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="尖峰" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand4Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand4">尖峰</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="4" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand5" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="闪光触发" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand5Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand5">闪光</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="5" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand6" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="50" orient="vertical" aria-label="边缘微闪" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand6Value">50</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand6">边缘微闪</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="6" checked /><span>开</span></label>
+              </div>
+              <div class="sf2-eq-fader">
+                <input id="threeSoundField2GroundEqBand7" class="sf2-eq-fader__range" type="range" min="0" max="100" step="1" value="48" orient="vertical" aria-label="空气颗粒" />
+                <span class="sf2-eq-fader__value" id="threeSoundField2GroundEqBand7Value">48</span>
+                <label class="sf2-eq-fader__label" for="threeSoundField2GroundEqBand7">空气颗粒</label>
+                <label class="sf2-eq-fader__toggle"><input type="checkbox" class="sf2-eq-fader__enable" data-band="7" checked /><span>开</span></label>
+              </div>
+            </div>
+          </div>
+
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2FloatingBlocksToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>外围浮动块</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2FloatingBlockIntensityRange" class="settings-label">浮动块强度 <span class="settings-value" id="threeSoundField2FloatingBlockIntensityValue">55</span>%</label>
+            <input id="threeSoundField2FloatingBlockIntensityRange" type="range" min="0" max="100" step="1" value="55" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2FloatingBlockSpeedRange" class="settings-label">浮动速度 <span class="settings-value" id="threeSoundField2FloatingBlockSpeedValue">77</span></label>
+            <input id="threeSoundField2FloatingBlockSpeedRange" type="range" min="10" max="150" step="1" value="77" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2FloatingBlockCountRange" class="settings-label">浮动块数量 <span class="settings-value" id="threeSoundField2FloatingBlockCountValue">80</span></label>
+            <input id="threeSoundField2FloatingBlockCountRange" type="range" min="0" max="120" step="1" value="80" />
+          </div>
+
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2CoverToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>专辑封面</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2CoverSizeRange" class="settings-label">封面尺寸 <span class="settings-value" id="threeSoundField2CoverSizeValue">2.4</span></label>
+            <input id="threeSoundField2CoverSizeRange" type="range" min="12" max="45" step="1" value="24" />
+          </div>
+
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2PulseToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>低频脉冲（Kick）</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2PulseSensitivityRange" class="settings-label">脉冲灵敏度 <span class="settings-value" id="threeSoundField2PulseSensitivityValue">85</span>%</label>
+            <input id="threeSoundField2PulseSensitivityRange" type="range" min="0" max="100" step="1" value="85" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2SnareToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>军鼓白波（Snare）</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2SnareSensitivityRange" class="settings-label">军鼓灵敏度 <span class="settings-value" id="threeSoundField2SnareSensitivityValue">60</span>%</label>
+            <input id="threeSoundField2SnareSensitivityRange" type="range" min="0" max="100" step="1" value="60" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2MeteorToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>高频流星（Meteor）</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2MeteorSensitivityRange" class="settings-label">流星灵敏度 <span class="settings-value" id="threeSoundField2MeteorSensitivityValue">45</span>%</label>
+            <input id="threeSoundField2MeteorSensitivityRange" type="range" min="0" max="100" step="1" value="45" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2BloomToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>Bloom 后处理</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2BloomStrengthRange" class="settings-label">Bloom 强度 <span class="settings-value" id="threeSoundField2BloomStrengthValue">0.8</span></label>
+            <input id="threeSoundField2BloomStrengthRange" type="range" min="0" max="20" step="1" value="8" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2CameraPitchRange" class="settings-label">相机俯角 <span class="settings-value" id="threeSoundField2CameraPitchValue">52</span>°</label>
+            <input id="threeSoundField2CameraPitchRange" type="range" min="25" max="75" step="1" value="52" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2CameraDistanceRange" class="settings-label">相机距离 <span class="settings-value" id="threeSoundField2CameraDistanceValue">14.0</span></label>
+            <input id="threeSoundField2CameraDistanceRange" type="range" min="80" max="220" step="1" value="140" />
+          </div>
+          <label class="settings-toggle settings-toggle--block">
+            <input id="threeSoundField2AutoRotateToggle" type="checkbox" checked />
+            <span class="settings-toggle__ui" aria-hidden="true"></span>
+            <span>自动旋转</span>
+          </label>
+          <div class="settings-field">
+            <label for="threeSoundField2AutoRotateSpeedRange" class="settings-label">旋转速度 <span class="settings-value" id="threeSoundField2AutoRotateSpeedValue">2.5</span>°/s</label>
+            <input id="threeSoundField2AutoRotateSpeedRange" type="range" min="0" max="120" step="1" value="25" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2GainRange" class="settings-label">增益 <span class="settings-value" id="threeSoundField2GainValue">62</span>%</label>
+            <input id="threeSoundField2GainRange" type="range" min="10" max="150" step="1" value="62" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2SmoothRange" class="settings-label">平滑度 <span class="settings-value" id="threeSoundField2SmoothValue">18</span>%</label>
+            <input id="threeSoundField2SmoothRange" type="range" min="0" max="400" step="1" value="18" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2SoftClipRange" class="settings-label">峰值柔化 <span class="settings-value" id="threeSoundField2SoftClipValue">12</span>%</label>
+            <input id="threeSoundField2SoftClipRange" type="range" min="0" max="100" step="1" value="12" />
+          </div>
+          <div class="settings-field">
+            <label for="threeSoundField2FallEaseRange" class="settings-label">下落缓动 <span class="settings-value" id="threeSoundField2FallEaseValue">52</span>%</label>
+            <input id="threeSoundField2FallEaseRange" type="range" min="0" max="100" step="1" value="52" />
           </div>
         </div>
       </section>

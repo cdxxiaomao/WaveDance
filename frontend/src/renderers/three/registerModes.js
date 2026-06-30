@@ -22,9 +22,11 @@ import { createNebulaVolumeRenderer } from "./nebulaVolumeRenderer.js";
 import { createKnotOrganicRenderer } from "./knotOrganicRenderer.js";
 import { createCoverParticleRenderer } from "./coverParticle/coverParticleRenderer.js";
 import { createSoundFieldRenderer } from "./soundField/soundFieldRenderer.js";
+import { createSonicTopographyRenderer } from "./sonicTopography/sonicTopographyRenderer.js";
 
 registerThreeMode(DISPLAY_MODES.threeCoverParticle, createCoverParticleRenderer);
 registerThreeMode(DISPLAY_MODES.threeSoundField, createSoundFieldRenderer);
+registerThreeMode(DISPLAY_MODES.threeSoundField2, createSonicTopographyRenderer);
 registerThreeMode(DISPLAY_MODES.threePlasmaField, createPlasmaFieldRenderer);
 registerThreeMode(DISPLAY_MODES.threeParticleGalaxy, createParticleGalaxyRenderer);
 registerThreeMode(DISPLAY_MODES.threeBloomTunnel, createBloomTunnelRenderer);

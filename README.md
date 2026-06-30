@@ -32,7 +32,7 @@ WaveDance 是一个面向 macOS 的实时音频可视化桌面应用。
 | | 3D 频谱地形 | 网格地毯起伏，频率×时间×幅度 |
 | | 3D 螺旋频谱 | 频谱点沿 3D 螺旋分布并旋转 |
 
-#### Three.js 高阶（12 种）
+#### Three.js 高阶（14+ 种）
 
 基于 [Three.js](https://threejs.org/) + [postprocessing](https://github.com/pmndrs/postprocessing) 实现，设置页下拉中归在「Three 高阶」分组：
 
@@ -50,8 +50,10 @@ WaveDance 是一个面向 macOS 的实时音频可视化桌面应用。
 | | 极光飘带 | 3D 曲线飘带，频带分驱色相与摆动 |
 | | 呼吸光环 | 多层同心环，peak 驱动缩放脉冲 |
 | | 噪声地貌 | Simplex 噪声地貌 + 频谱调制高度 |
+| D 音域地形 | 音域回响 | CPU 高度场柱网 + bass 涟漪 + treble 流星（v1，见 `docs/SOUND_FIELD_DEV.md`） |
+| | **音域回响 2** | GPU Shader 棋盘地形：8 段地面 EQ、Kick/Snare 涟漪、流星、外围浮动块、专辑封面与 5 套主题（见 `docs/SONIC_TOPOGRAPHY_DEV.md`） |
 
-> 完整实施记录与架构说明见 `docs/VISUALIZATION_MODES_PLAN.md`。
+> 完整实施记录与架构说明见 `docs/VISUALIZATION_MODES_PLAN.md`；音域回响 v1 / v2 并列维护，配置键前缀分别为 `threeSoundField*` 与 `threeSoundField2*`。
 
 ## 项目特性
 

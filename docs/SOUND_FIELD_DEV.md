@@ -3,6 +3,7 @@
 > **文档类型**：实现指导手册（开发者 / Agent 跨会话接力用）  
 > **创建日期**：2026-06-29  
 > **状态**：Phase 3 已完成，Phase 4 待做  
+> **姊妹模式**：Sonic Topography 风格重建见 `docs/SONIC_TOPOGRAPHY_DEV.md`（新模式 `threeSoundField2` / 设置页「音域回响 2」，与本模式并存，**不替换**本文档范围）
 > **参考来源**：
 > - Steam 创意工坊 [音域回响](https://steamcommunity.com/workshop/filedetails/?id=3747222633)（Wallpaper Engine 动态壁纸，**仅算法级参考，不复制源码**）
 > - 项目内 `docs/COVER_PARTICLE_DEV.md`（Three 新模式集成约定）

@@ -70,6 +70,7 @@ const MODE_PANEL_IDS = {
   [DISPLAY_MODES.threePhosphorTrail]: "threePhosphorTrailConfigPanel",
   [DISPLAY_MODES.threeScanGrid]: "threeScanGridConfigPanel",
   [DISPLAY_MODES.threeSoundField]: "threeSoundFieldConfigPanel",
+  [DISPLAY_MODES.threeSoundField2]: "threeSoundField2ConfigPanel",
   [DISPLAY_MODES.threeLiquidBlob]: "threeLiquidBlobConfigPanel",
   [DISPLAY_MODES.threeAuroraRibbon]: "threeAuroraRibbonConfigPanel",
   [DISPLAY_MODES.threeBreathingRings]: "threeBreathingRingsConfigPanel",
@@ -602,6 +603,58 @@ const threeSoundFieldSoftClipRange = document.querySelector("#threeSoundFieldSof
 const threeSoundFieldSoftClipValue = document.querySelector("#threeSoundFieldSoftClipValue");
 const threeSoundFieldFallEaseRange = document.querySelector("#threeSoundFieldFallEaseRange");
 const threeSoundFieldFallEaseValue = document.querySelector("#threeSoundFieldFallEaseValue");
+const threeSoundField2GridPresetSelect = document.querySelector("#threeSoundField2GridPresetSelect");
+const threeSoundField2ThemeSelect = document.querySelector("#threeSoundField2ThemeSelect");
+const threeSoundField2BloomToggle = document.querySelector("#threeSoundField2BloomToggle");
+const threeSoundField2BloomStrengthRange = document.querySelector("#threeSoundField2BloomStrengthRange");
+const threeSoundField2BloomStrengthValue = document.querySelector("#threeSoundField2BloomStrengthValue");
+const threeSoundField2CameraPitchRange = document.querySelector("#threeSoundField2CameraPitchRange");
+const threeSoundField2CameraPitchValue = document.querySelector("#threeSoundField2CameraPitchValue");
+const threeSoundField2CameraDistanceRange = document.querySelector("#threeSoundField2CameraDistanceRange");
+const threeSoundField2CameraDistanceValue = document.querySelector("#threeSoundField2CameraDistanceValue");
+const threeSoundField2AutoRotateToggle = document.querySelector("#threeSoundField2AutoRotateToggle");
+const threeSoundField2AutoRotateSpeedRange = document.querySelector("#threeSoundField2AutoRotateSpeedRange");
+const threeSoundField2AutoRotateSpeedValue = document.querySelector("#threeSoundField2AutoRotateSpeedValue");
+const threeSoundField2GainRange = document.querySelector("#threeSoundField2GainRange");
+const threeSoundField2GainValue = document.querySelector("#threeSoundField2GainValue");
+const threeSoundField2SmoothRange = document.querySelector("#threeSoundField2SmoothRange");
+const threeSoundField2SmoothValue = document.querySelector("#threeSoundField2SmoothValue");
+const threeSoundField2SoftClipRange = document.querySelector("#threeSoundField2SoftClipRange");
+const threeSoundField2SoftClipValue = document.querySelector("#threeSoundField2SoftClipValue");
+const threeSoundField2FallEaseRange = document.querySelector("#threeSoundField2FallEaseRange");
+const threeSoundField2FallEaseValue = document.querySelector("#threeSoundField2FallEaseValue");
+const threeSoundField2PulseToggle = document.querySelector("#threeSoundField2PulseToggle");
+const threeSoundField2PulseSensitivityRange = document.querySelector("#threeSoundField2PulseSensitivityRange");
+const threeSoundField2PulseSensitivityValue = document.querySelector("#threeSoundField2PulseSensitivityValue");
+const threeSoundField2SnareToggle = document.querySelector("#threeSoundField2SnareToggle");
+const threeSoundField2SnareSensitivityRange = document.querySelector("#threeSoundField2SnareSensitivityRange");
+const threeSoundField2SnareSensitivityValue = document.querySelector("#threeSoundField2SnareSensitivityValue");
+const threeSoundField2MeteorToggle = document.querySelector("#threeSoundField2MeteorToggle");
+const threeSoundField2MeteorSensitivityRange = document.querySelector("#threeSoundField2MeteorSensitivityRange");
+const threeSoundField2MeteorSensitivityValue = document.querySelector("#threeSoundField2MeteorSensitivityValue");
+const threeSoundField2GroundEqMotionSpeedRange = document.querySelector("#threeSoundField2GroundEqMotionSpeedRange");
+const threeSoundField2GroundEqMotionSpeedValue = document.querySelector("#threeSoundField2GroundEqMotionSpeedValue");
+const threeSoundField2GroundEqAmplitudeRange = document.querySelector("#threeSoundField2GroundEqAmplitudeRange");
+const threeSoundField2GroundEqAmplitudeValue = document.querySelector("#threeSoundField2GroundEqAmplitudeValue");
+const threeSoundField2GroundEqBandEnables = document.querySelectorAll(".sf2-eq-fader__enable");
+const threeSoundField2FloatingBlocksToggle = document.querySelector("#threeSoundField2FloatingBlocksToggle");
+const threeSoundField2FloatingBlockIntensityRange = document.querySelector("#threeSoundField2FloatingBlockIntensityRange");
+const threeSoundField2FloatingBlockIntensityValue = document.querySelector("#threeSoundField2FloatingBlockIntensityValue");
+const threeSoundField2FloatingBlockSpeedRange = document.querySelector("#threeSoundField2FloatingBlockSpeedRange");
+const threeSoundField2FloatingBlockSpeedValue = document.querySelector("#threeSoundField2FloatingBlockSpeedValue");
+const threeSoundField2FloatingBlockCountRange = document.querySelector("#threeSoundField2FloatingBlockCountRange");
+const threeSoundField2FloatingBlockCountValue = document.querySelector("#threeSoundField2FloatingBlockCountValue");
+const threeSoundField2CoverToggle = document.querySelector("#threeSoundField2CoverToggle");
+const threeSoundField2CoverSizeRange = document.querySelector("#threeSoundField2CoverSizeRange");
+const threeSoundField2CoverSizeValue = document.querySelector("#threeSoundField2CoverSizeValue");
+const THREE_SOUND_FIELD2_THEME_IDS = new Set([
+  "minimal-monochrome",
+  "ink-wash",
+  "nocturnal",
+  "neon-tokyo",
+  "cyber-forest",
+]);
+const THREE_SOUND_FIELD2_EQ_BAND_COUNT = 8;
 const threeLiquidBlobColor = document.querySelector("#threeLiquidBlobColor");
 const threeLiquidBlobColorSecondary = document.querySelector("#threeLiquidBlobColorSecondary");
 const threeLiquidBlobCountRange = document.querySelector("#threeLiquidBlobCountRange");
@@ -3694,6 +3747,497 @@ function applyThreeSoundFieldFormFromStorage(v) {
   }
 }
 
+function readThreeSoundField2GroundEqBands(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2GroundEqBands");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length !== THREE_SOUND_FIELD2_EQ_BAND_COUNT) return null;
+    return parsed.map((v) => clampInt(v, 0, 100));
+  } catch {
+    return null;
+  }
+}
+
+function readThreeSoundField2GroundEqEnabledBands(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2GroundEqEnabledBands",
+    );
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length !== THREE_SOUND_FIELD2_EQ_BAND_COUNT) return null;
+    return parsed.map((v) => Boolean(v));
+  } catch {
+    return null;
+  }
+}
+
+function readThreeSoundField2GroundEqBandRange(index) {
+  return document.querySelector(`#threeSoundField2GroundEqBand${index}`);
+}
+
+function readThreeSoundField2GroundEqBandValueEl(index) {
+  return document.querySelector(`#threeSoundField2GroundEqBand${index}Value`);
+}
+
+function collectThreeSoundField2GroundEqConfig() {
+  const groundEqBands = [];
+  for (let i = 0; i < THREE_SOUND_FIELD2_EQ_BAND_COUNT; i++) {
+    const val = clampInt(readThreeSoundField2GroundEqBandRange(i)?.value, 0, 100);
+    groundEqBands.push(val);
+    const valueEl = readThreeSoundField2GroundEqBandValueEl(i);
+    if (valueEl) valueEl.textContent = String(val);
+  }
+  const groundEqEnabledBands = [];
+  threeSoundField2GroundEqBandEnables.forEach((el) => {
+    groundEqEnabledBands.push(Boolean(el.checked));
+  });
+  while (groundEqEnabledBands.length < THREE_SOUND_FIELD2_EQ_BAND_COUNT) {
+    groundEqEnabledBands.push(true);
+  }
+  const motionSpeed = clampInt(threeSoundField2GroundEqMotionSpeedRange?.value, 0, 100);
+  const amplitude = clampInt(threeSoundField2GroundEqAmplitudeRange?.value, 0, 100);
+  if (threeSoundField2GroundEqMotionSpeedValue) {
+    threeSoundField2GroundEqMotionSpeedValue.textContent = String(motionSpeed);
+  }
+  if (threeSoundField2GroundEqAmplitudeValue) {
+    threeSoundField2GroundEqAmplitudeValue.textContent = String(amplitude);
+  }
+  return { groundEqBands, groundEqEnabledBands, groundEqMotionSpeed: motionSpeed, groundEqAmplitude: amplitude };
+}
+
+async function syncThreeSoundField2GroundEqConfig(visualTargetLabel, emitVisual) {
+  const config = collectThreeSoundField2GroundEqConfig();
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2GroundEqBands",
+      JSON.stringify(config.groundEqBands),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2GroundEqEnabledBands",
+      JSON.stringify(config.groundEqEnabledBands),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2GroundEqMotionSpeed",
+      String(config.groundEqMotionSpeed),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2GroundEqAmplitude",
+      String(config.groundEqAmplitude),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sound-field2-ground-eq-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新地面 EQ 失败：${String(err)}`;
+  }
+}
+
+function collectThreeSoundField2FloatingBlocksConfig() {
+  const intensity = clampInt(threeSoundField2FloatingBlockIntensityRange?.value, 0, 100);
+  const speed = clampInt(threeSoundField2FloatingBlockSpeedRange?.value, 10, 150);
+  const count = clampInt(threeSoundField2FloatingBlockCountRange?.value, 0, 120);
+  if (threeSoundField2FloatingBlockIntensityValue) {
+    threeSoundField2FloatingBlockIntensityValue.textContent = String(intensity);
+  }
+  if (threeSoundField2FloatingBlockSpeedValue) {
+    threeSoundField2FloatingBlockSpeedValue.textContent = String(speed);
+  }
+  if (threeSoundField2FloatingBlockCountValue) {
+    threeSoundField2FloatingBlockCountValue.textContent = String(count);
+  }
+  return {
+    floatingBlocksEnabled: Boolean(threeSoundField2FloatingBlocksToggle?.checked),
+    floatingBlockIntensity: intensity,
+    floatingBlockSpeed: speed,
+    floatingBlockCount: count,
+  };
+}
+
+async function syncThreeSoundField2FloatingBlocksConfig(visualTargetLabel, emitVisual) {
+  const config = collectThreeSoundField2FloatingBlocksConfig();
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2FloatingBlocks",
+      String(config.floatingBlocksEnabled),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2FloatingBlockIntensity",
+      String(config.floatingBlockIntensity),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2FloatingBlockSpeed",
+      String(config.floatingBlockSpeed),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2FloatingBlockCount",
+      String(config.floatingBlockCount),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sound-field2-floating-blocks-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新浮动块配置失败：${String(err)}`;
+  }
+}
+
+function collectThreeSoundField2CoverConfig() {
+  const coverSize = Math.min(4.5, Math.max(1.2, Number(threeSoundField2CoverSizeRange?.value ?? 24) / 10));
+  if (threeSoundField2CoverSizeValue) threeSoundField2CoverSizeValue.textContent = coverSize.toFixed(1);
+  return {
+    coverEnabled: Boolean(threeSoundField2CoverToggle?.checked),
+    coverSize,
+  };
+}
+
+async function syncThreeSoundField2CoverConfig(visualTargetLabel, emitVisual) {
+  const config = collectThreeSoundField2CoverConfig();
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2Cover",
+      String(config.coverEnabled),
+    );
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2CoverSize",
+      String(config.coverSize),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sound-field2-cover-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新封面配置失败：${String(err)}`;
+  }
+}
+
+function readThreeSoundField2ShapeConfig(visualTargetLabel) {
+  try {
+    const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2Shape");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function syncThreeSoundField2ShapeConfig(visualTargetLabel, emitVisual) {
+  const config = {
+    gainPercent: clampInt(threeSoundField2GainRange?.value, 10, 150),
+    smoothPercent: clampInt(threeSoundField2SmoothRange?.value, 0, 400),
+    softClipPercent: clampInt(threeSoundField2SoftClipRange?.value, 0, 100),
+    fallEasePercent: clampInt(threeSoundField2FallEaseRange?.value, 0, 100),
+  };
+  if (threeSoundField2GainValue) threeSoundField2GainValue.textContent = String(config.gainPercent);
+  if (threeSoundField2SmoothValue) threeSoundField2SmoothValue.textContent = String(config.smoothPercent);
+  if (threeSoundField2SoftClipValue) threeSoundField2SoftClipValue.textContent = String(config.softClipPercent);
+  if (threeSoundField2FallEaseValue) threeSoundField2FallEaseValue.textContent = String(config.fallEasePercent);
+  try {
+    writeWindowStorageString(
+      window.localStorage,
+      visualTargetLabel,
+      "threeSoundField2Shape",
+      JSON.stringify(config),
+    );
+  } catch {
+    // ignore storage failures
+  }
+  try {
+    await emitVisual("waveform-three-sound-field2-shape-config", config);
+  } catch (err) {
+    statusEl.textContent = `更新音域回响 2 形状配置失败：${String(err)}`;
+  }
+}
+
+function applyThreeSoundField2FormFromStorage(v) {
+  const sf2 = readThreeSoundField2ShapeConfig(v) ?? { ...DEFAULT_CONFIG.threeSoundField2.shape };
+  if (threeSoundField2GainRange) threeSoundField2GainRange.value = String(sf2.gainPercent);
+  if (threeSoundField2SmoothRange) threeSoundField2SmoothRange.value = String(sf2.smoothPercent);
+  if (threeSoundField2SoftClipRange) threeSoundField2SoftClipRange.value = String(sf2.softClipPercent);
+  if (threeSoundField2FallEaseRange) threeSoundField2FallEaseRange.value = String(sf2.fallEasePercent);
+  if (threeSoundField2GainValue) threeSoundField2GainValue.textContent = String(sf2.gainPercent);
+  if (threeSoundField2SmoothValue) threeSoundField2SmoothValue.textContent = String(sf2.smoothPercent);
+  if (threeSoundField2SoftClipValue) threeSoundField2SoftClipValue.textContent = String(sf2.softClipPercent);
+  if (threeSoundField2FallEaseValue) threeSoundField2FallEaseValue.textContent = String(sf2.fallEasePercent);
+
+  const savedPreset = readWindowStorageString(window.localStorage, v, "threeSoundField2GridPreset");
+  if (threeSoundField2GridPresetSelect) {
+    const preset =
+      savedPreset === "eco" || savedPreset === "high" || savedPreset === "normal"
+        ? savedPreset
+        : DEFAULT_CONFIG.threeSoundField2.gridPreset;
+    threeSoundField2GridPresetSelect.value = preset;
+  }
+
+  const savedTheme = readWindowStorageString(window.localStorage, v, "threeSoundField2Theme");
+  if (threeSoundField2ThemeSelect) {
+    const theme =
+      savedTheme && THREE_SOUND_FIELD2_THEME_IDS.has(savedTheme)
+        ? savedTheme
+        : DEFAULT_CONFIG.threeSoundField2.themeId;
+    threeSoundField2ThemeSelect.value = theme;
+  }
+
+  const eqBands =
+    readThreeSoundField2GroundEqBands(v) ?? [...DEFAULT_CONFIG.threeSoundField2.groundEqBands];
+  const eqEnabled =
+    readThreeSoundField2GroundEqEnabledBands(v) ??
+    [...DEFAULT_CONFIG.threeSoundField2.groundEqEnabledBands];
+  for (let i = 0; i < THREE_SOUND_FIELD2_EQ_BAND_COUNT; i++) {
+    const range = readThreeSoundField2GroundEqBandRange(i);
+    const valueEl = readThreeSoundField2GroundEqBandValueEl(i);
+    if (range) range.value = String(eqBands[i] ?? 50);
+    if (valueEl) valueEl.textContent = String(eqBands[i] ?? 50);
+  }
+  threeSoundField2GroundEqBandEnables.forEach((el, i) => {
+    el.checked = eqEnabled[i] !== false;
+  });
+  const savedMotionSpeed = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundField2GroundEqMotionSpeed",
+  );
+  if (threeSoundField2GroundEqMotionSpeedRange) {
+    const motionSpeed =
+      savedMotionSpeed != null && savedMotionSpeed !== ""
+        ? clampInt(savedMotionSpeed, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField2.groundEqMotionSpeed;
+    threeSoundField2GroundEqMotionSpeedRange.value = String(motionSpeed);
+    if (threeSoundField2GroundEqMotionSpeedValue) {
+      threeSoundField2GroundEqMotionSpeedValue.textContent = String(motionSpeed);
+    }
+  }
+  const savedAmplitude = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundField2GroundEqAmplitude",
+  );
+  if (threeSoundField2GroundEqAmplitudeRange) {
+    const amplitude =
+      savedAmplitude != null && savedAmplitude !== ""
+        ? clampInt(savedAmplitude, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField2.groundEqAmplitude;
+    threeSoundField2GroundEqAmplitudeRange.value = String(amplitude);
+    if (threeSoundField2GroundEqAmplitudeValue) {
+      threeSoundField2GroundEqAmplitudeValue.textContent = String(amplitude);
+    }
+  }
+
+  if (threeSoundField2FloatingBlocksToggle) {
+    threeSoundField2FloatingBlocksToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2FloatingBlocks"),
+      DEFAULT_CONFIG.threeSoundField2.floatingBlocksEnabled,
+    );
+  }
+  const savedFloatingIntensity = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundField2FloatingBlockIntensity",
+  );
+  if (threeSoundField2FloatingBlockIntensityRange) {
+    const intensity =
+      savedFloatingIntensity != null && savedFloatingIntensity !== ""
+        ? clampInt(savedFloatingIntensity, 0, 100)
+        : DEFAULT_CONFIG.threeSoundField2.floatingBlockIntensity;
+    threeSoundField2FloatingBlockIntensityRange.value = String(intensity);
+    if (threeSoundField2FloatingBlockIntensityValue) {
+      threeSoundField2FloatingBlockIntensityValue.textContent = String(intensity);
+    }
+  }
+  const savedFloatingSpeed = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundField2FloatingBlockSpeed",
+  );
+  if (threeSoundField2FloatingBlockSpeedRange) {
+    const speed =
+      savedFloatingSpeed != null && savedFloatingSpeed !== ""
+        ? clampInt(savedFloatingSpeed, 10, 150)
+        : DEFAULT_CONFIG.threeSoundField2.floatingBlockSpeed;
+    threeSoundField2FloatingBlockSpeedRange.value = String(speed);
+    if (threeSoundField2FloatingBlockSpeedValue) {
+      threeSoundField2FloatingBlockSpeedValue.textContent = String(speed);
+    }
+  }
+  const savedFloatingCount = readWindowStorageString(
+    window.localStorage,
+    v,
+    "threeSoundField2FloatingBlockCount",
+  );
+  if (threeSoundField2FloatingBlockCountRange) {
+    const count =
+      savedFloatingCount != null && savedFloatingCount !== ""
+        ? clampInt(savedFloatingCount, 0, 120)
+        : DEFAULT_CONFIG.threeSoundField2.floatingBlockCount;
+    threeSoundField2FloatingBlockCountRange.value = String(count);
+    if (threeSoundField2FloatingBlockCountValue) {
+      threeSoundField2FloatingBlockCountValue.textContent = String(count);
+    }
+  }
+
+  if (threeSoundField2CoverToggle) {
+    threeSoundField2CoverToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2Cover"),
+      DEFAULT_CONFIG.threeSoundField2.coverEnabled,
+    );
+  }
+  const savedCoverSize = readWindowStorageString(window.localStorage, v, "threeSoundField2CoverSize");
+  if (threeSoundField2CoverSizeRange) {
+    const coverSize =
+      savedCoverSize != null && savedCoverSize !== ""
+        ? Math.min(4.5, Math.max(1.2, Number(savedCoverSize)))
+        : DEFAULT_CONFIG.threeSoundField2.coverSize;
+    threeSoundField2CoverSizeRange.value = String(Math.round(coverSize * 10));
+    if (threeSoundField2CoverSizeValue) {
+      threeSoundField2CoverSizeValue.textContent = coverSize.toFixed(1);
+    }
+  }
+
+  if (threeSoundField2BloomToggle) {
+    threeSoundField2BloomToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2Bloom"),
+      DEFAULT_CONFIG.threeSoundField2.bloomEnabled,
+    );
+  }
+
+  const savedBloomStrength = readWindowStorageString(window.localStorage, v, "threeSoundField2BloomStrength");
+  if (threeSoundField2BloomStrengthRange) {
+    const bloomStrength =
+      savedBloomStrength != null && savedBloomStrength !== ""
+        ? Math.min(2, Math.max(0, Number(savedBloomStrength)))
+        : DEFAULT_CONFIG.threeSoundField2.bloomStrength;
+    threeSoundField2BloomStrengthRange.value = String(Math.round(bloomStrength * 10));
+    if (threeSoundField2BloomStrengthValue) {
+      threeSoundField2BloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+  }
+
+  const savedPitch = readWindowStorageString(window.localStorage, v, "threeSoundField2CameraPitch");
+  if (threeSoundField2CameraPitchRange) {
+    const pitch =
+      savedPitch != null && savedPitch !== ""
+        ? clampInt(savedPitch, 25, 75)
+        : DEFAULT_CONFIG.threeSoundField2.cameraPitchDeg;
+    threeSoundField2CameraPitchRange.value = String(pitch);
+    if (threeSoundField2CameraPitchValue) threeSoundField2CameraPitchValue.textContent = String(pitch);
+  }
+
+  const savedDistance = readWindowStorageString(window.localStorage, v, "threeSoundField2CameraDistance");
+  if (threeSoundField2CameraDistanceRange) {
+    const dist =
+      savedDistance != null && savedDistance !== ""
+        ? Math.min(22, Math.max(8, Number(savedDistance)))
+        : DEFAULT_CONFIG.threeSoundField2.cameraDistance;
+    threeSoundField2CameraDistanceRange.value = String(Math.round(dist * 10));
+    if (threeSoundField2CameraDistanceValue) threeSoundField2CameraDistanceValue.textContent = dist.toFixed(1);
+  }
+
+  if (threeSoundField2AutoRotateToggle) {
+    threeSoundField2AutoRotateToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2AutoRotate"),
+      DEFAULT_CONFIG.threeSoundField2.autoRotateEnabled,
+    );
+  }
+
+  const savedRotateSpeed = readWindowStorageString(window.localStorage, v, "threeSoundField2AutoRotateSpeed");
+  if (threeSoundField2AutoRotateSpeedRange) {
+    const speed =
+      savedRotateSpeed != null && savedRotateSpeed !== ""
+        ? Math.min(12, Math.max(0, Number(savedRotateSpeed)))
+        : DEFAULT_CONFIG.threeSoundField2.autoRotateSpeedDeg;
+    threeSoundField2AutoRotateSpeedRange.value = String(Math.round(speed * 10));
+    if (threeSoundField2AutoRotateSpeedValue) {
+      threeSoundField2AutoRotateSpeedValue.textContent = speed.toFixed(1);
+    }
+  }
+
+  if (threeSoundField2PulseToggle) {
+    threeSoundField2PulseToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2PulseEnabled"),
+      DEFAULT_CONFIG.threeSoundField2.pulseEnabled,
+    );
+  }
+  const savedPulseSens = readWindowStorageString(window.localStorage, v, "threeSoundField2PulseSensitivity");
+  if (threeSoundField2PulseSensitivityRange) {
+    const sens =
+      savedPulseSens != null && savedPulseSens !== ""
+        ? Math.min(1, Math.max(0, Number(savedPulseSens)))
+        : DEFAULT_CONFIG.threeSoundField2.pulseSensitivity;
+    const pct = Math.round(sens * 100);
+    threeSoundField2PulseSensitivityRange.value = String(pct);
+    if (threeSoundField2PulseSensitivityValue) {
+      threeSoundField2PulseSensitivityValue.textContent = String(pct);
+    }
+  }
+
+  if (threeSoundField2SnareToggle) {
+    threeSoundField2SnareToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2SnareEnabled"),
+      DEFAULT_CONFIG.threeSoundField2.snareEnabled,
+    );
+  }
+  const savedSnareSens = readWindowStorageString(window.localStorage, v, "threeSoundField2SnareSensitivity");
+  if (threeSoundField2SnareSensitivityRange) {
+    const sens =
+      savedSnareSens != null && savedSnareSens !== ""
+        ? Math.min(1, Math.max(0, Number(savedSnareSens)))
+        : DEFAULT_CONFIG.threeSoundField2.snareSensitivity;
+    const pct = Math.round(sens * 100);
+    threeSoundField2SnareSensitivityRange.value = String(pct);
+    if (threeSoundField2SnareSensitivityValue) {
+      threeSoundField2SnareSensitivityValue.textContent = String(pct);
+    }
+  }
+
+  if (threeSoundField2MeteorToggle) {
+    threeSoundField2MeteorToggle.checked = parseBoolean(
+      readWindowStorageString(window.localStorage, v, "threeSoundField2MeteorEnabled"),
+      DEFAULT_CONFIG.threeSoundField2.meteorEnabled,
+    );
+  }
+  const savedMeteorSens = readWindowStorageString(window.localStorage, v, "threeSoundField2MeteorSensitivity");
+  if (threeSoundField2MeteorSensitivityRange) {
+    const sens =
+      savedMeteorSens != null && savedMeteorSens !== ""
+        ? Math.min(1, Math.max(0, Number(savedMeteorSens)))
+        : DEFAULT_CONFIG.threeSoundField2.meteorSensitivity;
+    const pct = Math.round(sens * 100);
+    threeSoundField2MeteorSensitivityRange.value = String(pct);
+    if (threeSoundField2MeteorSensitivityValue) {
+      threeSoundField2MeteorSensitivityValue.textContent = String(pct);
+    }
+  }
+}
+
 function readThreeLiquidBlobShapeConfig(visualTargetLabel) {
   try {
     const raw = readWindowStorageString(window.localStorage, visualTargetLabel, "threeLiquidBlobShape");
@@ -5993,6 +6537,7 @@ async function init() {
     applyThreePhosphorFormFromStorage(v);
     applyThreeScanGridFormFromStorage(v);
     applyThreeSoundFieldFormFromStorage(v);
+    applyThreeSoundField2FormFromStorage(v);
     applyThreeLiquidBlobFormFromStorage(v);
     applyThreeAuroraFormFromStorage(v);
     applyThreeBreathingFormFromStorage(v);
@@ -9052,6 +9597,239 @@ async function init() {
   });
   threeSoundFieldFallEaseRange?.addEventListener("input", () => {
     void syncThreeSoundFieldShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeSoundField2GridPresetSelect?.addEventListener("change", async (event) => {
+    const preset = String(event.target.value ?? "normal");
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2GridPreset", preset);
+      await emitVisual("waveform-three-sound-field2-grid-preset", preset);
+    } catch (err) {
+      statusEl.textContent = `更新渲染精度失败：${String(err)}`;
+    }
+  });
+  threeSoundField2ThemeSelect?.addEventListener("change", async (event) => {
+    const themeId = String(event.target.value ?? "minimal-monochrome");
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2Theme", themeId);
+      await emitVisual("waveform-three-sound-field2-theme", themeId);
+    } catch (err) {
+      statusEl.textContent = `更新主题失败：${String(err)}`;
+    }
+  });
+  threeSoundField2BloomToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2Bloom", String(enabled));
+      await emitVisual("waveform-three-sound-field2-bloom-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 开关失败：${String(err)}`;
+    }
+  });
+  threeSoundField2BloomStrengthRange?.addEventListener("input", async (event) => {
+    const bloomStrength = Math.min(2, Math.max(0, Number(event.target.value) / 10));
+    if (threeSoundField2BloomStrengthValue) {
+      threeSoundField2BloomStrengthValue.textContent = bloomStrength.toFixed(1);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2BloomStrength",
+        String(bloomStrength),
+      );
+      await emitVisual("waveform-three-sound-field2-bloom-strength", bloomStrength);
+    } catch (err) {
+      statusEl.textContent = `更新 Bloom 强度失败：${String(err)}`;
+    }
+  });
+  threeSoundField2CameraPitchRange?.addEventListener("input", async (event) => {
+    const pitch = clampInt(event.target.value, 25, 75);
+    if (threeSoundField2CameraPitchValue) threeSoundField2CameraPitchValue.textContent = String(pitch);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2CameraPitch", String(pitch));
+      await emitVisual("waveform-three-sound-field2-camera-pitch", pitch);
+    } catch (err) {
+      statusEl.textContent = `更新相机俯角失败：${String(err)}`;
+    }
+  });
+  threeSoundField2CameraDistanceRange?.addEventListener("input", async (event) => {
+    const dist = Math.min(22, Math.max(8, Number(event.target.value) / 10));
+    if (threeSoundField2CameraDistanceValue) threeSoundField2CameraDistanceValue.textContent = dist.toFixed(1);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2CameraDistance", String(dist));
+      await emitVisual("waveform-three-sound-field2-camera-distance", dist);
+    } catch (err) {
+      statusEl.textContent = `更新相机距离失败：${String(err)}`;
+    }
+  });
+  threeSoundField2AutoRotateToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(window.localStorage, visualTargetLabel, "threeSoundField2AutoRotate", String(enabled));
+      await emitVisual("waveform-three-sound-field2-auto-rotate-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新自动旋转失败：${String(err)}`;
+    }
+  });
+  threeSoundField2AutoRotateSpeedRange?.addEventListener("input", async (event) => {
+    const speed = Math.min(12, Math.max(0, Number(event.target.value) / 10));
+    if (threeSoundField2AutoRotateSpeedValue) threeSoundField2AutoRotateSpeedValue.textContent = speed.toFixed(1);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2AutoRotateSpeed",
+        String(speed),
+      );
+      await emitVisual("waveform-three-sound-field2-auto-rotate-speed", speed);
+    } catch (err) {
+      statusEl.textContent = `更新旋转速度失败：${String(err)}`;
+    }
+  });
+  threeSoundField2GainRange?.addEventListener("input", () => {
+    void syncThreeSoundField2ShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2SmoothRange?.addEventListener("input", () => {
+    void syncThreeSoundField2ShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2SoftClipRange?.addEventListener("input", () => {
+    void syncThreeSoundField2ShapeConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2FallEaseRange?.addEventListener("input", () => {
+    void syncThreeSoundField2ShapeConfig(visualTargetLabel, emitVisual);
+  });
+
+  threeSoundField2PulseToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2PulseEnabled",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-sound-field2-pulse-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新脉冲开关失败：${String(err)}`;
+    }
+  });
+  threeSoundField2PulseSensitivityRange?.addEventListener("input", async (event) => {
+    const pct = clampInt(event.target.value, 0, 100);
+    const sensitivity = pct / 100;
+    if (threeSoundField2PulseSensitivityValue) {
+      threeSoundField2PulseSensitivityValue.textContent = String(pct);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2PulseSensitivity",
+        String(sensitivity),
+      );
+      await emitVisual("waveform-three-sound-field2-pulse-sensitivity", sensitivity);
+    } catch (err) {
+      statusEl.textContent = `更新脉冲灵敏度失败：${String(err)}`;
+    }
+  });
+  threeSoundField2SnareToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2SnareEnabled",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-sound-field2-snare-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新军鼓开关失败：${String(err)}`;
+    }
+  });
+  threeSoundField2SnareSensitivityRange?.addEventListener("input", async (event) => {
+    const pct = clampInt(event.target.value, 0, 100);
+    const sensitivity = pct / 100;
+    if (threeSoundField2SnareSensitivityValue) {
+      threeSoundField2SnareSensitivityValue.textContent = String(pct);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2SnareSensitivity",
+        String(sensitivity),
+      );
+      await emitVisual("waveform-three-sound-field2-snare-sensitivity", sensitivity);
+    } catch (err) {
+      statusEl.textContent = `更新军鼓灵敏度失败：${String(err)}`;
+    }
+  });
+  threeSoundField2MeteorToggle?.addEventListener("change", async (event) => {
+    const enabled = Boolean(event.target.checked);
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2MeteorEnabled",
+        String(enabled),
+      );
+      await emitVisual("waveform-three-sound-field2-meteor-enabled", enabled);
+    } catch (err) {
+      statusEl.textContent = `更新流星开关失败：${String(err)}`;
+    }
+  });
+  threeSoundField2MeteorSensitivityRange?.addEventListener("input", async (event) => {
+    const pct = clampInt(event.target.value, 0, 100);
+    const sensitivity = pct / 100;
+    if (threeSoundField2MeteorSensitivityValue) {
+      threeSoundField2MeteorSensitivityValue.textContent = String(pct);
+    }
+    try {
+      writeWindowStorageString(
+        window.localStorage,
+        visualTargetLabel,
+        "threeSoundField2MeteorSensitivity",
+        String(sensitivity),
+      );
+      await emitVisual("waveform-three-sound-field2-meteor-sensitivity", sensitivity);
+    } catch (err) {
+      statusEl.textContent = `更新流星灵敏度失败：${String(err)}`;
+    }
+  });
+
+  threeSoundField2GroundEqMotionSpeedRange?.addEventListener("input", () => {
+    void syncThreeSoundField2GroundEqConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2GroundEqAmplitudeRange?.addEventListener("input", () => {
+    void syncThreeSoundField2GroundEqConfig(visualTargetLabel, emitVisual);
+  });
+  for (let i = 0; i < THREE_SOUND_FIELD2_EQ_BAND_COUNT; i++) {
+    readThreeSoundField2GroundEqBandRange(i)?.addEventListener("input", () => {
+      void syncThreeSoundField2GroundEqConfig(visualTargetLabel, emitVisual);
+    });
+  }
+  threeSoundField2GroundEqBandEnables.forEach((el) => {
+    el.addEventListener("change", () => {
+      void syncThreeSoundField2GroundEqConfig(visualTargetLabel, emitVisual);
+    });
+  });
+  threeSoundField2FloatingBlocksToggle?.addEventListener("change", () => {
+    void syncThreeSoundField2FloatingBlocksConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2FloatingBlockIntensityRange?.addEventListener("input", () => {
+    void syncThreeSoundField2FloatingBlocksConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2FloatingBlockSpeedRange?.addEventListener("input", () => {
+    void syncThreeSoundField2FloatingBlocksConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2FloatingBlockCountRange?.addEventListener("input", () => {
+    void syncThreeSoundField2FloatingBlocksConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2CoverToggle?.addEventListener("change", () => {
+    void syncThreeSoundField2CoverConfig(visualTargetLabel, emitVisual);
+  });
+  threeSoundField2CoverSizeRange?.addEventListener("input", () => {
+    void syncThreeSoundField2CoverConfig(visualTargetLabel, emitVisual);
   });
 
   threeLiquidBlobColor?.addEventListener("input", async () => {

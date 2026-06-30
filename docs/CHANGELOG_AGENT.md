@@ -6,6 +6,53 @@
 
 > 说明：本文件用于保留历史实现轨迹与阶段性进度。`PROJECT_CONTEXT.md` 只保留当前执行上下文。
 
+## 2026-06-30
+
+### 音域回响 2 Sonic Topography — Phase 6 文档收尾
+
+- `README.md`：Three 高阶新增「D 音域地形」分组，说明音域回响 v1 / 音域回响 2 并存关系。
+- `SONIC_TOPOGRAPHY_DEV.md`：Phase 0~6 验收项勾选完成；记录 v1/v2 localStorage / DOM / factory 隔离核查结果。
+
+### 音域回响 2 Sonic Topography — Phase 5 封面 + 性能打磨
+
+- 新建 `coverPlane.js`：柱海上空专辑封面 Plane，切歌 `colorMixT` crossfade。
+- 新建 `performance.js`：eco/normal/high 三档 DPR cap；high 档低帧率控制台降级提示。
+- `audioAnalysis.js`：`visualRelease` 静音缓释，避免地形突然拍平。
+- `sonicTopographyRenderer.js`：集成封面与 FPS 监控。
+- `settings.html` / `settings.js` / `main.js`：封面开关与尺寸配置。
+
+### 音域回响 2 Sonic Topography — Phase 4 地面 EQ UI + 浮动块 + 全主题
+
+- 新建 `floatingBlockMaterial.js`、`floatingBlocks.js`：外围 ~80 个 InstancedMesh 漂浮柱，环形分布 radius 14~76。
+- `themes.js`：新增水墨 / 夜行 / 霓虹东京 / 赛博森林，共 5 套内置主题，颜色 lerp 过渡。
+- `settings.html` / `settings.js` / `main.js`：8 频段地面 EQ 推子 + 起伏速度/幅度、浮动块开关与参数、主题切换。
+- `sonicTopographyRenderer.js`：集成浮动块渲染与主题/音频 uniform 同步。
+
+### 音域回响 2 Sonic Topography — Phase 3 流星 + 粒子
+
+- 新建 `meteorSystem.js`：20 颗 InstancedMesh 流星 + 200 粒 burst 粒子 pool，AdditiveBlending 共用 Bloom。
+- `sonicTopographyRenderer.js`：Meteor 触发 spawn、主题色同步、与地形同 fieldGroup 缩放。
+
+### 音域回响 2 Sonic Topography — Phase 2 触发器 + GPU 涟漪 + Kick deform
+
+- 新建 `triggerEngine.js`、`rippleBuffer.js`、`terrainResponse.js`。
+- `terrainMaterial.js`：Kick 彩色环 / Snare 白色锐波 GPU 涟漪，片段着色区分。
+- `sonicTopographyRenderer.js`：Pulse/Snare/Meteor 触发、Kick 中心抬升、10 条 ripple uniform。
+- `settings.html` / `settings.js` / `main.js`：脉冲 / 军鼓 / 流星开关与灵敏度配置。
+
+### 音域回响 2 Sonic Topography — Phase 1 Shader 地形 + 8 段音频
+
+- 新建 `audioAnalysis.js`、`groundEq.js`、`gridSettings.js`、`terrainMaterial.js`、`themes.js`（minimal-monochrome）。
+- `sonicTopographyRenderer.js`：128² InstancedMesh GPU 地形、8 段频谱分析、地面 EQ 默认增益、Bloom、相机自动旋转。
+- `settings.html` / `settings.js` / `main.js`：渲染精度、主题、Bloom、相机、形状四件套配置与事件同步。
+
+### 音域回响 2 Sonic Topography — Phase 0 注册与骨架
+
+- 新建 `frontend/src/renderers/three/sonicTopography/sonicTopographyRenderer.js`：空壳 renderer，透明清屏占位。
+- `visualizationSchema.js`：新增 `DISPLAY_MODES.threeSoundField2`、`DEFAULT_CONFIG.threeSoundField2`、独立 `threeSoundField2*` storage keys。
+- `registerModes.js` 注册 `createSonicTopographyRenderer`；保留 `threeSoundField` 不变。
+- `settings.html` / `settings.js` / `main.js`：设置页选项、配置面板占位、最小 style/shape 分支。
+
 ## 2026-06-29
 
 ### 音域回响 Three Sound Field — Phase 3 高频流星

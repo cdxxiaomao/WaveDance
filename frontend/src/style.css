@@ -3518,3 +3518,74 @@ body.player-queue-dedicated .player-queue-window-item__dur {
   padding-left: 4px;
 }
 
+/* 音域回响 2 — 地面 EQ 推子面板 */
+body.settings-window .settings-subtitle {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--settings-text);
+}
+
+body.settings-window .sf2-ground-eq {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 10px 12px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+body.settings-window .sf2-eq-faders {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+body.settings-window .sf2-eq-fader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  flex: 1 1 0;
+}
+
+body.settings-window .sf2-eq-fader__range {
+  width: 88px;
+  height: 28px;
+  margin: 38px 0;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+}
+
+body.settings-window .sf2-eq-fader__value {
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--settings-text-muted);
+}
+
+body.settings-window .sf2-eq-fader__label {
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--settings-text-muted);
+  max-width: 52px;
+}
+
+body.settings-window .sf2-eq-fader__toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--settings-text-muted);
+  cursor: pointer;
+}
+
+body.settings-window .sf2-eq-fader__toggle input {
+  margin: 0;
+}
+
