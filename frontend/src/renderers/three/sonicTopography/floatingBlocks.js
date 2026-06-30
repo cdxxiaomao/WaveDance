@@ -85,7 +85,6 @@ export function createFloatingBlocks(opts = {}) {
     uniforms.uSpeed.value = Number(style.speed) || 77;
     uniforms.uMinSize.value = Number(style.minSize) || 9;
     uniforms.uMaxSize.value = Number(style.maxSize) || 26;
-    uniforms.uCameraPos.value.copy(cameraPos);
 
     applyThemeToUniforms(theme, uniforms);
     updateFloatingBlockAudioUniforms(uniforms, audio);

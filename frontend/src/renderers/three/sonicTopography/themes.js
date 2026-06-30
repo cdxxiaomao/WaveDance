@@ -14,77 +14,82 @@ import * as THREE from "three";
  * @property {number} uGlowIntensity
  */
 
-/** @param {string} hex @param {string} fallback */
-function color(hex, fallback) {
-  return new THREE.Color(/^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : fallback);
+/** 与 sonic-topography themes.ts 一致（线性 RGB 0~1） */
+function rgb(r, g, b) {
+  return new THREE.Color(r, g, b);
+}
+
+/** @param {THREE.Color} c @param {THREE.Color} target @param {number} t */
+function lerpColor(c, target, t) {
+  return c.clone().lerp(target, t);
 }
 
 /** @type {Record<string, SonicThemeColors>} */
 const THEMES = {
-  "minimal-monochrome": {
-    id: "minimal-monochrome",
-    name: "极简单色",
-    uBaseColor1: color("#3a3a42", "#3a3a42"),
-    uBaseColor2: color("#9a9aa8", "#9a9aa8"),
-    uFogColor: color("#08080c", "#08080c"),
-    uCoolCore: color("#6a7080", "#6a7080"),
-    uCoolEdge: color("#b8bcc8", "#b8bcc8"),
-    uWarmCore: color("#888890", "#888890"),
-    uWarmEdge: color("#d0d0d8", "#d0d0d8"),
-    uRippleColor: color("#c8c8d8", "#c8c8d8"),
-    uGlowIntensity: 0.55,
-  },
   "ink-wash": {
     id: "ink-wash",
     name: "水墨",
-    uBaseColor1: color("#2a3038", "#2a3038"),
-    uBaseColor2: color("#7a8490", "#7a8490"),
-    uFogColor: color("#0a1014", "#0a1014"),
-    uCoolCore: color("#4a5a68", "#4a5a68"),
-    uCoolEdge: color("#9aacb8", "#9aacb8"),
-    uWarmCore: color("#6a5a4a", "#6a5a4a"),
-    uWarmEdge: color("#c8b8a0", "#c8b8a0"),
-    uRippleColor: color("#a0b8c8", "#a0b8c8"),
-    uGlowIntensity: 0.45,
+    uBaseColor1: rgb(1.0, 1.0, 1.0),
+    uBaseColor2: lerpColor(rgb(1.0, 1.0, 1.0), rgb(1.0, 1.0, 1.0), 0.12),
+    uFogColor: rgb(1.0, 1.0, 1.0),
+    uCoolCore: rgb(0.0, 0.0, 0.0),
+    uCoolEdge: lerpColor(rgb(0.0, 0.0, 0.0), rgb(1.0, 1.0, 1.0), 0.35),
+    uWarmCore: rgb(0.0, 0.0, 0.0),
+    uWarmEdge: lerpColor(rgb(0.0, 0.0, 0.0), rgb(1.0, 1.0, 1.0), 0.35),
+    uRippleColor: rgb(0.66, 0.74, 0.76),
+    uGlowIntensity: 1.1,
   },
   nocturnal: {
     id: "nocturnal",
     name: "夜行",
-    uBaseColor1: color("#1a1a2e", "#1a1a2e"),
-    uBaseColor2: color("#4a4580", "#4a4580"),
-    uFogColor: color("#060810", "#060810"),
-    uCoolCore: color("#3a4a80", "#3a4a80"),
-    uCoolEdge: color("#8090d0", "#8090d0"),
-    uWarmCore: color("#503a70", "#503a70"),
-    uWarmEdge: color("#b090d0", "#b090d0"),
-    uRippleColor: color("#8090ff", "#8090ff"),
-    uGlowIntensity: 0.65,
+    uBaseColor1: rgb(0.01, 0.02, 0.04),
+    uBaseColor2: rgb(0.03, 0.05, 0.09),
+    uFogColor: rgb(0.01, 0.02, 0.04),
+    uCoolCore: rgb(0.0, 0.3, 1.0),
+    uCoolEdge: rgb(0.6, 0.2, 1.0),
+    uWarmCore: rgb(1.0, 0.2, 0.1),
+    uWarmEdge: rgb(1.0, 0.6, 0.0),
+    uRippleColor: rgb(0.2, 0.9, 1.0),
+    uGlowIntensity: 1.0,
   },
   "neon-tokyo": {
     id: "neon-tokyo",
     name: "霓虹东京",
-    uBaseColor1: color("#1a0a20", "#1a0a20"),
-    uBaseColor2: color("#602060", "#602060"),
-    uFogColor: color("#0a0010", "#0a0010"),
-    uCoolCore: color("#00c8d8", "#00c8d8"),
-    uCoolEdge: color("#80ffff", "#80ffff"),
-    uWarmCore: color("#ff2080", "#ff2080"),
-    uWarmEdge: color("#ff80c0", "#ff80c0"),
-    uRippleColor: color("#ff40a0", "#ff40a0"),
-    uGlowIntensity: 0.9,
+    uBaseColor1: rgb(0.01, 0.005, 0.02),
+    uBaseColor2: rgb(0.04, 0.01, 0.06),
+    uFogColor: rgb(0.01, 0.005, 0.02),
+    uCoolCore: rgb(1.0, 0.1, 0.6),
+    uCoolEdge: rgb(0.6, 0.1, 1.0),
+    uWarmCore: rgb(0.1, 1.0, 0.8),
+    uWarmEdge: rgb(0.1, 0.4, 1.0),
+    uRippleColor: rgb(1.0, 1.0, 1.0),
+    uGlowIntensity: 1.5,
   },
   "cyber-forest": {
     id: "cyber-forest",
     name: "赛博森林",
-    uBaseColor1: color("#0a1810", "#0a1810"),
-    uBaseColor2: color("#1a4838", "#1a4838"),
-    uFogColor: color("#040810", "#040810"),
-    uCoolCore: color("#10a060", "#10a060"),
-    uCoolEdge: color("#60f0a0", "#60f0a0"),
-    uWarmCore: color("#208050", "#208050"),
-    uWarmEdge: color("#90ffc0", "#90ffc0"),
-    uRippleColor: color("#40e090", "#40e090"),
-    uGlowIntensity: 0.75,
+    uBaseColor1: rgb(0.01, 0.02, 0.01),
+    uBaseColor2: rgb(0.02, 0.05, 0.02),
+    uFogColor: rgb(0.01, 0.02, 0.01),
+    uCoolCore: rgb(0.1, 1.0, 0.5),
+    uCoolEdge: rgb(0.05, 0.5, 0.3),
+    uWarmCore: rgb(0.8, 1.0, 0.1),
+    uWarmEdge: rgb(0.9, 0.5, 0.1),
+    uRippleColor: rgb(0.6, 1.0, 0.3),
+    uGlowIntensity: 1.3,
+  },
+  "minimal-monochrome": {
+    id: "minimal-monochrome",
+    name: "极简单色",
+    uBaseColor1: rgb(0.02, 0.02, 0.02),
+    uBaseColor2: rgb(0.06, 0.06, 0.06),
+    uFogColor: rgb(0.02, 0.02, 0.02),
+    uCoolCore: rgb(0.9, 0.9, 0.9),
+    uCoolEdge: rgb(0.4, 0.4, 0.4),
+    uWarmCore: rgb(1.0, 1.0, 1.0),
+    uWarmEdge: rgb(0.7, 0.7, 0.7),
+    uRippleColor: rgb(1.0, 1.0, 1.0),
+    uGlowIntensity: 0.8,
   },
 };
 
@@ -159,13 +164,21 @@ export function lerpThemeColors(current, target, dt) {
 
 /** @param {SonicThemeColors} theme @param {Record<string, { value: unknown }>} uniforms */
 export function applyThemeToUniforms(theme, uniforms) {
-  uniforms.uBaseColor1.value.copy(theme.uBaseColor1);
-  uniforms.uBaseColor2.value.copy(theme.uBaseColor2);
-  uniforms.uFogColor.value.copy(theme.uFogColor);
-  uniforms.uCoolCore.value.copy(theme.uCoolCore);
-  uniforms.uCoolEdge.value.copy(theme.uCoolEdge);
-  uniforms.uWarmCore.value.copy(theme.uWarmCore);
-  uniforms.uWarmEdge.value.copy(theme.uWarmEdge);
-  uniforms.uRippleColor.value.copy(theme.uRippleColor);
-  uniforms.uGlowIntensity.value = theme.uGlowIntensity;
+  const u = uniforms.uBaseColor1?.value;
+  if (u && typeof u.copy === "function") u.copy(theme.uBaseColor1);
+  const u2 = uniforms.uBaseColor2?.value;
+  if (u2 && typeof u2.copy === "function") u2.copy(theme.uBaseColor2);
+  const fog = uniforms.uFogColor?.value;
+  if (fog && typeof fog.copy === "function") fog.copy(theme.uFogColor);
+  const coolCore = uniforms.uCoolCore?.value;
+  if (coolCore && typeof coolCore.copy === "function") coolCore.copy(theme.uCoolCore);
+  const coolEdge = uniforms.uCoolEdge?.value;
+  if (coolEdge && typeof coolEdge.copy === "function") coolEdge.copy(theme.uCoolEdge);
+  const warmCore = uniforms.uWarmCore?.value;
+  if (warmCore && typeof warmCore.copy === "function") warmCore.copy(theme.uWarmCore);
+  const warmEdge = uniforms.uWarmEdge?.value;
+  if (warmEdge && typeof warmEdge.copy === "function") warmEdge.copy(theme.uWarmEdge);
+  const ripple = uniforms.uRippleColor?.value;
+  if (ripple && typeof ripple.copy === "function") ripple.copy(theme.uRippleColor);
+  if (uniforms.uGlowIntensity) uniforms.uGlowIntensity.value = theme.uGlowIntensity;
 }

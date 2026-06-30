@@ -237,6 +237,7 @@ export function createSonicTopographyRenderer(ctx) {
     lerpThemeColors(themeCurrent, themeTarget, safeDt);
     applyThemeToUniforms(themeCurrent, uniforms);
     meteorSystem.setColor(themeCurrent.uWarmEdge);
+    renderer.setClearColor(themeCurrent.uFogColor, 1);
 
     const motionSpeed = style.groundEqMotionSpeed ?? cfg.groundEqMotionSpeed;
     const amplitudeSlider = style.groundEqAmplitude ?? cfg.groundEqAmplitude;
@@ -324,7 +325,6 @@ export function createSonicTopographyRenderer(ctx) {
 
     fpsMonitor.tick(safeDt, gridPreset);
 
-    renderer.setClearColor(0x000000, 0);
     try {
       composer?.render();
     } catch (err) {

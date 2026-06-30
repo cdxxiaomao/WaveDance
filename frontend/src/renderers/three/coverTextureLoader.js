@@ -91,6 +91,31 @@ function createCanvasTexture(cv) {
 }
 
 /**
+ * Canvas 尺寸或类型变化时必须重建纹理，否则 glTexSubImage 会溢出（ANGLE/macOS 常见）。
+ * @param {THREE.Texture | null} tex
+ * @param {HTMLCanvasElement} cv
+ * @returns {THREE.CanvasTexture}
+ */
+function assignCanvasTexture(tex, cv) {
+  const prev = tex?.image;
+  const needsRecreate =
+    !tex ||
+    tex instanceof THREE.DataTexture ||
+    !(prev instanceof HTMLCanvasElement) ||
+    prev.width !== cv.width ||
+    prev.height !== cv.height;
+
+  if (needsRecreate) {
+    tex?.dispose();
+    return createCanvasTexture(cv);
+  }
+
+  tex.image = cv;
+  tex.needsUpdate = true;
+  return /** @type {THREE.CanvasTexture} */ (tex);
+}
+
+/**
  * 管理封面纹理生命周期，与 renderer 解耦。
  * @param {{ colorMixDurationMs?: number }} [options]
  */
@@ -110,10 +135,12 @@ export function createCoverTextureLoader(options = {}) {
   let lastUpdateKey = "";
 
   function ensureEdgeTex() {
-    if (edgeTex) return edgeTex;
-    const data = new Uint8Array([0, 0, 0, 255]);
-    edgeTex = new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat);
-    edgeTex.needsUpdate = true;
+    if (edgeTex?.image instanceof HTMLCanvasElement) return edgeTex;
+    const cv = document.createElement("canvas");
+    cv.width = 1;
+    cv.height = 1;
+    edgeTex?.dispose();
+    edgeTex = createCanvasTexture(cv);
     return edgeTex;
   }
 
@@ -131,8 +158,7 @@ export function createCoverTextureLoader(options = {}) {
     cv.getContext("2d")?.drawImage(img, 0, 0);
 
     if (prevCoverTex) {
-      prevCoverTex.image = cv;
-      prevCoverTex.needsUpdate = true;
+      prevCoverTex = assignCanvasTexture(prevCoverTex, cv);
     } else {
       prevCoverTex = createCanvasTexture(cv);
     }
@@ -143,41 +169,22 @@ export function createCoverTextureLoader(options = {}) {
     return token === applyToken;
   }
 
-  function applyEdgeFromCover(cv) {
-    try {
-      const edgeCv = buildEdgeAndDepth(cv);
-      if (edgeTex) {
-        edgeTex.image = edgeCv;
-        edgeTex.needsUpdate = true;
-      } else {
-        edgeTex = createCanvasTexture(edgeCv);
-      }
-      hasDepth = true;
-    } catch (err) {
-      console.warn(`${LOG_PREFIX}: 边缘纹理生成失败`, err);
-      hasDepth = false;
-    }
-  }
-
-  /**
-   * @param {HTMLCanvasElement} cv
-   * @param {number} token
-   * @param {string} [logSuffix]
-   */
   function applyCoverCanvas(cv, token, logSuffix = "") {
     if (!coverApplyStillCurrent(token)) return false;
 
     const hadCover = hasCover && coverTex?.image;
     if (hadCover) copyCoverToPrev();
 
-    if (coverTex) {
-      coverTex.image = cv;
-      coverTex.needsUpdate = true;
-    } else {
-      coverTex = createCanvasTexture(cv);
-    }
+    coverTex = assignCanvasTexture(coverTex, cv);
 
-    applyEdgeFromCover(cv);
+    try {
+      const edgeCv = buildEdgeAndDepth(cv);
+      edgeTex = assignCanvasTexture(edgeTex, edgeCv);
+      hasDepth = true;
+    } catch (err) {
+      console.warn(`${LOG_PREFIX}: 边缘纹理生成失败`, err);
+      hasDepth = false;
+    }
 
     hasCover = true;
     colorMixT = hadCover && prevCoverTex ? 0 : 1;
