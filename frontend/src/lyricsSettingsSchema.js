@@ -96,6 +96,9 @@ export const DEFAULT_LYRICS_WINDOW_CONFIG = {
   mrLineHeight: 1,
   mrLetterSpacing: 0,
   mrFeather: 0.055,
+  mrCinemaMotion: true,
+  mrBeatGlow: true,
+  mrBeatGlowStrength: 0.35,
 };
 
 const STORAGE_PREFIX = "wavedance.lyricsWin.";
@@ -276,6 +279,12 @@ export function normalizeLyricsWindowConfig(raw) {
   base.mrFeather = Number.isFinite(mrFeather)
     ? Math.min(Math.max(mrFeather, 0.03), 0.075)
     : base.mrFeather;
+  base.mrCinemaMotion = o.mrCinemaMotion !== false;
+  base.mrBeatGlow = o.mrBeatGlow !== false;
+  const mrGlowStrength = Number(o.mrBeatGlowStrength);
+  base.mrBeatGlowStrength = Number.isFinite(mrGlowStrength)
+    ? Math.min(Math.max(mrGlowStrength, 0), 0.85)
+    : base.mrBeatGlowStrength;
 
   return base;
 }

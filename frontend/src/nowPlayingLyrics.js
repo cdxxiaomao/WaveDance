@@ -14,6 +14,7 @@ import { buildClassicLyricsDom } from "./classicLyricsDom.js";
 import { createLyricsLineTransition } from "./lyricsLineTransition.js";
 import {
   applyMineradioLyricsStyle,
+  feedMineradioWaveformFrame,
   isMineradioLyricsMounted,
   mountMineradioLyricsPanel,
   renderMineradioLyricsPanel,
@@ -211,6 +212,12 @@ function stopLyricsTick() {
 }
 
 function shouldTickLyrics() {
+  if (useMineradioRenderer && isMineradioLyricsMounted()) {
+    return (
+      lyricsDisplayState.status !== "idle" &&
+      nowPlayingProgressSync?.isPlaying !== false
+    );
+  }
   return (
     lyricsDisplayState.status === "hit" &&
     !lyricsDisplayState.instrumental &&
@@ -601,6 +608,15 @@ export async function initNowPlayingLyrics(options = {}) {
   await listen("lyrics-update", (event) => {
     applyLyricsUpdate(event.payload);
   });
+
+  if (lyricsOnlyMode) {
+    await listen("waveform-frame", (event) => {
+      if (!useMineradioRenderer || !isMineradioLyricsMounted()) return;
+      const p = event.payload;
+      if (!p || typeof p !== "object") return;
+      feedMineradioWaveformFrame(p);
+    });
+  }
 
   if (!lyricsOnlyMode && nowPlayingSource) {
     setInterval(renderNowPlayingSourceLine, 1000);

@@ -70,6 +70,10 @@ const mrPrimaryColor = document.querySelector("#lyricsMrPrimaryColor");
 const mrHighlightColor = document.querySelector("#lyricsMrHighlightColor");
 const mrGlowColor = document.querySelector("#lyricsMrGlowColor");
 const mrHighlightFollow = document.querySelector("#lyricsMrHighlightFollow");
+const mrCinemaMotion = document.querySelector("#lyricsMrCinemaMotion");
+const mrBeatGlow = document.querySelector("#lyricsMrBeatGlow");
+const mrBeatGlowStrength = document.querySelector("#lyricsMrBeatGlowStrength");
+const mrBeatGlowStrengthVal = document.querySelector("#lyricsMrBeatGlowStrengthVal");
 
 let lyricsTargetLabel = "";
 /** @type {import("./lyricsSettingsSchema.js").LyricsWindowConfig} */
@@ -152,6 +156,10 @@ function syncFormFromConfig() {
   if (mrHighlightColor) mrHighlightColor.value = config.mrHighlightColor;
   if (mrGlowColor) mrGlowColor.value = config.mrGlowColor;
   if (mrHighlightFollow) mrHighlightFollow.checked = config.mrHighlightFollow;
+  if (mrCinemaMotion) mrCinemaMotion.checked = config.mrCinemaMotion;
+  if (mrBeatGlow) mrBeatGlow.checked = config.mrBeatGlow;
+  if (mrBeatGlowStrength) mrBeatGlowStrength.value = String(config.mrBeatGlowStrength);
+  if (mrBeatGlowStrengthVal) mrBeatGlowStrengthVal.textContent = String(config.mrBeatGlowStrength);
 }
 
 async function persistAndNotify() {
@@ -336,6 +344,30 @@ async function init() {
   if (mrHighlightFollow) {
     mrHighlightFollow.addEventListener("change", async () => {
       config.mrHighlightFollow = mrHighlightFollow.checked;
+      await persistAndNotify();
+    });
+  }
+
+  if (mrCinemaMotion) {
+    mrCinemaMotion.addEventListener("change", async () => {
+      config.mrCinemaMotion = mrCinemaMotion.checked;
+      await persistAndNotify();
+    });
+  }
+
+  if (mrBeatGlow) {
+    mrBeatGlow.addEventListener("change", async () => {
+      config.mrBeatGlow = mrBeatGlow.checked;
+      await persistAndNotify();
+    });
+  }
+
+  if (mrBeatGlowStrength) {
+    mrBeatGlowStrength.addEventListener("input", async () => {
+      config.mrBeatGlowStrength = Number(mrBeatGlowStrength.value);
+      if (mrBeatGlowStrengthVal) {
+        mrBeatGlowStrengthVal.textContent = String(config.mrBeatGlowStrength);
+      }
       await persistAndNotify();
     });
   }

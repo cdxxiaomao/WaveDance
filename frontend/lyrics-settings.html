@@ -79,6 +79,24 @@
               <span>行内高亮跟随（卡拉 OK 扫光）</span>
             </label>
           </div>
+          <div class="settings-field">
+            <label class="settings-toggle">
+              <input type="checkbox" id="lyricsMrCinemaMotion" checked />
+              <span>鼓点电影震动（舞台漂浮 + 缩放）</span>
+            </label>
+          </div>
+          <div class="settings-field">
+            <label class="settings-toggle">
+              <input type="checkbox" id="lyricsMrBeatGlow" checked />
+              <span>鼓点辉光脉动（文字光晕随节拍增强）</span>
+            </label>
+          </div>
+          <div class="settings-field">
+            <label for="lyricsMrBeatGlowStrength" class="settings-label">
+              辉光强度 <span class="settings-value" id="lyricsMrBeatGlowStrengthVal">0.35</span>
+            </label>
+            <input id="lyricsMrBeatGlowStrength" type="range" min="0" max="0.85" step="0.01" value="0.35" />
+          </div>
         </div>
       </section>
 

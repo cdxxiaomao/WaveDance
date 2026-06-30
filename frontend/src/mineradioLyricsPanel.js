@@ -1,4 +1,5 @@
 import { normalizeLyricsWindowConfig } from "./lyricsSettingsSchema.js";
+import { getMineradioBeatMotion, resetMineradioBeatMotion } from "./mineradioBeatMotion.js";
 
 const LYRICS_LEAD_MS = 320;
 
@@ -10,6 +11,8 @@ let stageEl = null;
 let viewportEl = null;
 /** @type {HTMLElement | null} */
 let scrollEl = null;
+/** @type {HTMLElement | null} */
+let lineStageEl = null;
 /** @type {HTMLElement | null} */
 let lineEl = null;
 
@@ -173,6 +176,9 @@ let progressSpanSec = 4.8;
 /** @type {{ timeMs: number, text: string }[]} */
 let cachedLines = [];
 let cachedPlainLyrics = "";
+let cachedTrackKey = "";
+let lastMotionAt = 0;
+let lineAnimGen = 0;
 
 /** @param {boolean} [force] */
 function fitLyricText(force = false) {
@@ -281,10 +287,21 @@ function updateLyricScroll(nowMs, progress) {
 }
 
 function replayLineAnimation() {
-  if (!lineEl) return;
-  lineEl.classList.remove("is-entering");
-  void lineEl.offsetWidth;
-  lineEl.classList.add("is-entering");
+  if (!lineStageEl) return;
+  lineAnimGen++;
+  const gen = lineAnimGen;
+
+  lineStageEl.classList.remove("is-entering");
+  lineStageEl.style.animation = "none";
+  void lineStageEl.offsetWidth;
+  lineStageEl.style.removeProperty("animation");
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (!lineStageEl || gen !== lineAnimGen) return;
+      lineStageEl.classList.add("is-entering");
+    });
+  });
 }
 
 /**
@@ -309,11 +326,15 @@ export function mountMineradioLyricsPanel(root) {
   scrollEl = document.createElement("div");
   scrollEl.className = "mr-lyric-scroll";
 
+  lineStageEl = document.createElement("div");
+  lineStageEl.className = "mr-line-stage";
+
   lineEl = document.createElement("div");
   lineEl.className = "mr-line";
   lineEl.textContent = "WaveDance";
 
-  scrollEl.appendChild(lineEl);
+  lineStageEl.appendChild(lineEl);
+  scrollEl.appendChild(lineStageEl);
   viewportEl.appendChild(scrollEl);
   stageEl.appendChild(viewportEl);
   wrap.appendChild(stageEl);
@@ -331,11 +352,14 @@ function onResize() {
 
 export function unmountMineradioLyricsPanel() {
   window.removeEventListener("resize", onResize);
+  lineAnimGen++;
+  resetMineradioBeatMotion();
   hostEl?.classList.remove("uses-mineradio-lyrics");
   hostEl = null;
   stageEl = null;
   viewportEl = null;
   scrollEl = null;
+  lineStageEl = null;
   lineEl = null;
   lastText = "";
   lastLineIndex = -1;
@@ -346,6 +370,8 @@ export function unmountMineradioLyricsPanel() {
   panelConfig = null;
   cachedLines = [];
   cachedPlainLyrics = "";
+  cachedTrackKey = "";
+  lastMotionAt = 0;
 }
 
 export function isMineradioLyricsMounted() {
@@ -369,6 +395,12 @@ export function applyMineradioLyricsStyle(cfg) {
   hostEl.style.setProperty("--mr-shadow-soft", colorWithAlpha(primary, 0.34));
   hostEl.style.setProperty("--mr-shadow-glow", colorWithAlpha(glow, 0.26));
   hostEl.classList.toggle("mr-highlight-follow", cfg.mrHighlightFollow !== false);
+  hostEl.classList.toggle("mr-cinema-motion", cfg.mrCinemaMotion !== false);
+  getMineradioBeatMotion().configure({
+    cinemaEnabled: cfg.mrCinemaMotion !== false,
+    glowStrength: cfg.mrBeatGlowStrength,
+    beatGlowEnabled: cfg.mrBeatGlow !== false,
+  });
   layoutKey = "";
   fitLyricText(true);
 }
@@ -400,12 +432,17 @@ export function renderMineradioLyricsPanel(
   hostEl.classList.toggle("is-paused", !playing);
   cachedLines = state.lines;
   cachedPlainLyrics = state.plainLyrics || "";
+  if (state.trackKey !== cachedTrackKey) {
+    cachedTrackKey = state.trackKey || "";
+    getMineradioBeatMotion().setLyricLineBeatMap(state.lines, cachedTrackKey);
+  }
 
   const { status, instrumental } = state;
 
   if (status === "idle") {
     hostEl.classList.add("is-visible", "is-idle");
     setLineText("未检测到正在播放", -1, 0, 4.8, true);
+    applyBeatMotion(elapsedSec, false);
     return;
   }
 
@@ -415,12 +452,14 @@ export function renderMineradioLyricsPanel(
     const text = meta.title || "未知曲目";
     setLineText(text, -1, 0, 4.8, true);
     hostEl.classList.add("is-visible");
+    applyBeatMotion(elapsedSec, playing);
     return;
   }
 
   if (instrumental) {
     setLineText("纯音乐", -1, 0, 4.8, true);
     hostEl.classList.add("is-visible");
+    applyBeatMotion(elapsedSec, playing);
     return;
   }
 
@@ -447,6 +486,47 @@ export function renderMineradioLyricsPanel(
   }
 
   updateProgressVisuals(snap.progress, snap.progressSpan, playing);
+  applyBeatMotion(elapsedSec, playing);
+}
+
+/**
+ * @param {{ points?: number[], peak?: number, rms?: number }} frame
+ */
+export function feedMineradioWaveformFrame(frame) {
+  if (!hostEl || !panelConfig) return;
+  getMineradioBeatMotion().feedWaveformFrame(frame);
+}
+
+/** @param {unknown} payload @param {string} [key] */
+export function setMineradioBeatMap(payload, key) {
+  getMineradioBeatMotion().setBeatMap(payload, key);
+}
+
+/** @param {number} elapsedSec @param {boolean} playing */
+function applyBeatMotion(elapsedSec, playing) {
+  if (!hostEl || !stageEl || !panelConfig || panelConfig.mrCinemaMotion === false) {
+    if (stageEl) {
+      stageEl.style.removeProperty("transform");
+      stageEl.style.removeProperty("filter");
+    }
+    hostEl?.style.setProperty("--mr-stage-brightness", "1");
+    hostEl?.style.setProperty("--mr-stage-saturate", "1");
+    hostEl?.style.setProperty("--mr-css-beat-glow", "0px");
+    return;
+  }
+
+  const now = performance.now();
+  const dt = lastMotionAt ? clamp((now - lastMotionAt) / 1000, 0.001, 0.12, 1 / 60) : 1 / 60;
+  lastMotionAt = now;
+
+  const motion = getMineradioBeatMotion();
+  motion.syncPlaybackTime(elapsedSec);
+  const stage = motion.tick(elapsedSec, dt, playing);
+  stageEl.style.transform = stage.transform;
+  stageEl.style.removeProperty("filter");
+  hostEl.style.setProperty("--mr-stage-brightness", stage.brightness.toFixed(3));
+  hostEl.style.setProperty("--mr-stage-saturate", stage.saturate.toFixed(3));
+  hostEl.style.setProperty("--mr-css-beat-glow", `${stage.beatGlowPx.toFixed(2)}px`);
 }
 
 /**
@@ -472,7 +552,13 @@ function setLineText(text, lineIndex, progress, progressSpan, animate) {
     lineEl.dataset.text = normalized;
     layoutKey = "";
     fitLyricText(true);
-    if (animate) replayLineAnimation();
+    if (animate) {
+      replayLineAnimation();
+    } else if (lineStageEl) {
+      lineAnimGen++;
+      lineStageEl.classList.remove("is-entering");
+      lineStageEl.style.removeProperty("animation");
+    }
   } else if (lineIndex !== lastLineIndex) {
     lastLineIndex = lineIndex;
     progressSpanSec = progressSpan;
@@ -504,4 +590,5 @@ export function tickMineradioLyrics(elapsedSec, durationSec, playing = true) {
   } else {
     updateProgressVisuals(snap.progress, snap.progressSpan, playing);
   }
+  applyBeatMotion(elapsedSec, playing);
 }
