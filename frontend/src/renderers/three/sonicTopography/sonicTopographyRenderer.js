@@ -146,6 +146,7 @@ export function createSonicTopographyRenderer(ctx) {
       },
       elapsed,
       camera.position,
+      rotateYaw  // 传入当前旋转角度
     );
     applyDprCap(gridPreset, gridSettings.gridSize);
     fpsMonitor.reset();
@@ -314,6 +315,7 @@ export function createSonicTopographyRenderer(ctx) {
       },
       elapsed,
       camera.position,
+      rotateYaw  // 传入当前旋转角度
     );
 
     coverPlane.update(frameMeta?.coverTextures, {

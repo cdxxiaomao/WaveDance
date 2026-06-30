@@ -69,8 +69,9 @@ export function createFloatingBlocks(opts = {}) {
    * }} style
    * @param {number} elapsed
    * @param {THREE.Vector3} cameraPos
+   * @param {number} [currentRotationY=0] 当前的场景旋转角度
    */
-  function update(dt, audio, theme, style, elapsed, cameraPos) {
+  function update(dt, audio, theme, style, elapsed, cameraPos, currentRotationY = 0) {
     const enabled = style.enabled !== false;
     const nextCount = Math.max(0, Math.round(style.count ?? instanceCount));
     if (nextCount !== instanceCount) {
@@ -93,11 +94,13 @@ export function createFloatingBlocks(opts = {}) {
     for (let i = 0; i < instanceCount; i++) {
       const item = layout[i];
       const drift = Math.sin(elapsed * speedNorm * 0.6 + item.seed * 9.0) * 0.35;
-      const x = Math.cos(item.angle + drift * 0.08) * item.radius;
-      const z = Math.sin(item.angle + drift * 0.08) * item.radius;
+      // 将当前旋转角度考虑进去，使柱子随着场景旋转
+      const effectiveAngle = item.angle + currentRotationY + drift * 0.08;
+      const x = Math.cos(effectiveAngle) * item.radius;
+      const z = Math.sin(effectiveAngle) * item.radius;
       const y = item.yOffset + Math.sin(elapsed * speedNorm + item.seed * 6.28) * 0.15;
       dummy.position.set(x, y, z);
-      dummy.rotation.set(0, item.angle + drift * 0.12, 0);
+      dummy.rotation.set(0, effectiveAngle + drift * 0.04, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);

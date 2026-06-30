@@ -2126,30 +2126,35 @@ fn create_main_toolbar_window(app: &tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 将设置窗口挂到父图形窗子窗口链上，使其随父窗出现在同一 Space（解决多桌面残留问题）。
+/// 将设置窗口定位到父图形窗旁边（右侧居中），并解除子窗口关系以允许拖动到其他显示器。
+/// 不再使用 addChildWindow_ordered 子窗口链，避免设置窗被限制在父窗同一 Space 而无法跨显示器。
 #[cfg(target_os = "macos")]
-fn attach_settings_window_to_parent_space(
+fn position_settings_window_near_parent(
     parent_window: &tauri::WebviewWindow,
     settings_window: &tauri::WebviewWindow,
 ) -> tauri::Result<()> {
-    let parent_clone = parent_window.clone();
+    // 获取父窗和设置窗的尺寸与位置
+    let parent_pos = parent_window.outer_position().unwrap_or_default();
+    let parent_size = parent_window.outer_size().unwrap_or_default();
+    let settings_size = settings_window.outer_size().unwrap_or_default();
+
+    // 放置到父窗中间
+    let px = parent_pos.x + (parent_size.width as i32 - settings_size.width as i32) / 2;
+    let py = parent_pos.y + (parent_size.height as i32 - settings_size.height as i32) / 2;
+
+    settings_window.set_position(Position::Physical(PhysicalPosition::new(px, py)))?;
+
+    // 解除旧的子窗口关系，使设置窗可独立拖动到其他显示器
     let settings_clone = settings_window.clone();
     parent_window.run_on_main_thread(move || unsafe {
-        let parent_ns = parent_clone
-            .ns_window()
-            .expect("无法获取父窗口 NSWindow 句柄")
-            .cast::<NSWindow>();
-        let settings_ns = settings_clone
+        let ns = settings_clone
             .ns_window()
             .expect("无法获取设置窗口 NSWindow 句柄")
             .cast::<NSWindow>();
-        let parent_ref: &NSWindow = &*parent_ns;
-        let settings_ref: &NSWindow = &*settings_ns;
-
-        if let Some(old_parent) = settings_ref.parentWindow() {
-            old_parent.removeChildWindow(settings_ref);
+        let ref_: &NSWindow = &*ns;
+        if let Some(old_parent) = ref_.parentWindow() {
+            old_parent.removeChildWindow(ref_);
         }
-        parent_ref.addChildWindow_ordered(settings_ref, NSWindowOrderingMode::Above);
     })
 }
 
@@ -2908,7 +2913,7 @@ fn open_lyrics_settings_window_impl(
 
     if let Some(settings) = app.get_webview_window("lyrics-settings") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
         show_settings_window(app, &settings, pinned)?;
         return Ok(());
@@ -2922,15 +2927,13 @@ fn open_lyrics_settings_window_impl(
     .title("WaveDance 歌词设置")
     .inner_size(420.0, 520.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
-    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &settings, pinned)
 }
@@ -3011,7 +3014,7 @@ fn open_lyrics_search_window_impl(
 
     if let Some(search) = app.get_webview_window("lyrics-search") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_parent_space(&parent, &search).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &search).map_err(|e| e.to_string())?;
 
         show_settings_window(app, &search, pinned)?;
         return Ok(());
@@ -3025,15 +3028,13 @@ fn open_lyrics_search_window_impl(
     .title("WaveDance 歌词加载")
     .inner_size(440.0, 560.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
-    attach_settings_window_to_parent_space(&parent, &search).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &search).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &search, pinned)
 }
@@ -3126,7 +3127,7 @@ fn open_cover_settings_window_impl(
 
     if let Some(settings) = app.get_webview_window("cover-settings") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
         show_settings_window(app, &settings, pinned)?;
         return Ok(());
@@ -3140,15 +3141,13 @@ fn open_cover_settings_window_impl(
     .title("WaveDance 封面设置")
     .inner_size(420.0, 560.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
-    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &settings, pinned)
 }
@@ -3215,7 +3214,7 @@ fn open_player_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String
     parent.set_focus().map_err(|e| e.to_string())?;
 
     if let Some(settings) = app.get_webview_window(PLAYER_SETTINGS_LABEL) {
-        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
         show_settings_window(app, &settings, pinned)?;
         return Ok(());
     }
@@ -3228,14 +3227,12 @@ fn open_player_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String
     .title("WaveDance 播放控制设置")
     .inner_size(420.0, 360.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
-    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
     show_settings_window(app, &settings, pinned)
 }
 
@@ -3294,7 +3291,7 @@ fn open_songinfo_settings_window_impl(
 
     if let Some(settings) = app.get_webview_window("songinfo-settings") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
         show_settings_window(app, &settings, pinned)?;
         return Ok(());
@@ -3308,15 +3305,13 @@ fn open_songinfo_settings_window_impl(
     .title("WaveDance 歌曲信息设置")
     .inner_size(420.0, 640.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
-    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &settings, pinned)
 }
@@ -3396,7 +3391,7 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
 
     if let Some(settings) = app.get_webview_window("settings") {
         #[cfg(target_os = "macos")]
-        attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+        position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
         show_settings_window(app, &settings, pinned)?;
         return Ok(());
@@ -3410,15 +3405,13 @@ fn open_settings_window_impl(app: &tauri::AppHandle) -> Result<(), String> {
     .title("WaveDance 设置")
     .inner_size(620.0, 760.0)
     .decorations(true)
-    .parent(&parent)
-    .map_err(|e| e.to_string())?
     .always_on_top(pinned)
     .resizable(true)
     .build()
     .map_err(|e| e.to_string())?;
 
     #[cfg(target_os = "macos")]
-    attach_settings_window_to_parent_space(&parent, &settings).map_err(|e| e.to_string())?;
+    position_settings_window_near_parent(&parent, &settings).map_err(|e| e.to_string())?;
 
     show_settings_window(app, &settings, pinned)
 }
