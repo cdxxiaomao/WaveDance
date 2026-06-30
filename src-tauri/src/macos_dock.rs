@@ -9,14 +9,34 @@ use std::sync::Once;
 use muda::{ContextMenu, Menu, MenuItem, PredefinedMenuItem};
 use objc2::ffi::class_addMethod;
 use objc2::runtime::{AnyClass, AnyObject, Imp, Sel};
-use objc2::MainThreadMarker;
-use objc2_app_kit::NSApplication;
+use objc2::{AllocAnyThread, MainThreadMarker};
+use objc2_app_kit::{NSApplication, NSImage};
+use objc2_foundation::NSData;
 use tauri::image::Image;
-use tauri::{AppHandle, Runtime};
 
-/// 菜单栏托盘图标：使用 bundle 默认窗口图标（32×32），与改动前行为一致。
-pub fn load_tray_icon<R: Runtime>(app: &AppHandle<R>) -> Option<Image<'static>> {
-    app.default_window_icon().map(|icon| icon.clone().to_owned())
+/// 程序坞专用：512×512 产品图标（PNG 原图，不经托盘缩放）。
+const DOCK_ICON_PNG: &[u8] = include_bytes!("../icons/icon.png");
+/// 菜单栏托盘专用：22×22 透明底小图标（与 `tray-icon.png` 一致）。
+const TRAY_ICON_PNG: &[u8] = include_bytes!("../icons/tray-icon.png");
+
+/// 菜单栏托盘图标：读取专用小图标，不影响程序坞大图标。
+pub fn load_tray_icon() -> Option<Image<'static>> {
+    let img = image::load_from_memory(TRAY_ICON_PNG).ok()?;
+    let rgba = img.to_rgba8();
+    let (width, height) = rgba.dimensions();
+    Some(Image::new_owned(rgba.into_raw(), width, height))
+}
+
+fn apply_dock_icon_image() {
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    let ns_app = NSApplication::sharedApplication(mtm);
+    let data = NSData::with_bytes(DOCK_ICON_PNG);
+    let Some(ns_image) = NSImage::initWithData(NSImage::alloc(), &data) else {
+        return;
+    };
+    unsafe { ns_app.setApplicationIconImage(Some(&ns_image)) };
 }
 
 pub const TRAY_MENU_SETTINGS: &str = "tray_settings";
@@ -77,9 +97,10 @@ pub fn build_dock_menu() -> muda::Result<Menu> {
     ])
 }
 
-/// 在程序坞显示应用图标（不改变 Accessory 激活策略，避免干扰浮层行为）。
-pub fn ensure_dock_icon_visible<R: Runtime>(app: &AppHandle<R>) {
+/// 在程序坞显示应用图标，并设置为产品大图标（不改变 Accessory 激活策略）。
+pub fn ensure_dock_icon_visible<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let _ = app.set_dock_visibility(true);
+    apply_dock_icon_image();
 }
 
 /// 将菜单挂到程序坞图标的右键菜单。

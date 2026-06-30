@@ -4,6 +4,8 @@ mod esp_display;
 mod lyrics;
 
 #[cfg(target_os = "macos")]
+mod macos_dock;
+#[cfg(target_os = "macos")]
 mod music_platform;
 #[cfg(target_os = "macos")]
 mod now_playing;
@@ -33,7 +35,7 @@ use tauri::{
     Position, RunEvent, Size, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 #[cfg(target_os = "macos")]
-use tauri::{menu::MenuBuilder, tray::TrayIconBuilder};
+use tauri::{menu::MenuBuilder, menu::MenuEvent, tray::TrayIconBuilder};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use wavedance::audio_capture::{AudioSource, MacSystemAudioSource};
 use wavedance::audio_processing::{
@@ -4078,6 +4080,46 @@ fn resize_window_by_delta(
     Ok(())
 }
 
+/// 菜单栏托盘与程序坞右键菜单共用的事件处理。
+#[cfg(target_os = "macos")]
+fn handle_tray_menu_event(app: &tauri::AppHandle, event: &MenuEvent) {
+    use macos_dock::{
+        TRAY_MENU_ESP_DISPLAY, TRAY_MENU_MUSIC_LOGIN, TRAY_MENU_MUSIC_PLAYER,
+        TRAY_MENU_MUSIC_PLAYER_QUEUE, TRAY_MENU_MUSIC_PLAYLIST, TRAY_MENU_NEW_COVER,
+        TRAY_MENU_NEW_LYRICS, TRAY_MENU_NEW_SONGINFO, TRAY_MENU_NEW_SPECTRUM,
+        TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, TRAY_MENU_QUIT, TRAY_MENU_SETTINGS,
+        TRAY_MENU_WINDOW_MANAGER,
+    };
+
+    if event.id() == TRAY_MENU_SETTINGS {
+        let _ = open_settings_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_ESP_DISPLAY {
+        let _ = open_esp_display_settings_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_WINDOW_MANAGER {
+        let _ = open_window_manager_from_tray(app);
+    } else if event.id() == TRAY_MENU_MUSIC_LOGIN {
+        let _ = open_music_platform_login_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_MUSIC_PLAYLIST {
+        let _ = open_music_playlist_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_MUSIC_PLAYER {
+        let _ = open_music_player_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_MUSIC_PLAYER_QUEUE {
+        let _ = open_music_player_queue_window_from_tray(app);
+    } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
+        let _ = open_extra_spectrum_window_impl(app, None, true);
+    } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
+        let _ = open_extra_spectrum_window_impl(app, None, false);
+    } else if event.id() == TRAY_MENU_NEW_LYRICS {
+        let _ = open_extra_lyrics_window_impl(app, None);
+    } else if event.id() == TRAY_MENU_NEW_COVER {
+        let _ = open_extra_cover_window_impl(app, None);
+    } else if event.id() == TRAY_MENU_NEW_SONGINFO {
+        let _ = open_extra_songinfo_window_impl(app, None);
+    } else if event.id() == TRAY_MENU_QUIT {
+        app.exit(0);
+    }
+}
+
 fn main() {
     let recall_shortcut = Shortcut::new(
         Some(Modifiers::SUPER | Modifiers::SHIFT | Modifiers::ALT),
@@ -4144,23 +4186,16 @@ fn main() {
 
             #[cfg(target_os = "macos")]
             {
-                const TRAY_MENU_SETTINGS: &str = "tray_settings";
-                const TRAY_MENU_ESP_DISPLAY: &str = "tray_esp_display";
-                const TRAY_MENU_WINDOW_MANAGER: &str = "tray_window_manager";
-                const TRAY_MENU_MUSIC_LOGIN: &str = "tray_music_login";
-                const TRAY_MENU_MUSIC_PLAYLIST: &str = "tray_music_playlist";
-                const TRAY_MENU_MUSIC_PLAYER_QUEUE: &str = "tray_music_player_queue";
-                const TRAY_MENU_MUSIC_PLAYER: &str = "tray_music_player";
-                const TRAY_MENU_NEW_SPECTRUM: &str = "tray_new_spectrum";
-                const TRAY_MENU_NEW_SPECTRUM_TRADITIONAL: &str = "tray_new_spectrum_traditional";
-                const TRAY_MENU_NEW_LYRICS: &str = "tray_new_lyrics";
-                const TRAY_MENU_NEW_COVER: &str = "tray_new_cover";
-                const TRAY_MENU_NEW_SONGINFO: &str = "tray_new_songinfo";
-                const TRAY_MENU_QUIT: &str = "tray_quit";
-
-                let Some(icon) = app.default_window_icon().cloned() else {
-                    return Err("缺少 bundle 图标，无法创建菜单栏托盘".into());
+                use macos_dock::{
+                    TRAY_MENU_ESP_DISPLAY, TRAY_MENU_MUSIC_LOGIN, TRAY_MENU_MUSIC_PLAYER,
+                    TRAY_MENU_MUSIC_PLAYER_QUEUE, TRAY_MENU_MUSIC_PLAYLIST, TRAY_MENU_NEW_COVER,
+                    TRAY_MENU_NEW_LYRICS, TRAY_MENU_NEW_SONGINFO, TRAY_MENU_NEW_SPECTRUM,
+                    TRAY_MENU_NEW_SPECTRUM_TRADITIONAL, TRAY_MENU_QUIT, TRAY_MENU_SETTINGS,
+                    TRAY_MENU_WINDOW_MANAGER,
                 };
+
+                let icon = macos_dock::load_tray_icon()
+                    .ok_or("缺少菜单栏托盘图标 tray-icon.png")?;
                 let menu = MenuBuilder::new(app.handle())
                     .text(TRAY_MENU_SETTINGS, "设置…")
                     .text(TRAY_MENU_ESP_DISPLAY, "外接屏设置…")
@@ -4183,36 +4218,14 @@ fn main() {
                     .tooltip("WaveDance")
                     .menu(&menu)
                     .show_menu_on_left_click(true)
-                    .on_menu_event(|app, event| {
-                        if event.id() == TRAY_MENU_SETTINGS {
-                            let _ = open_settings_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_ESP_DISPLAY {
-                            let _ = open_esp_display_settings_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_WINDOW_MANAGER {
-                            let _ = open_window_manager_from_tray(app);
-                        } else if event.id() == TRAY_MENU_MUSIC_LOGIN {
-                            let _ = open_music_platform_login_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_MUSIC_PLAYLIST {
-                            let _ = open_music_playlist_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_MUSIC_PLAYER {
-                            let _ = open_music_player_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_MUSIC_PLAYER_QUEUE {
-                            let _ = open_music_player_queue_window_from_tray(app);
-                        } else if event.id() == TRAY_MENU_NEW_SPECTRUM {
-                            let _ = open_extra_spectrum_window_impl(app, None, true);
-                        } else if event.id() == TRAY_MENU_NEW_SPECTRUM_TRADITIONAL {
-                            let _ = open_extra_spectrum_window_impl(app, None, false);
-                        } else if event.id() == TRAY_MENU_NEW_LYRICS {
-                            let _ = open_extra_lyrics_window_impl(app, None);
-                        } else if event.id() == TRAY_MENU_NEW_COVER {
-                            let _ = open_extra_cover_window_impl(app, None);
-                        } else if event.id() == TRAY_MENU_NEW_SONGINFO {
-                            let _ = open_extra_songinfo_window_impl(app, None);
-                        } else if event.id() == TRAY_MENU_QUIT {
-                            app.exit(0);
-                        }
-                    })
+                    .on_menu_event(|app, event| handle_tray_menu_event(app, &event))
                     .build(app.handle())?;
+
+                macos_dock::ensure_dock_icon_visible(app.handle());
+                let dock_menu = macos_dock::build_dock_menu().map_err(|e| -> Box<dyn std::error::Error> {
+                    format!("无法创建程序坞菜单: {e}").into()
+                })?;
+                macos_dock::attach_dock_menu(dock_menu);
             }
 
             #[cfg(target_os = "macos")]
@@ -4364,12 +4377,18 @@ fn main() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
-            // 托盘常驻：仅菜单「退出」会带显式 exit code；误关窗口触发的退出请求一律拦截。
-            if let RunEvent::ExitRequested { api, code, .. } = event {
-                if code.is_none() {
+        .run(|app_handle, event| {
+            match event {
+                // 托盘常驻：仅菜单「退出」会带显式 exit code；误关窗口触发的退出请求一律拦截。
+                RunEvent::ExitRequested { api, code, .. } if code.is_none() => {
                     api.prevent_exit();
                 }
+                // 开发模式下 Tauri Ready 会用 bundle 小图覆盖程序坞图标，此处恢复为产品大图标。
+                #[cfg(target_os = "macos")]
+                RunEvent::Ready => {
+                    macos_dock::ensure_dock_icon_visible(app_handle);
+                }
+                _ => {}
             }
         });
 }
