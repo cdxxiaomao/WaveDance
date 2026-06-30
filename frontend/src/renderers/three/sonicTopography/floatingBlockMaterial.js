@@ -107,8 +107,10 @@ void main() {
   targetGlow = mix(targetGlow, brightCool, uBrightness * 0.6);
 
   vec3 currentGlow = mix(uBaseColor2, targetGlow, normElevation) * uGlowIntensity * distFade;
+  vec3 snareTint = mix(uRippleColor, mix(uWarmEdge, uCoolEdge, fract(vSeed * 19.0)), 0.5);
+  vec3 snareColor = mix(vec3(1.0), snareTint, 0.22 + fract(vSeed * 41.0) * 0.48);
   currentGlow = mix(currentGlow, uRippleColor, vRippleAnim.x);
-  currentGlow = mix(currentGlow, vec3(1.0), vRippleAnim.y);
+  currentGlow = mix(currentGlow, snareColor, vRippleAnim.y);
 
   float topIntensity = smoothstep(0.0, 0.4, normElevation);
   float twinkleDistFalloff = smoothstep(60.0, 30.0, centerDist);
@@ -131,7 +133,7 @@ void main() {
   }
 
   col += uRippleColor * vRippleAnim.x * 0.6;
-  col += vec3(1.0) * vRippleAnim.y * 1.2;
+  col += snareColor * vRippleAnim.y * 1.2;
 
   float aerialFog = smoothstep(30.0, 65.0, centerDist);
   vec3 atmosphericColor = mix(uBaseColor1, uBaseColor2, 0.4);

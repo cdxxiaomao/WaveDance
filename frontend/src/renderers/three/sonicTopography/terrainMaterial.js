@@ -194,8 +194,11 @@ void main() {
   targetGlow = mix(targetGlow, brightCool, uBrightness * 0.6);
 
   vec3 currentGlow = mix(uBaseColor2, targetGlow, normElevation) * uGlowIntensity * distFade;
+  float snareAmt = clamp(vRippleSnare, 0.0, 1.0);
+  vec3 snareTint = mix(uRippleColor, mix(uWarmEdge, uCoolEdge, fract(vRand * 19.0)), 0.5);
+  vec3 snareColor = mix(vec3(1.0), snareTint, 0.22 + fract(vRand * 41.0) * 0.48);
   currentGlow = mix(currentGlow, uRippleColor, clamp(vRippleKick, 0.0, 1.0));
-  currentGlow = mix(currentGlow, vec3(1.0), clamp(vRippleSnare, 0.0, 1.0));
+  currentGlow = mix(currentGlow, snareColor, snareAmt);
 
   vec3 bodyColor = mix(uBaseColor1, uBaseColor2, vHeightNorm * distFade);
   vec3 col;
@@ -234,7 +237,7 @@ void main() {
   }
 
   col += uRippleColor * clamp(vRippleKick, 0.0, 1.0) * 0.6;
-  col += vec3(1.0) * clamp(vRippleSnare, 0.0, 1.0) * 1.2;
+  col += snareColor * snareAmt * 1.2;
 
   float aerialFog = smoothstep(30.0, 65.0, centerDist);
   vec3 atmosphericColor = mix(uBaseColor1, uBaseColor2, 0.4);
