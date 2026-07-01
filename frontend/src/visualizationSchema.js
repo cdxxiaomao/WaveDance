@@ -517,7 +517,7 @@ export const PEAK_HOLD_MODES = {
 };
 
 export const DEFAULT_CONFIG = {
-  displayMode: DISPLAY_MODES.line,
+  displayMode: DISPLAY_MODES.threeSoundField2,
   panelStyleMode: PANEL_STYLES.pro,
   freqReversed: false,
   silencePeakGate: 0.0001,

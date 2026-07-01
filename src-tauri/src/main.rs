@@ -392,7 +392,8 @@ fn macos_overlay_window_level(tier: OverlayWindowStackTier, pinned: bool) -> isi
 
 fn is_spectrum_overlay_label(app: &tauri::AppHandle, label: &str) -> bool {
     if label == "main" {
-        return true;
+        let state = app.state::<StreamState>();
+        return spectrum_is_overlay_mode(&state, label);
     }
     if label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX) {
         let state = app.state::<StreamState>();
@@ -683,7 +684,7 @@ fn spectrum_is_overlay_mode(state: &StreamState, label: &str) -> bool {
         .lock()
         .ok()
         .and_then(|m| m.get(label).copied())
-        .unwrap_or(true)
+        .unwrap_or_else(|| if label == "main" { false } else { true })
 }
 
 /// 浮层歌词窗与浮层频谱窗：穿透锁定时隐藏浮动解锁条，仅边缘触发时临时显示。
@@ -707,7 +708,7 @@ fn overlay_uses_edge_reveal_unlock(state: &StreamState, label: &str) -> bool {
 fn app_has_open_traditional_spectrum_window(app: &tauri::AppHandle) -> bool {
     let state = app.state::<StreamState>();
     app.webview_windows().keys().any(|label| {
-        label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX)
+        (label == "main" || label.starts_with(SPECTRUM_WINDOW_LABEL_PREFIX))
             && !spectrum_is_overlay_mode(&state, label)
     })
 }
@@ -1684,12 +1685,21 @@ fn configure_traditional_window(
             .expect("无法获取 macOS 窗口句柄")
             .cast();
         ns_window.setLevel(0);
+        ns_window.setOpaque(true);
         ns_window.setHasShadow(true);
         ns_window.setHidesOnDeactivate(false);
         ns_window.setCanHide(true);
         ns_window.setMovableByWindowBackground(false);
         ns_window.setIgnoresMouseEvents(ignores_mouse_events);
         ns_window.setReleasedWhenClosed(false);
+
+        let mut style_mask = ns_window.styleMask();
+        style_mask |= NSWindowStyleMask::Titled;
+        style_mask |= NSWindowStyleMask::Closable;
+        style_mask |= NSWindowStyleMask::Miniaturizable;
+        style_mask |= NSWindowStyleMask::Resizable;
+        style_mask &= !NSWindowStyleMask::FullSizeContentView;
+        ns_window.setStyleMask(style_mask);
 
         let behavior = ns_window.collectionBehavior()
             & !NSWindowCollectionBehavior::CanJoinAllSpaces
@@ -1724,16 +1734,21 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         return Ok(());
     };
     let state = app.state::<StreamState>();
+    let is_overlay = spectrum_is_overlay_mode(&state, "main");
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let blur_enabled = label_blur_enabled(&state, "main");
     let ignore_mouse = label_passthrough_locked(&state, "main");
-    configure_overlay_window(
-        window,
-        OverlayWindowStackTier::Spectrum,
-        pinned,
-        blur_enabled,
-        ignore_mouse,
-    )?;
+    if is_overlay {
+        configure_overlay_window(
+            window,
+            OverlayWindowStackTier::Spectrum,
+            pinned,
+            blur_enabled,
+            ignore_mouse,
+        )?;
+    } else {
+        configure_traditional_window(window, blur_enabled, ignore_mouse)?;
+    }
     raise_now_playing_overlay_windows(app)
 }
 
@@ -1743,9 +1758,14 @@ fn refresh_main_overlay_window(app: &tauri::AppHandle) -> tauri::Result<()> {
         return Ok(());
     };
     let state = app.state::<StreamState>();
+    let is_overlay = spectrum_is_overlay_mode(&state, "main");
     let pinned = state.overlay_pinned.load(Ordering::SeqCst);
     let ignore_mouse = label_passthrough_locked(&state, "main");
-    window.set_always_on_top(pinned)?;
+    if is_overlay {
+        window.set_always_on_top(pinned)?;
+    } else {
+        window.set_always_on_top(false)?;
+    }
     window.set_ignore_cursor_events(ignore_mouse)?;
     raise_now_playing_overlay_windows(app)
 }
@@ -4163,8 +4183,8 @@ fn main() {
         .setup(move |app| -> Result<(), Box<dyn std::error::Error>> {
             #[cfg(target_os = "macos")]
             {
-                app.set_activation_policy(ActivationPolicy::Accessory);
                 refresh_main_overlay_window(app.handle())?;
+                sync_app_activation_policy(app.handle());
             }
             create_main_toolbar_window(app.handle()).map_err(|e| -> Box<dyn std::error::Error> {
                 e.into()

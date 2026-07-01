@@ -19,7 +19,7 @@ export function deriveGridSettings(densityPercent, baseSize = TERRAIN_BASE_SIZE)
   const density = Math.min(100, Math.max(0, Number(densityPercent) || 0));
   const gridSize = Math.round(TERRAIN_MIN_GRID + (TERRAIN_MAX_GRID - TERRAIN_MIN_GRID) * (density / 100));
   const spacing = baseSize / gridSize;
-  const boxWidth = spacing * (0.9 / 1.05);
+  const boxWidth = spacing;
   return {
     gridSize,
     spacing,
@@ -40,7 +40,7 @@ export function gridSizeFromPreset(preset) {
 export function resolveGridFromPreset(preset, baseSize = TERRAIN_BASE_SIZE) {
   const gridSize = gridSizeFromPreset(preset);
   const spacing = baseSize / gridSize;
-  const boxWidth = spacing * (0.9 / 1.05);
+  const boxWidth = spacing;
   return {
     gridSize,
     spacing,
