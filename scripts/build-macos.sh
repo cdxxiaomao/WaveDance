@@ -23,8 +23,11 @@ fi
 echo "==> 2) 构建前端静态资源"
 npm run build
 
-echo "==> 3) 构建 macOS 安装包（dmg + app）"
+echo "==> 3) 构建 macOS 安装包（app + 自定义 DMG）"
 cd "$TAURI_DIR"
-CI=false cargo tauri build
+CI=false cargo tauri build --bundles app
+
+echo "==> 4) 用自定义脚本生成带 BlackHole 驱动的 DMG"
+"$ROOT_DIR/scripts/build-dmg-with-blackhole.sh"
 
 echo "==> 完成，产物目录：$TAURI_DIR/target/release/bundle"
